@@ -14,33 +14,36 @@
 - Routing: `/` → Home, `/listing/:id` → Detail, `/create` → Create Listing
 - `Navbar.jsx` — fixed nav, scroll-aware, mobile hamburger
 - `Button.jsx` — reusable, 4 variants, 3 sizes
-- `ListingCard.jsx` — image, badge, price, rating, availability
-- `Home.jsx` — hero, search, category filter, listing grid
-- `ListingDetail.jsx` — image gallery, pricing, booking date picker
-- `CreateListing.jsx` — full form, image upload preview, validation
-- `constants/index.js` — 6 dummy listings + categories
-- `hooks/useListings.js` — stub ready for API
+- `ListingCard.jsx` — supports both API shape and dummy data shape
+- `Home.jsx` — fetches real listings, loading skeleton, error state, search + category filter
+- `ListingDetail.jsx` — fetches real listing by ID, loading skeleton, booking widget
+- `CreateListing.jsx` — connected to API, auto deposit suggestion, redirects on success
+- `constants/index.js` — categories list
+- `hooks/useListings.js` — `useListings(filters)` + `useListing(id)` — real API
 - `hooks/useAuth.js` — connected to real backend auth APIs
-- `services/api.js` — centralized fetch wrapper with JWT + all auth endpoints
+- `services/api.js` — centralized fetch wrapper with JWT + auth + listings endpoints
 - `utils/helpers.js` — formatPrice, calculateDays, calculateRentalTotal, truncate
 
 ### Backend (`server/`)
 - Express + MongoDB (Mongoose) setup
-- Middleware order fixed (cors + json before routes)
+- Middleware order correct (cors + json before routes)
 - `GET /api/test` — health check route
 - **Auth System (MVP)**
-  - `POST /api/auth/phone/send-otp` — generates + stores OTP in memory
-  - `POST /api/auth/phone/verify-otp` — validates OTP, returns JWT + user
-  - `POST /api/auth/email/send-otp` — same as phone flow
-  - `POST /api/auth/email/verify-otp` — same as phone flow
-  - `POST /api/auth/google` — mock Google login, returns JWT + user
+  - `POST /api/auth/phone/send-otp` + `verify-otp`
+  - `POST /api/auth/email/send-otp` + `verify-otp`
+  - `POST /api/auth/google` — mock Google login
+  - JWT middleware — protects private routes
+- **Listings System (MVP)**
+  - `GET /api/listings` — all active listings (filter by category, occasion, city)
+  - `GET /api/listings/:id` — single listing
+  - `POST /api/listings` — create listing (JWT protected)
+- `Listing` model — full schema with userId ref, category, occasion, size, condition, location, images
+- `listingService.js` — createListing, getAllListings, getListingById
+- `listingController.js` — clean handlers, delegates to service
+- `listingRoutes.js` — GET public, POST protected
 - `User` model — phone, email, googleId, name, timestamps
-- `authService.js` — OTP gen/store/validate, JWT gen, find-or-create user
-- `authController.js` — clean handlers, no business logic
-- `authMiddleware.js` — real JWT verification, attaches `req.user`
-- `helper.js` — `successResponse` + `errorResponse`
-- `jsonwebtoken` added to dependencies
-- `.env.example` created
+- `authService.js`, `authController.js`, `authMiddleware.js`
+- `helper.js` — successResponse + errorResponse
 
 ### Docs
 - `docs/PRD.md` — product overview, MVP scope

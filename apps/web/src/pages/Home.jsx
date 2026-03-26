@@ -1,18 +1,25 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import ListingCard from '../components/ui/ListingCard'
-import { DUMMY_LISTINGS, CATEGORIES } from '../constants'
+import { useListings } from '../hooks/useListings'
+import { CATEGORIES } from '../constants'
 
 const Home = () => {
   const [activeCategory, setActiveCategory] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const filtered = DUMMY_LISTINGS.filter((l) => {
-    const matchesCategory = activeCategory === 'All' || l.category === activeCategory
+  // Fetch from real API — pass category filter (skip 'All')
+  const { listings, loading, error } = useListings(
+    activeCategory !== 'All' ? { category: activeCategory } : {}
+  )
+
+  // Client-side search filter on top of API results
+  const filtered = listings.filter((l) => {
     const matchesSearch =
       l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.category.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesCategory && matchesSearch
+      l.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.location?.area?.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesSearch
   })
 
   return (
@@ -72,9 +79,9 @@ const Home = () => {
 
       {/* Listings Section */}
       <section id="listings" className="px-6 pb-20 max-w-6xl mx-auto">
-        {/* Search + Filter bar */}
-        <div className="mb-8 flex flex-col sm:flex-row gap-4">
-          {/* Search */}
+
+        {/* Search */}
+        <div className="mb-8">
           <div className="relative flex-1">
             <svg
               className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#AAA]"
@@ -112,24 +119,52 @@ const Home = () => {
           ))}
         </div>
 
-        {/* Results count */}
-        <p className="text-xs text-[#999] mb-6 tracking-wide">
-          {filtered.length} outfit{filtered.length !== 1 ? 's' : ''} available
-          {activeCategory !== 'All' ? ` in ${activeCategory}` : ''}
-        </p>
-
-        {/* Grid */}
-        {filtered.length > 0 ? (
+        {/* Loading State */}
+        {loading && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {filtered.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse">
+                <div className="bg-[#F0EBE3] aspect-3/4" />
+                <div className="p-4 space-y-2">
+                  <div className="h-3 bg-[#F0EBE3] rounded w-3/4" />
+                  <div className="h-3 bg-[#F0EBE3] rounded w-1/2" />
+                  <div className="h-4 bg-[#F0EBE3] rounded w-1/3 mt-2" />
+                </div>
+              </div>
             ))}
           </div>
-        ) : (
-          <div className="text-center py-20">
-            <p className="text-4xl mb-3">🪭</p>
-            <p className="text-[#999] text-sm">No outfits found. Try a different filter.</p>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="text-center py-16">
+            <p className="text-4xl mb-3">⚠️</p>
+            <p className="text-[#999] text-sm">Could not load listings. Is the server running?</p>
+            <p className="text-xs text-[#CCC] mt-1">{error}</p>
           </div>
+        )}
+
+        {/* Results */}
+        {!loading && !error && (
+          <>
+            <p className="text-xs text-[#999] mb-6 tracking-wide">
+              {filtered.length} outfit{filtered.length !== 1 ? 's' : ''} available
+              {activeCategory !== 'All' ? ` in ${activeCategory}` : ''}
+            </p>
+
+            {filtered.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                {filtered.map((listing) => (
+                  <ListingCard key={listing._id} listing={listing} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <p className="text-4xl mb-3">🪭</p>
+                <p className="text-[#999] text-sm">No outfits found. Try a different filter.</p>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>

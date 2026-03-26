@@ -30,10 +30,8 @@ export const api = async (endpoint, options = {}) => {
 // Auth API calls
 // ----------------------------
 export const authApi = {
-  // Test
   test: () => api("/api/test"),
 
-  // Phone OTP
   sendPhoneOtp: (phone) =>
     api("/api/auth/phone/send-otp", {
       method: "POST",
@@ -46,7 +44,6 @@ export const authApi = {
       body: JSON.stringify({ phone, otp }),
     }),
 
-  // Email OTP
   sendEmailOtp: (email) =>
     api("/api/auth/email/send-otp", {
       method: "POST",
@@ -59,10 +56,34 @@ export const authApi = {
       body: JSON.stringify({ email, otp }),
     }),
 
-  // Google Login (mock)
   googleLogin: (email, name, googleId) =>
     api("/api/auth/google", {
       method: "POST",
       body: JSON.stringify({ email, name, googleId }),
+    }),
+};
+
+// ----------------------------
+// Listings API calls
+// ----------------------------
+export const listingsApi = {
+  // GET /api/listings?category=&occasion=&city=
+  getAll: (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.category) params.append("category", filters.category);
+    if (filters.occasion) params.append("occasion", filters.occasion);
+    if (filters.city) params.append("city", filters.city);
+    const query = params.toString() ? `?${params.toString()}` : "";
+    return api(`/api/listings${query}`);
+  },
+
+  // GET /api/listings/:id
+  getById: (id) => api(`/api/listings/${id}`),
+
+  // POST /api/listings (protected)
+  create: (data) =>
+    api("/api/listings", {
+      method: "POST",
+      body: JSON.stringify(data),
     }),
 };
