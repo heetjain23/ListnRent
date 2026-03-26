@@ -1,8 +1,23 @@
 import express from "express";
-import { sendOtp } from "../controllers/authController.js";
+import {
+  sendPhoneOtp,
+  verifyPhoneOtp,
+  sendEmailOtp,
+  verifyEmailOtp,
+  googleLogin,
+} from "../controllers/authController.js";
 
 const router = express.Router();
 
-router.post("/send-otp", sendOtp);
+// Phone OTP
+router.post("/phone/send-otp", sendPhoneOtp);
+router.post("/phone/verify-otp", verifyPhoneOtp);
+
+// Email OTP
+router.post("/email/send-otp", sendEmailOtp);
+router.post("/email/verify-otp", verifyEmailOtp);
+
+// Google Login (mock)
+router.post("/google", googleLogin);
 
 export default router;
