@@ -58,4 +58,23 @@ export const listingsApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
+  // GET /api/listings/user/listings/all (protected)
+  getUserListings: () =>
+    api("/api/listings/user/listings/all", {
+      method: "GET",
+    }),
+
+  // PATCH /api/listings/:id (protected)
+  update: (id, data) =>
+    api(`/api/listings/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  // DELETE /api/listings/:id (protected)
+  delete: (id) =>
+    api(`/api/listings/${id}`, {
+      method: "DELETE",
+    }),
 };

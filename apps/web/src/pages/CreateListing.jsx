@@ -41,7 +41,6 @@ const CreateListing = () => {
     size: '',
     condition: '',
     pricePerDay: '',
-    deposit: '',
     description: '',
     area: '',
   })
@@ -51,11 +50,6 @@ const CreateListing = () => {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }))
-
-    // Auto-suggest deposit = 2x price
-    if (name === 'pricePerDay' && value && !form.deposit) {
-      setForm((prev) => ({ ...prev, deposit: String(Number(value) * 2) }))
-    }
   }
 
   const handleImageChange = (e) => {
@@ -79,8 +73,6 @@ const CreateListing = () => {
     if (!form.condition) newErrors.condition = 'Required'
     if (!form.pricePerDay || isNaN(form.pricePerDay) || Number(form.pricePerDay) < 1)
       newErrors.pricePerDay = 'Valid price required'
-    if (!form.deposit || isNaN(form.deposit) || Number(form.deposit) < 0)
-      newErrors.deposit = 'Valid deposit required'
     if (!form.description.trim()) newErrors.description = 'Required'
     if (!form.area.trim()) newErrors.area = 'Required'
     return newErrors
@@ -108,14 +100,15 @@ const CreateListing = () => {
       const cloudinaryUrls = await uploadMultipleImages(imageFiles)
       setUploading(false)
 
+      const pricePerDay = Number(form.pricePerDay)
       const payload = {
         title: form.title,
         category: form.category,
         occasion: form.occasion,
         size: form.size,
         condition: form.condition,
-        pricePerDay: Number(form.pricePerDay),
-        deposit: Number(form.deposit),
+        pricePerDay: pricePerDay,
+        deposit: pricePerDay * 2, // Auto-calculate as 2x rental price
         description: form.description,
         location: { area: form.area, city: 'Mumbai' },
         images: cloudinaryUrls, // Use Cloudinary URLs
@@ -262,26 +255,20 @@ const CreateListing = () => {
             </Field>
           </div>
 
-          {/* Price + Deposit */}
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Rental Price / day (₹)" error={errors.pricePerDay} required>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#AAA]">₹</span>
-                <input name="pricePerDay" type="number" value={form.pricePerDay}
-                  onChange={handleChange} placeholder="e.g. 450" min="1"
-                  className={`${inputClass(errors.pricePerDay)} pl-7`} />
-              </div>
-            </Field>
-            <Field label="Refundable Deposit (₹)" error={errors.deposit} required>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#AAA]">₹</span>
-                <input name="deposit" type="number" value={form.deposit}
-                  onChange={handleChange} placeholder="e.g. 900" min="0"
-                  className={`${inputClass(errors.deposit)} pl-7`} />
-              </div>
-            </Field>
-          </div>
-          <p className="text-xs text-[#AAA] -mt-3">Deposit auto-suggested as 2× rental price</p>
+          {/* Price with Deposit Info */}
+          <Field label="Rental Price / day (₹)" error={errors.pricePerDay} required>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#AAA]">₹</span>
+              <input name="pricePerDay" type="number" value={form.pricePerDay}
+                onChange={handleChange} placeholder="e.g. 450" min="1"
+                className={`${inputClass(errors.pricePerDay)} pl-7`} />
+            </div>
+          </Field>
+          {form.pricePerDay && !errors.pricePerDay && (
+            <p className="text-xs text-[#666] -mt-3 bg-[#FEF3EB] p-2 rounded">
+              ✓ Refundable deposit will be <strong>₹{Number(form.pricePerDay) * 2}</strong> (2× rental price)
+            </p>
+          )}
 
           {/* Area */}
           <Field label="Your Area" error={errors.area} required>

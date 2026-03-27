@@ -8,7 +8,6 @@ dotenv.config();
 import "./config/firebase-admin.js";
 
 import { connectDB } from "./config/db.js";
-import authRoutes from "./routes/authRoutes.js";
 import listingRoutes from "./routes/listingRoutes.js";
 
 const app = express();
@@ -23,7 +22,6 @@ app.get("/api/test", (req, res) => {
 });
 
 // Routes
-app.use("/api/auth", authRoutes);
 app.use("/api/listings", listingRoutes);
 
 // Global Error Handler

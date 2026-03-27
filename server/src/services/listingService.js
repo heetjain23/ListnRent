@@ -36,3 +36,69 @@ export const getListingById = async (id) => {
   );
   return listing;
 };
+
+// ----------------------------
+// Get All Listings by User ID (including inactive)
+// ----------------------------
+export const getUserListings = async (userId) => {
+  const listings = await Listing.find({ userId })
+    .sort({ createdAt: -1 });
+  return listings;
+};
+
+// ----------------------------
+// Update Listing (owner only)
+// ----------------------------
+export const updateListing = async (id, userId, data) => {
+  const listing = await Listing.findById(id);
+
+  if (!listing) {
+    throw new Error("Listing not found");
+  }
+
+  if (listing.userId !== userId) {
+    throw new Error("Unauthorized: You can only update your own listings");
+  }
+
+  // Fields that can be updated
+  const updatableFields = [
+    "title",
+    "category",
+    "occasion",
+    "size",
+    "description",
+    "pricePerDay",
+    "deposit",
+    "condition",
+    "images",
+    "location",
+    "isActive",
+  ];
+
+  for (const field of updatableFields) {
+    if (data[field] !== undefined) {
+      listing[field] = data[field];
+    }
+  }
+
+  const updated = await listing.save();
+  return updated;
+};
+
+// ----------------------------
+// Delete Listing (owner only)
+// ----------------------------
+export const deleteListing = async (id, userId) => {
+  const listing = await Listing.findById(id);
+
+  if (!listing) {
+    throw new Error("Listing not found");
+  }
+
+  if (listing.userId !== userId) {
+    throw new Error("Unauthorized: You can only delete your own listings");
+  }
+
+  await Listing.deleteOne({ _id: id });
+  return { success: true, message: "Listing deleted successfully" };
+};

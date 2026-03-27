@@ -1,18 +1,42 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useUserListings } from '../hooks/useUserListings'
 import Button from '../components/ui/Button'
+import UserListingItem from '../components/ui/UserListingItem'
+import EditListingModal from '../components/ui/EditListingModal'
 
 const Dashboard = () => {
   const navigate = useNavigate()
-  const { user, logout, loading } = useAuth()
+  const { user, logout, loading: authLoading } = useAuth()
+  const {
+    listings,
+    loading: listingsLoading,
+    error: listingsError,
+    fetchUserListings,
+    updateListing,
+    deleteListing,
+    toggleListingActive,
+  } = useUserListings(false)
+
+  const [editingId, setEditingId] = useState(null)
+  const [editingListing, setEditingListing] = useState(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [showOnlyActive, setShowOnlyActive] = useState(false)
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       navigate('/login')
     }
-  }, [user, loading, navigate])
+  }, [user, authLoading, navigate])
+
+  // Fetch user listings when user is available
+  useEffect(() => {
+    if (user) {
+      fetchUserListings()
+    }
+  }, [user, fetchUserListings])
 
   const handleLogout = async () => {
     try {
@@ -23,7 +47,31 @@ const Dashboard = () => {
     }
   }
 
-  if (loading) {
+  const handleEditClick = (id) => {
+    const listing = listings.find((l) => l._id === id)
+    setEditingListing(listing)
+    setEditingId(id)
+  }
+
+  const handleSaveListing = async (formData) => {
+    try {
+      setIsSaving(true)
+      await updateListing(editingId, formData)
+      setEditingId(null)
+      setEditingListing(null)
+    } catch (error) {
+      console.error('Save error:', error)
+      throw error
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const filteredListings = showOnlyActive
+    ? listings.filter((l) => l.isActive)
+    : listings
+
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center pt-20">
         <div className="text-center">
@@ -40,15 +88,15 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] pt-20 pb-8">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[#1A1A1A] mb-2">Dashboard</h1>
-          <p className="text-[#666]">Manage your RentFit account</p>
+          <p className="text-[#666]">Manage your RentFit account and listings</p>
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-[#E8E0D5] p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-[#E8E0D5] p-6 mb-8">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-4">
               {user.photoURL && (
@@ -75,6 +123,16 @@ const Dashboard = () => {
                 <p className="text-[#1A1A1A] font-medium">{user.email}</p>
               </div>
               <div>
+                <p className="text-[#999] text-xs uppercase tracking-wide">Total Listings</p>
+                <p className="text-[#1A1A1A] font-medium">{listings.length}</p>
+              </div>
+              <div>
+                <p className="text-[#999] text-xs uppercase tracking-wide">Active Listings</p>
+                <p className="text-[#1A1A1A] font-medium">
+                  {listings.filter((l) => l.isActive).length}
+                </p>
+              </div>
+              <div>
                 <p className="text-[#999] text-xs uppercase tracking-wide">Display Name</p>
                 <p className="text-[#1A1A1A] font-medium">{user.displayName || 'Not set'}</p>
               </div>
@@ -83,37 +141,113 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Button
             onClick={() => navigate('/#listings')}
-            className="bg-[#1A1A1A] text-white hover:bg-[#C8622A] w-full justify-center"
+            variant="secondary"
             size="lg"
+            className="w-full justify-center"
           >
             ← Browse Collection
           </Button>
 
           <Button
             onClick={() => navigate('/create')}
-            className="bg-[#C8622A] text-white hover:bg-[#1A1A1A] w-full justify-center"
+            variant="accent"
             size="lg"
+            className="w-full justify-center"
           >
             + List New Outfit
           </Button>
-        </div>
 
-        {/* Logout */}
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-[#666] mb-3">
-            Ready to sign out? You can always sign back in anytime.
-          </p>
           <Button
             onClick={handleLogout}
-            className="bg-red-600 text-white hover:bg-red-700"
+            variant="ghost"
             size="lg"
+            className="w-full justify-center"
           >
             🚪 Sign Out
           </Button>
         </div>
+
+        {/* Your Listings Section */}
+        <div className="bg-white rounded-lg shadow-sm border border-[#E8E0D5] p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-2xl font-bold text-[#1A1A1A]">Your Listings</h3>
+              <p className="text-[#666] text-sm mt-1">
+                Manage and track all your listed outfits
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-[#666] flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showOnlyActive}
+                  onChange={(e) => setShowOnlyActive(e.target.checked)}
+                  className="w-4 h-4 rounded"
+                />
+                Show active only
+              </label>
+            </div>
+          </div>
+
+          {listingsError && (
+            <div className="mb-4 p-4 bg-[#FFE8E0] text-[#C8622A] rounded-lg">
+              {listingsError}
+            </div>
+          )}
+
+          {listingsLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="text-center">
+                <div className="text-3xl animate-spin mb-2">⏳</div>
+                <p className="text-[#666]">Loading your listings...</p>
+              </div>
+            </div>
+          ) : filteredListings.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-3">📦</div>
+              <h4 className="text-lg font-semibold text-[#1A1A1A] mb-2">No listings yet</h4>
+              <p className="text-[#666] mb-6">
+                {showOnlyActive
+                  ? 'You have no active listings. Create one or reactivate an inactive listing.'
+                  : 'Start listing your outfits to earn by renting them out!'}
+              </p>
+              <Button
+                onClick={() => navigate('/create')}
+                variant="accent"
+              >
+                Create Your First Listing
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredListings.map((listing) => (
+                <UserListingItem
+                  key={listing._id}
+                  listing={listing}
+                  onEdit={handleEditClick}
+                  onDelete={deleteListing}
+                  onToggleActive={toggleListingActive}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Edit Modal */}
+        {editingListing && (
+          <EditListingModal
+            listing={editingListing}
+            onClose={() => {
+              setEditingId(null)
+              setEditingListing(null)
+            }}
+            onSave={handleSaveListing}
+            loading={isSaving}
+          />
+        )}
       </div>
     </div>
   )
