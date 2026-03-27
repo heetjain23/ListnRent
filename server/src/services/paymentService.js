@@ -9,10 +9,6 @@ try {
   const keyId = (process.env.RAZORPAY_KEY_ID || "").trim();
   const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim();
   
-  console.log("[Razorpay] Environment check:");
-  console.log("[Razorpay] - KEY_ID present:", !!keyId, `(starts with: ${keyId.substring(0, 15)}...)`);
-  console.log("[Razorpay] - SECRET present:", !!keySecret, `(length: ${keySecret.length})`);
-  
   if (!keyId || !keySecret) {
     throw new Error(`Missing credentials - ID: ${!!keyId}, SECRET: ${!!keySecret}`);
   }
