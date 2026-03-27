@@ -85,11 +85,11 @@ const Dashboard = () => {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <Button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/#listings')}
             className="bg-[#1A1A1A] text-white hover:bg-[#C8622A] w-full justify-center"
             size="lg"
           >
-            ← Browse Listings
+            ← Browse Collection
           </Button>
 
           <Button

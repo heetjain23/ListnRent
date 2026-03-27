@@ -48,14 +48,14 @@ const Navbar = () => {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-8">
-          <Link
-            to="/"
+          <a
+            href="/#listings"
             className={`text-sm font-medium tracking-wide transition-colors hover:text-[#C8622A] ${
               location.pathname === '/' ? 'text-[#C8622A]' : 'text-[#555]'
             }`}
           >
-            Browse
-          </Link>
+            Browse Collection
+          </a>
 
           {/* List Outfit - Only show if authenticated */}
           {!loading && user && (
@@ -111,16 +111,12 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-[#FAF7F2] border-t border-[#E8E0D5] px-6 py-4 flex flex-col gap-4">
-          <Link to="/" className="text-sm font-medium text-[#555] hover:text-[#C8622A] transition-colors">
-            Browse Outfits
-          </Link>
-
-          {/* List Your Outfit - Only show if authenticated */}
-          {!loading && user && (
+          <a href="/#listings" className="text-sm font-medium text-[#555] hover:text-[#C8622A] transition-colors">
+            Browse Collection
+          </a>
             <Link to="/create" className="text-sm font-medium text-[#C8622A]">
               + List Your Outfit
             </Link>
-          )}
 
           {/* Mobile Auth Section */}
           {!loading && user ? (
