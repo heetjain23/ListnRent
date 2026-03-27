@@ -79,7 +79,7 @@ const MyOrders = () => {
                 {/* Left: Image and Details */}
                 <div className="flex gap-4 flex-1">
                   {booking.listingId?.images?.[0] && (
-                    <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-[#F5F5F5]">
+                    <div className="w-24 h-24 shrink-0 rounded-lg overflow-hidden bg-[#F5F5F5]">
                       <img
                         src={booking.listingId.images[0]}
                         alt={booking.listingId.title}

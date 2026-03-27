@@ -1,0 +1,207 @@
+import React, { useEffect, useState } from 'react'
+import { useRentedListings } from '../../hooks/useRentedListings'
+
+const MyRentalsAsOwner = () => {
+  const { rentedListings, loading, error, fetchRentedListings, relistListing } = useRentedListings()
+  const [relistingId, setRelistingId] = useState(null)
+  const [relistError, setRelistError] = useState(null)
+  const [relistSuccess, setRelistSuccess] = useState(null)
+
+  useEffect(() => {
+    fetchRentedListings()
+  }, [fetchRentedListings])
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+    }).format(amount)
+  }
+
+  const calculateDaysRemaining = (endDate) => {
+    const today = new Date()
+    const end = new Date(endDate)
+    const diffTime = end - today
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays
+  }
+
+  const isRentalCompleted = (endDate) => {
+    return new Date() > new Date(endDate)
+  }
+
+  const handleRelist = async (listingId) => {
+    setRelistingId(listingId)
+    setRelistError(null)
+    setRelistSuccess(null)
+
+    try {
+      await relistListing(listingId)
+      setRelistSuccess(`✓ Outfit relisted successfully! It's now available for new rentals.`)
+      // Refresh the list
+      setTimeout(() => {
+        fetchRentedListings()
+        setRelistSuccess(null)
+      }, 2000)
+    } catch (err) {
+      setRelistError(err.message)
+    } finally {
+      setRelistingId(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="text-4xl animate-spin mb-4">⏳</div>
+          <p className="text-[#666]">Loading rented outfits...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <p className="text-red-800 font-medium">Error loading rented outfits</p>
+        <p className="text-red-600 text-sm mt-2">{error}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">My Rentals (As Owner)</h2>
+        <p className="text-[#666]">Track who's renting your outfits and when to relist them</p>
+      </div>
+
+      {relistSuccess && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p className="text-green-800 font-medium">{relistSuccess}</p>
+        </div>
+      )}
+
+      {rentedListings.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-lg border border-[#E8E0D5]">
+          <div className="text-4xl mb-3">🎉</div>
+          <p className="text-[#666] font-medium">No active rentals</p>
+          <p className="text-[#999] text-sm mt-2">Once someone rents your outfit, it will appear here</p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {rentedListings.map((listing) => {
+            const daysRemaining = calculateDaysRemaining(listing.currentRentalEndDate)
+            const isCompleted = isRentalCompleted(listing.currentRentalEndDate)
+
+            return (
+              <div key={listing._id} className="bg-white rounded-lg border border-[#E8E0D5] overflow-hidden hover:shadow-md transition-shadow">
+                <div className="flex flex-col md:flex-row">
+                  {/* Image Section */}
+                  <div className="w-full md:w-40 h-40 shrink-0 bg-[#F5F5F5]">
+                    {listing.images?.[0] && (
+                      <img
+                        src={listing.images[0]}
+                        alt={listing.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+
+                  {/* Content Section */}
+                  <div className="flex-1 p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Outfit Details */}
+                      <div>
+                        <h3 className="text-lg font-semibold text-[#1A1A1A] mb-4">{listing.title}</h3>
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-xs text-[#999] mb-1">Category</p>
+                            <p className="text-sm font-medium text-[#555]">{listing.category}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-[#999] mb-1">Size</p>
+                            <p className="text-sm font-medium text-[#555]">{listing.size}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Rental Period */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-[#1A1A1A] mb-4">Rental Period</h4>
+                        <div className="space-y-2 text-sm text-[#666]">
+                          <div>
+                            <span className="block text-xs text-[#999] mb-1">From</span>
+                            <span className="font-medium">{formatDate(listing.currentRentalStartDate)}</span>
+                          </div>
+                          <div>
+                            <span className="block text-xs text-[#999] mb-1">To</span>
+                            <span className="font-medium">{formatDate(listing.currentRentalEndDate)}</span>
+                          </div>
+                          <div className="pt-2 border-t border-[#E8E0D5]">
+                            <span className="block text-xs text-[#999] mb-1">Duration</span>
+                            <span className="font-medium">
+                              {Math.ceil((new Date(listing.currentRentalEndDate) - new Date(listing.currentRentalStartDate)) / (1000 * 60 * 60 * 24))} days
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Renter Info & Status */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-[#1A1A1A] mb-4">Renter & Status</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-xs text-[#999] mb-1">Rented to</p>
+                            <p className="text-sm font-medium text-[#555]">{listing.currentRenterId}</p>
+                          </div>
+
+                          {!isCompleted ? (
+                            <div className="bg-blue-50 border border-blue-200 rounded p-2">
+                              <p className="text-xs text-blue-700 font-medium">
+                                ⏱️ {daysRemaining > 0 ? `${daysRemaining} days remaining` : 'Ends today'}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="bg-green-50 border border-green-200 rounded p-2">
+                                <p className="text-xs text-green-700 font-medium">✓ Rental Complete</p>
+                              </div>
+                              {relistError && relistingId === listing._id && (
+                                <div className="bg-red-50 border border-red-200 rounded p-2">
+                                  <p className="text-xs text-red-700">{relistError}</p>
+                                </div>
+                              )}
+                              <button
+                                onClick={() => handleRelist(listing._id)}
+                                disabled={relistingId === listing._id}
+                                className="w-full px-3 py-2 bg-[#C8622A] text-white text-xs font-semibold rounded hover:bg-[#AA5520] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {relistingId === listing._id ? '⏳ Relisting...' : '🔄 Relist Now'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default MyRentalsAsOwner

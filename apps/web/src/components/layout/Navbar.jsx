@@ -125,6 +125,12 @@ const Navbar = () => {
                     >
                       <span>📦</span> My Orders
                     </button>
+                    <button
+                      onClick={() => handleNavigateToDashboard('rentals')}
+                      className="w-full px-4 py-3 text-left text-sm font-medium text-[#555] hover:bg-[#FAF7F2] transition-colors flex items-center gap-2 border-t border-[#E8E0D5]"
+                    >
+                      <span>🏠</span> My Rentals (Owner)
+                    </button>
                   </div>
                 )}
               </div>
@@ -183,6 +189,12 @@ const Navbar = () => {
                   className="block w-full text-left text-sm font-medium text-[#555] mb-2 hover:text-[#1A1A1A] px-2 py-1"
                 >
                   📦 My Orders
+                </button>
+                <button
+                  onClick={() => handleNavigateToDashboard('rentals')}
+                  className="block w-full text-left text-sm font-medium text-[#555] mb-2 hover:text-[#1A1A1A] px-2 py-1"
+                >
+                  🏠 My Rentals (Owner)
                 </button>
                 <div className="border-t border-[#DDD] mt-3 pt-3">
                   <button

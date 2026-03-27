@@ -8,6 +8,7 @@ import UserListingsSection from '../components/dashboard/UserListingsSection'
 import DashboardSidebar from '../components/dashboard/DashboardSidebar'
 import PersonalInformation from '../components/dashboard/PersonalInformation'
 import MyOrders from '../components/dashboard/MyOrders'
+import MyRentalsAsOwner from '../components/dashboard/MyRentalsAsOwner'
 
 const Dashboard = () => {
   const navigate = useNavigate()
@@ -134,6 +135,9 @@ const Dashboard = () => {
 
             {/* My Orders Tab */}
             {activeTab === 'orders' && <MyOrders />}
+
+            {/* My Rentals (As Owner) Tab */}
+            {activeTab === 'rentals' && <MyRentalsAsOwner />}
           </div>
         </div>
 

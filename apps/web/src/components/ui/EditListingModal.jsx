@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Button from './Button'
+import { CATEGORIES } from '../../constants'
 
 const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
   const [formData, setFormData] = useState(null)
@@ -110,14 +111,11 @@ const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
                 className="w-full px-4 py-2 border border-[#E8E0D5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8622A]"
               >
                 <option value="">Select Category</option>
-                <option value="Tuxedo">DESIGNER SUIT/ TUXEDO</option>
-                <option value="Sherwani">INDO-WESTERN/ SHERWANI</option>
-                <option value="Jodhpuri">JODHPURI</option>
-                <option value="Kurta">KURTA JACKET</option>
-                <option value="Blazer">BLAZER/ FORMAL SUIT</option>
-                <option value="Saree">SAREE</option>
-                <option value="Lehenga">LEHENGA</option>
-                <option value="Navratri">NAVRATRI</option>
+                {CATEGORIES.filter((c) => c !== 'All').map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
               </select>
             </div>
 

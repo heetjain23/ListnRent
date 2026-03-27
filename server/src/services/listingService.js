@@ -103,3 +103,93 @@ export const deleteListing = async (id, userId) => {
   await Listing.deleteOne({ _id: id });
   return { success: true, message: "Listing deleted successfully" };
 };
+
+// ----------------------------
+// Mark Listing as Rented
+// ----------------------------
+export const markListingAsRented = async (listingId, booking, renterInfo) => {
+  try {
+    const listing = await Listing.findByIdAndUpdate(
+      listingId,
+      {
+        isRented: true,
+        currentRenterId: booking.userId,
+        currentRentalStartDate: booking.startDate,
+        currentRentalEndDate: booking.endDate,
+        currentBookingId: booking._id,
+        isActive: false,
+      },
+      { new: true }
+    );
+    return listing;
+  } catch (error) {
+    throw new Error(`Failed to mark listing as rented: ${error.message}`);
+  }
+};
+
+// ----------------------------
+// Mark Listing as Available After Rental Period
+// ----------------------------
+export const markListingAsAvailable = async (listingId, booking, renterInfo) => {
+  try {
+    const listing = await Listing.findByIdAndUpdate(
+      listingId,
+      {
+        isRented: false,
+        currentRenterId: null,
+        currentRentalStartDate: null,
+        currentRentalEndDate: null,
+        currentBookingId: null,
+        isActive: true,
+        $push: {
+          rentalHistory: {
+            bookingId: booking._id,
+            renterId: booking.userId,
+            renterEmail: renterInfo?.email || "N/A",
+            renterName: renterInfo?.displayName || "N/A",
+            startDate: booking.startDate,
+            endDate: booking.endDate,
+            totalAmount: booking.totalAmount,
+            rentalDays: booking.totalDays,
+          },
+        },
+      },
+      { new: true }
+    );
+    return listing;
+  } catch (error) {
+    throw new Error(`Failed to mark listing as available: ${error.message}`);
+  }
+};
+
+// ----------------------------
+// Get Rented Listings for Owner
+// ----------------------------
+export const getRentedListings = async (userId) => {
+  try {
+    const listings = await Listing.find({
+      userId,
+      isRented: true,
+    })
+      .populate("currentBookingId")
+      .sort({ currentRentalStartDate: -1 });
+    return listings;
+  } catch (error) {
+    throw new Error(`Failed to get rented listings: ${error.message}`);
+  }
+};
+
+// ----------------------------
+// Get Rental History for a Listing
+// ----------------------------
+export const getListingRentalHistory = async (listingId) => {
+  try {
+    const listing = await Listing.findById(listingId);
+    if (!listing) {
+      throw new Error("Listing not found");
+    }
+    return listing.rentalHistory || [];
+  } catch (error) {
+    throw new Error(`Failed to get rental history: ${error.message}`);
+  }
+};

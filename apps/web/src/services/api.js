@@ -1,10 +1,24 @@
+import { auth } from "./firebase.js";
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // ----------------------------
 // Core fetch wrapper
 // ----------------------------
 export const api = async (endpoint, options = {}) => {
-  const token = localStorage.getItem("auth_token");
+  let token = localStorage.getItem("auth_token");
+
+  // If no token in localStorage, try to get from Firebase
+  if (!token) {
+    try {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        token = await currentUser.getIdToken();
+      }
+    } catch (err) {
+      console.error("Error getting Firebase token:", err);
+    }
+  }
 
   const headers = {
     "Content-Type": "application/json",

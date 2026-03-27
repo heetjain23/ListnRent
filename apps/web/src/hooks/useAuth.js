@@ -26,7 +26,6 @@ export const useAuth = () => {
     setError(null)
     try {
       const userData = await signInWithGoogle()
-      console.log('[Auth] Google login successful:', userData)
       return userData
     } catch (err) {
       const errorMsg = err.message || 'Google login failed'

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../../hooks/useAuth";
+import { auth } from "../../services/firebase";
 import Button from "./Button";
 
 const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onCancel }) => {
@@ -99,11 +100,13 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
     setError(null);
 
     try {
-      // Get the ID token - it's already fetched and stored in user object
-      if (!user || !user.token) {
+      // Get the ID token from Firebase
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
         throw new Error("User not authenticated");
       }
-      const idToken = user.token;
+
+      const idToken = await currentUser.getIdToken();
         
       // Step 1: Create order on backend
       const orderResponse = await fetch("http://localhost:5000/api/payments/create-order", {

@@ -1,12 +1,30 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import Booking from "../models/Booking.js";
-import { getListingById } from "./listingService.js";
+import { getListingById, markListingAsRented } from "./listingService.js";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// Initialize Razorpay with error checking
+let razorpay;
+try {
+  const keyId = (process.env.RAZORPAY_KEY_ID || "").trim();
+  const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim();
+  
+  console.log("[Razorpay] Environment check:");
+  console.log("[Razorpay] - KEY_ID present:", !!keyId, `(starts with: ${keyId.substring(0, 15)}...)`);
+  console.log("[Razorpay] - SECRET present:", !!keySecret, `(length: ${keySecret.length})`);
+  
+  if (!keyId || !keySecret) {
+    throw new Error(`Missing credentials - ID: ${!!keyId}, SECRET: ${!!keySecret}`);
+  }
+  
+  razorpay = new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  });
+  console.log("[Razorpay] ✓ Initialized successfully with test credentials");
+} catch (err) {
+  console.error("[Razorpay] ✗ Initialization error:", err.message);
+}
 
 export const createOrder = async (bookingData) => {
   try {
@@ -20,38 +38,102 @@ export const createOrder = async (bookingData) => {
       depositAmount,
     } = bookingData;
 
+    console.log("[PaymentService] createOrder called with:", bookingData);
+
     // Get listing details
     const listing = await getListingById(listingId);
     if (!listing) {
-      throw new Error("Listing not found");
+      throw new Error(`Listing not found with ID: ${listingId}`);
     }
+    console.log("[PaymentService] Listing found:", listing.title);
 
     // Calculate days and amounts
     const start = new Date(startDate);
     const end = new Date(endDate);
     const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 
+    console.log("[PaymentService] Rental calculation:", { start, end, totalDays });
+
     if (totalDays <= 0) {
       throw new Error("Invalid dates: end date must be after start date");
     }
 
-    const rentalAmount = totalDays * pricePerDay;
-    const totalAmount = rentalAmount + depositAmount;
+    // Ensure numeric values
+    const pricePerDayNum = Number(pricePerDay);
+    const depositAmountNum = Number(depositAmount);
+    
+    if (isNaN(pricePerDayNum) || isNaN(depositAmountNum)) {
+      throw new Error("Invalid price or deposit amount - must be numbers");
+    }
+
+    const rentalAmount = totalDays * pricePerDayNum;
+    const totalAmount = rentalAmount + depositAmountNum;
+
+    console.log("[PaymentService] Amount calculation:", { 
+      pricePerDayNum, 
+      depositAmountNum,
+      rentalAmount, 
+      totalAmount,
+      amountInPaise: Math.round(totalAmount * 100)
+    });
+
+    // Validate amount (Razorpay minimum is typically 1 paise = 0.01 INR)
+    const amountInPaise = Math.round(totalAmount * 100);
+    if (amountInPaise < 1) {
+      throw new Error("Order amount is too small. Minimum is 0.01 INR");
+    }
+
+    // Re-initialize Razorpay if needed
+    if (!razorpay) {
+      console.log("[PaymentService] Razorpay instance missing, re-initializing");
+      const keyId = (process.env.RAZORPAY_KEY_ID || "").trim();
+      const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim();
+      razorpay = new Razorpay({
+        key_id: keyId,
+        key_secret: keySecret,
+      });
+    }
+
+    // Verify Razorpay credentials
+    const keyId = (process.env.RAZORPAY_KEY_ID || "").trim();
+    const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim();
+    
+    if (!keyId || !keySecret) {
+      throw new Error("Razorpay credentials not configured in environment variables");
+    }
 
     // Create Razorpay order
-    const razorpayOrder = await razorpay.orders.create({
-      amount: Math.round(totalAmount * 100), // Amount in paise
-      currency: "INR",
-      receipt: `booking_${Date.now()}`,
-      notes: {
-        listingId,
-        userId,
-        renterId,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        totalDays,
-      },
-    });
+    let razorpayOrder;
+    try {
+      console.log("[PaymentService] Creating Razorpay order with amount (paise):", amountInPaise);
+      
+      const orderPayload = {
+        amount: amountInPaise,
+        currency: "INR",
+        receipt: `booking_${Date.now()}`,
+      };
+      
+      console.log("[PaymentService] Razorpay order payload:", orderPayload);
+      
+      razorpayOrder = await razorpay.orders.create(orderPayload);
+      
+      console.log("[PaymentService] Razorpay order created:", razorpayOrder.id);
+    } catch (razorpayError) {
+      console.error("[PaymentService] Razorpay Error (full):", JSON.stringify(razorpayError, null, 2));
+      console.error("[PaymentService] Razorpay Error (type):", typeof razorpayError);
+      console.error("[PaymentService] Razorpay Error (keys):", Object.keys(razorpayError || {}));
+      console.error("[PaymentService] Razorpay Error (message):", razorpayError?.message);
+      console.error("[PaymentService] Razorpay Error (description):", razorpayError?.description);
+      console.error("[PaymentService] Razorpay Error (statusCode):", razorpayError?.statusCode);
+      
+      const errorMessage = razorpayError?.message || 
+                          razorpayError?.description || 
+                          razorpayError?.error?.description ||
+                          razorpayError?.statusCode ||
+                          JSON.stringify(razorpayError) || 
+                          "Unknown Razorpay error";
+      throw new Error(`Razorpay failed: ${errorMessage}`);
+    }
 
     // Create booking in database with pending status
     const booking = new Booking({
@@ -61,15 +143,17 @@ export const createOrder = async (bookingData) => {
       startDate,
       endDate,
       totalDays,
-      pricePerDay,
+      pricePerDay: pricePerDayNum,
       rentalAmount,
-      depositAmount,
+      depositAmount: depositAmountNum,
       totalAmount,
       paymentStatus: "pending",
       razorpayOrderId: razorpayOrder.id,
     });
 
+    console.log("[PaymentService] Saving booking to database");
     await booking.save();
+    console.log("[PaymentService] Booking saved:", booking._id);
 
     return {
       orderId: razorpayOrder.id,
@@ -79,6 +163,7 @@ export const createOrder = async (bookingData) => {
       key: process.env.RAZORPAY_KEY_ID,
     };
   } catch (error) {
+    console.error("[PaymentService] createOrder error:", error);
     throw new Error(`Failed to create order: ${error.message}`);
   }
 };
@@ -109,11 +194,18 @@ export const verifyPayment = async (paymentData) => {
         bookingStatus: "active",
       },
       { new: true }
-    );
+    ).populate("listingId");
 
     if (!booking) {
       throw new Error("Booking not found");
     }
+
+    // Mark the listing as rented
+    await markListingAsRented(booking.listingId._id, booking, {
+      userId: booking.userId,
+      email: `user_${booking.userId}@rentfit.com`, // Will be updated with actual user data if needed
+      displayName: "Renter",
+    });
 
     return booking;
   } catch (error) {

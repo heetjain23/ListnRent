@@ -7,6 +7,8 @@ import {
   handleGetUserListings,
   handleUpdateListing,
   handleDeleteListing,
+  handleGetRentedListings,
+  handleRelistListing,
 } from "../controllers/listingController.js";
 
 const router = express.Router();
@@ -17,6 +19,8 @@ router.get("/", handleGetAllListings);
 // Protected routes - require Firebase authentication
 router.post("/", verifyFirebaseToken, handleCreateListing);
 router.get("/user/listings/all", verifyFirebaseToken, handleGetUserListings);
+router.get("/user/rented-listings", verifyFirebaseToken, handleGetRentedListings);
+router.post("/relist/:id", verifyFirebaseToken, handleRelistListing);
 
 // Public routes - single listing by ID (must come after specific routes)
 router.get("/:id", handleGetListingById);

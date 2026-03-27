@@ -5,6 +5,8 @@ import {
   getUserListings,
   updateListing,
   deleteListing,
+  getRentedListings,
+  markListingAsAvailable,
 } from "../services/listingService.js";
 import { successResponse, errorResponse } from "../utils/helper.js";
 
@@ -94,5 +96,56 @@ export const handleDeleteListing = async (req, res) => {
     const statusCode = error.message.includes("Unauthorized") ? 403 : 
                       error.message.includes("not found") ? 404 : 500;
     return errorResponse(res, error.message || "Failed to delete listing", statusCode);
+  }
+};
+
+export const handleGetRentedListings = async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const listings = await getRentedListings(userId);
+    return successResponse(res, { listings });
+  } catch (error) {
+    return errorResponse(res, error.message || "Failed to fetch rented listings", 500);
+  }
+};
+
+export const handleRelistListing = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.uid;
+
+    // Get the listing first to verify ownership
+    const listing = await getListingById(id);
+    if (!listing) {
+      return errorResponse(res, "Listing not found", 404);
+    }
+
+    if (listing.userId !== userId) {
+      return errorResponse(res, "Unauthorized: You can only relist your own listings", 403);
+    }
+
+    // Check if rental period has ended
+    if (listing.currentRentalEndDate && new Date() < new Date(listing.currentRentalEndDate)) {
+      return errorResponse(res, "Cannot relist: Rental period is still active", 400);
+    }
+
+    // Mark as available again using the current booking
+    const booking = {
+      _id: listing.currentBookingId,
+      userId: listing.currentRenterId,
+      startDate: listing.currentRentalStartDate,
+      endDate: listing.currentRentalEndDate,
+      totalAmount: 0, // Will be updated from rental history if needed
+      totalDays: 0,
+    };
+
+    const updatedListing = await markListingAsAvailable(id, booking, {
+      email: "N/A",
+      displayName: "N/A",
+    });
+
+    return successResponse(res, { listing: updatedListing });
+  } catch (error) {
+    return errorResponse(res, error.message || "Failed to relist listing", 500);
   }
 };

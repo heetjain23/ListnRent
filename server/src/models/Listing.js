@@ -80,6 +80,46 @@ const listingSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isRented: {
+      type: Boolean,
+      default: false,
+    },
+    currentRenterId: {
+      type: String,
+      default: null, // Firebase UID of current renter
+    },
+    currentRentalStartDate: {
+      type: Date,
+      default: null,
+    },
+    currentRentalEndDate: {
+      type: Date,
+      default: null,
+    },
+    currentBookingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Booking",
+      default: null,
+    },
+    rentalHistory: [
+      {
+        bookingId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Booking",
+        },
+        renterId: String,
+        renterEmail: String,
+        renterName: String,
+        startDate: Date,
+        endDate: Date,
+        totalAmount: Number,
+        rentalDays: Number,
+        completedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   { timestamps: true },
 );

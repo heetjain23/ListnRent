@@ -5,10 +5,11 @@ const DashboardSidebar = ({ activeTab, onTabChange, onLogout }) => {
     { id: 'personal', label: 'Personal Information', icon: '👤' },
     { id: 'listings', label: 'My Listings', icon: '📋' },
     { id: 'orders', label: 'My Orders', icon: '📦' },
+    { id: 'rentals', label: 'My Rentals (Owner)', icon: '🏠' },
   ]
 
   return (
-    <div className="w-full md:w-64 flex-shrink-0">
+    <div className="w-full md:w-64 shrink-0">
       <div className="bg-white rounded-lg border border-[#E8E0D5] overflow-hidden sticky top-24">
         {/* Sidebar Navigation */}
         <nav className="flex flex-col">

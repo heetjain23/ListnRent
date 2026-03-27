@@ -12,6 +12,16 @@ export const handleCreateOrder = async (req, res) => {
     const userId = req.user.uid;
     const { listingId, renterId, startDate, endDate, pricePerDay, depositAmount } = req.body;
 
+    console.log("[Payment Controller] Creating order with data:", {
+      userId,
+      listingId,
+      renterId,
+      startDate,
+      endDate,
+      pricePerDay,
+      depositAmount,
+    });
+
     // Validation
     if (!listingId || !renterId || !startDate || !endDate || !pricePerDay || !depositAmount) {
       return errorResponse(
@@ -27,13 +37,17 @@ export const handleCreateOrder = async (req, res) => {
       renterId,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
-      pricePerDay,
-      depositAmount,
+      pricePerDay: Number(pricePerDay),
+      depositAmount: Number(depositAmount),
     };
 
+    console.log("[Payment Controller] Processed booking data:", bookingData);
+
     const order = await createOrder(bookingData);
+    console.log("[Payment Controller] Order created successfully:", order);
     return successResponse(res, order, 201);
   } catch (error) {
+    console.error("[Payment Controller] Error creating order:", error);
     return errorResponse(res, error.message || "Failed to create order", 500);
   }
 };
