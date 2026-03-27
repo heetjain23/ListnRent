@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useUserListings } from '../hooks/useUserListings'
 import EditListingModal from '../components/ui/EditListingModal'
 import ProfileCard from '../components/dashboard/ProfileCard'
-import QuickActionsSection from '../components/dashboard/QuickActionsSection'
 import UserListingsSection from '../components/dashboard/UserListingsSection'
+import DashboardSidebar from '../components/dashboard/DashboardSidebar'
+import PersonalInformation from '../components/dashboard/PersonalInformation'
+import MyOrders from '../components/dashboard/MyOrders'
 
 const Dashboard = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, logout, loading: authLoading } = useAuth()
   const {
     listings,
@@ -20,6 +23,7 @@ const Dashboard = () => {
     toggleListingActive,
   } = useUserListings(false)
 
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'personal')
   const [editingId, setEditingId] = useState(null)
   const [editingListing, setEditingListing] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -85,31 +89,53 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] pt-20 pb-8">
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[#1A1A1A] mb-2">Dashboard</h1>
-          <p className="text-[#666]">Manage your RentFit account and listings</p>
+          <p className="text-[#666]">Manage your RentFit account, listings, and orders</p>
         </div>
 
-        {/* Profile Card */}
-        <ProfileCard user={user} listings={listings} />
+        {/* Main Layout: Sidebar + Content */}
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Sidebar */}
+          <DashboardSidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />
 
-        {/* Quick Actions */}
-        <QuickActionsSection onLogout={handleLogout} />
+          {/* Content Area */}
+          <div className="flex-1">
+            {/* Personal Information Tab */}
+            {activeTab === 'personal' && <PersonalInformation user={user} />}
 
-        {/* Your Listings Section */}
-        <UserListingsSection
-          listings={listings}
-          loading={listingsLoading}
-          error={listingsError}
-          showOnlyActive={showOnlyActive}
-          onShowOnlyActiveChange={setShowOnlyActive}
-          onEdit={handleEditClick}
-          onDelete={deleteListing}
-          onToggleActive={toggleListingActive}
-          onNavigate={navigate}
-        />
+            {/* My Listings Tab */}
+            {activeTab === 'listings' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">My Listings</h2>
+                  <p className="text-[#666]">Manage your rental outfit listings</p>
+                </div>
+
+                {/* Profile Card */}
+                <ProfileCard user={user} listings={listings} />
+
+                {/* Your Listings Section */}
+                <UserListingsSection
+                  listings={listings}
+                  loading={listingsLoading}
+                  error={listingsError}
+                  showOnlyActive={showOnlyActive}
+                  onShowOnlyActiveChange={setShowOnlyActive}
+                  onEdit={handleEditClick}
+                  onDelete={deleteListing}
+                  onToggleActive={toggleListingActive}
+                  onNavigate={navigate}
+                />
+              </div>
+            )}
+
+            {/* My Orders Tab */}
+            {activeTab === 'orders' && <MyOrders />}
+          </div>
+        </div>
 
         {/* Edit Modal */}
         {editingListing && (

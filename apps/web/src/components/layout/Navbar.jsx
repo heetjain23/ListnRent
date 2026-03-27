@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
+  const profileDropdownRef = useRef(null)
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout, loading } = useAuth()
@@ -19,13 +21,32 @@ const Navbar = () => {
     setMenuOpen(false)
   }, [location.pathname])
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setProfileDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const handleLogout = async () => {
     try {
       await logout()
       navigate('/')
+      setProfileDropdownOpen(false)
     } catch (error) {
       console.error('Logout error:', error)
     }
+  }
+
+  const handleNavigateToDashboard = (tab) => {
+    navigate('/dashboard', { state: { activeTab: tab } })
+    setProfileDropdownOpen(false)
+    setMenuOpen(false)
   }
 
   return (
@@ -71,20 +92,42 @@ const Navbar = () => {
           {/* Auth Section */}
           <div className="flex items-center gap-3 ml-4 border-l border-[#DDD] pl-4">
             {!loading && user ? (
-              <>
-                <Link
-                  to="/dashboard"
-                  className="text-sm font-medium text-[#555] hover:text-[#1A1A1A] transition-colors"
-                >
-                  👤 {user.displayName || 'Profile'}
-                </Link>
+              <div className="relative" ref={profileDropdownRef}>
+                {/* Profile Dropdown Button */}
                 <button
-                  onClick={handleLogout}
-                  className="text-sm font-medium text-[#999] hover:text-red-600 transition-colors"
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="flex items-center gap-2 text-sm font-medium text-[#555] hover:text-[#1A1A1A] transition-colors"
                 >
-                  ↪️ Sign Out
+                  <span>👤 {user.displayName || 'Profile'}</span>
+                  <span className={`transition-transform ${profileDropdownOpen ? 'rotate-180' : ''}`}>
+                    ▼
+                  </span>
                 </button>
-              </>
+
+                {/* Dropdown Menu */}
+                {profileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg border border-[#E8E0D5] shadow-lg z-50 overflow-hidden">
+                    <button
+                      onClick={() => handleNavigateToDashboard('personal')}
+                      className="w-full px-4 py-3 text-left text-sm font-medium text-[#555] hover:bg-[#FAF7F2] transition-colors flex items-center gap-2"
+                    >
+                      <span>👤</span> Personal Information
+                    </button>
+                    <button
+                      onClick={() => handleNavigateToDashboard('listings')}
+                      className="w-full px-4 py-3 text-left text-sm font-medium text-[#555] hover:bg-[#FAF7F2] transition-colors flex items-center gap-2 border-t border-[#E8E0D5]"
+                    >
+                      <span>📋</span> My Listings
+                    </button>
+                    <button
+                      onClick={() => handleNavigateToDashboard('orders')}
+                      className="w-full px-4 py-3 text-left text-sm font-medium text-[#555] hover:bg-[#FAF7F2] transition-colors flex items-center gap-2 border-t border-[#E8E0D5]"
+                    >
+                      <span>📦</span> My Orders
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <Link
                 to="/login"
@@ -122,16 +165,33 @@ const Navbar = () => {
           {!loading && user ? (
             <>
               <div className="border-t border-[#DDD] pt-4">
-                <p className="text-xs text-[#999] mb-2">Logged in as {user.email}</p>
-                <Link to="/dashboard" className="block text-sm font-medium text-[#555] mb-2 hover:text-[#1A1A1A]">
-                  👤 Dashboard
-                </Link>
+                <p className="text-xs text-[#999] mb-3">Logged in as {user.email}</p>
                 <button
-                  onClick={handleLogout}
-                  className="block text-sm font-medium text-red-600 hover:text-red-700"
+                  onClick={() => handleNavigateToDashboard('personal')}
+                  className="block w-full text-left text-sm font-medium text-[#555] mb-2 hover:text-[#1A1A1A] px-2 py-1"
                 >
-                  ↪️ Sign Out
+                  👤 Personal Information
                 </button>
+                <button
+                  onClick={() => handleNavigateToDashboard('listings')}
+                  className="block w-full text-left text-sm font-medium text-[#555] mb-2 hover:text-[#1A1A1A] px-2 py-1"
+                >
+                  📋 My Listings
+                </button>
+                <button
+                  onClick={() => handleNavigateToDashboard('orders')}
+                  className="block w-full text-left text-sm font-medium text-[#555] mb-2 hover:text-[#1A1A1A] px-2 py-1"
+                >
+                  📦 My Orders
+                </button>
+                <div className="border-t border-[#DDD] mt-3 pt-3">
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left text-sm font-medium text-red-600 hover:text-red-700 px-2 py-1"
+                  >
+                    ↪️ Log Out
+                  </button>
+                </div>
               </div>
             </>
           ) : (

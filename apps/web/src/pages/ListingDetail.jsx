@@ -63,7 +63,7 @@ const ListingDetail = () => {
   const handlePaymentSuccess = (booking) => {
     setBookingSuccess(true)
     setTimeout(() => {
-      navigate('/dashboard', { state: { bookingSuccess: true, bookingId: booking._id } })
+      navigate('/dashboard', { state: { bookingSuccess: true, bookingId: booking._id, activeTab: 'orders' } })
     }, 2000)
   }
 
