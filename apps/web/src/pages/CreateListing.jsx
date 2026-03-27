@@ -1,8 +1,10 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import Button from '../components/ui/Button'
 import { CATEGORIES } from '../constants'
 import { listingsApi } from '../services/api'
+import { uploadMultipleImages } from '../services/cloudinary'
 
 const OUTFIT_CATEGORIES = CATEGORIES.filter((c) => c !== 'All')
 const OCCASIONS = ['Wedding', 'Festive', 'Party', 'Casual', 'Other']
@@ -11,11 +13,26 @@ const CONDITIONS = ['New', 'Like New', 'Used']
 
 const CreateListing = () => {
   const navigate = useNavigate()
+  const { user, loading, isAuthenticated } = useAuth()
   const fileInputRef = useRef(null)
   const [previewImages, setPreviewImages] = useState([])
+  const [imageFiles, setImageFiles] = useState([]) // Track actual file objects
+  const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
   const [submitted, setSubmitted] = useState(false)
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/login', {
+        state: {
+          from: { pathname: '/create' },
+          intent: 'create-listing',
+        },
+      })
+    }
+  }, [isAuthenticated, loading, navigate])
 
   const [form, setForm] = useState({
     title: '',
@@ -45,10 +62,12 @@ const CreateListing = () => {
     const files = Array.from(e.target.files)
     const previews = files.map((f) => URL.createObjectURL(f))
     setPreviewImages((prev) => [...prev, ...previews].slice(0, 5))
+    setImageFiles((prev) => [...prev, ...files].slice(0, 5))
   }
 
   const removeImage = (index) => {
     setPreviewImages((prev) => prev.filter((_, i) => i !== index))
+    setImageFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
   const validate = () => {
@@ -75,15 +94,20 @@ const CreateListing = () => {
       return
     }
 
-    // Check auth
-    const token = localStorage.getItem('token')
-    if (!token) {
-      setSubmitError('You must be logged in to create a listing.')
+    // Validate images
+    if (imageFiles.length === 0) {
+      setSubmitError('Please upload at least one image')
       return
     }
 
     setSubmitting(true)
+    setUploading(true)
     try {
+      // Upload images to Cloudinary
+      console.log('[Listing] Uploading', imageFiles.length, 'images to Cloudinary...')
+      const cloudinaryUrls = await uploadMultipleImages(imageFiles)
+      setUploading(false)
+
       const payload = {
         title: form.title,
         category: form.category,
@@ -94,15 +118,18 @@ const CreateListing = () => {
         deposit: Number(form.deposit),
         description: form.description,
         location: { area: form.area, city: 'Mumbai' },
-        images: previewImages, // In production: upload to S3/Cloudinary first
+        images: cloudinaryUrls, // Use Cloudinary URLs
+        userId: user?.uid || 'anonymous', // Include user ID from Firebase
       }
 
+      console.log('[Listing] Creating listing with Cloudinary images...')
       const res = await listingsApi.create(payload)
       setSubmitted(true)
       // Navigate to the new listing after short delay
       setTimeout(() => navigate(`/listing/${res.data.listing._id}`), 1500)
     } catch (err) {
       setSubmitError(err.message)
+      setUploading(false)
     } finally {
       setSubmitting(false)
     }
@@ -122,6 +149,21 @@ const CreateListing = () => {
         </p>
       </div>
     )
+  }
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-16 px-6">
+        <div className="text-4xl animate-spin mb-4">⏳</div>
+        <p className="text-[#666]">Checking your authentication...</p>
+      </div>
+    )
+  }
+
+  // Already redirected to login if not authenticated via useEffect
+  if (!isAuthenticated) {
+    return null
   }
 
   return (
@@ -272,8 +314,8 @@ const CreateListing = () => {
 
         <div className="mt-6">
           <Button variant="accent" fullWidth size="lg"
-            onClick={handleSubmit} disabled={submitting}>
-            {submitting ? 'Submitting…' : 'Submit Listing →'}
+            onClick={handleSubmit} disabled={submitting || uploading}>
+            {uploading ? '📸 Uploading images...' : submitting ? '⏳ Submitting…' : 'Submit Listing →'}
           </Button>
         </div>
       </div>

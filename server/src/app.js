@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Initialize Firebase Admin SDK
+import "./config/firebase-admin.js";
+
 import { connectDB } from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import listingRoutes from "./routes/listingRoutes.js";

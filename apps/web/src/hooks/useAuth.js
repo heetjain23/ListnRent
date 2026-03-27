@@ -1,124 +1,97 @@
-import { useState, useEffect } from "react";
-import { authApi } from "../services/api";
+import { useContext, useState } from 'react'
+import { AuthContext } from '../context/AuthContext'
+import {
+  signInWithGoogle,
+  sendMagicLink,
+  completeMagicLinkSignIn,
+} from '../services/firebase'
 
 export const useAuth = () => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const context = useContext(AuthContext)
 
-  // Load user from localStorage on mount
-  useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-  }, []);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider')
+  }
 
-  const clearError = () => setError(null);
+  const [error, setError] = useState(null)
+  const [loadingAction, setLoadingAction] = useState(false)
 
-  // Phone OTP
-  const sendPhoneOtp = async (phone) => {
-    setLoading(true);
-    setError(null);
+  const clearError = () => setError(null)
+
+  /**
+   * Sign in with Google
+   */
+  const loginWithGoogle = async () => {
+    setLoadingAction(true)
+    setError(null)
     try {
-      const res = await authApi.sendPhoneOtp(phone);
-      console.log("[Auth] OTP sent:", res);
-      return res;
+      const userData = await signInWithGoogle()
+      console.log('[Auth] Google login successful:', userData)
+      return userData
     } catch (err) {
-      setError(err.message);
-      throw err;
+      const errorMsg = err.message || 'Google login failed'
+      setError(errorMsg)
+      throw err
     } finally {
-      setLoading(false);
+      setLoadingAction(false)
     }
-  };
+  }
 
-  const verifyPhoneOtp = async (phone, otp) => {
-    setLoading(true);
-    setError(null);
+  /**
+   * Send magic link to email
+   */
+  const sendMagicLinkToEmail = async (email) => {
+    setLoadingAction(true)
+    setError(null)
     try {
-      const res = await authApi.verifyPhoneOtp(phone, otp);
-      _handleAuthSuccess(res.data);
-      return res;
+      await sendMagicLink(email)
+      console.log('[Auth] Magic link sent to:', email)
+      return { success: true }
     } catch (err) {
-      setError(err.message);
-      throw err;
+      const errorMsg = err.message || 'Failed to send magic link'
+      setError(errorMsg)
+      throw err
     } finally {
-      setLoading(false);
+      setLoadingAction(false)
     }
-  };
+  }
 
-  // Email OTP
-  const sendEmailOtp = async (email) => {
-    setLoading(true);
-    setError(null);
+  /**
+   * Complete magic link sign in
+   */
+  const completeMagicLink = async (email) => {
+    setLoadingAction(true)
+    setError(null)
     try {
-      const res = await authApi.sendEmailOtp(email);
-      console.log("[Auth] OTP sent:", res);
-      return res;
+      const userData = await completeMagicLinkSignIn(email)
+      console.log('[Auth] Magic link signin successful:', userData)
+      return userData
     } catch (err) {
-      setError(err.message);
-      throw err;
+      const errorMsg = err.message || 'Magic link signin failed'
+      setError(errorMsg)
+      throw err
     } finally {
-      setLoading(false);
+      setLoadingAction(false)
     }
-  };
-
-  const verifyEmailOtp = async (email, otp) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await authApi.verifyEmailOtp(email, otp);
-      _handleAuthSuccess(res.data);
-      return res;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Google Login (mock)
-  const googleLogin = async (email, name, googleId) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await authApi.googleLogin(email, name, googleId);
-      _handleAuthSuccess(res.data);
-      return res;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Logout
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUser(null);
-  };
-
-  // Internal: save token + user
-  const _handleAuthSuccess = ({ token, user }) => {
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
-    setUser(user);
-  };
+  }
 
   return {
-    user,
-    loading,
+    // From context
+    user: context.user,
+    isAuthenticated: context.isAuthenticated,
+    loading: context.loading,
+    logout: context.logout,
+
+    // Action states
+    loadingAction,
     error,
     clearError,
-    sendPhoneOtp,
-    verifyPhoneOtp,
-    sendEmailOtp,
-    verifyEmailOtp,
-    googleLogin,
-    logout,
-    isLoggedIn: !!user,
-  };
-};
+
+    // Methods
+    loginWithGoogle,
+    sendMagicLinkToEmail,
+    completeMagicLink,
+  }
+}
+
+export default useAuth

@@ -1,18 +1,18 @@
 import express from "express";
+import { verifyFirebaseToken } from "../middleware/authMiddleware.js";
 import {
   handleCreateListing,
   handleGetAllListings,
   handleGetListingById,
 } from "../controllers/listingController.js";
-import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Public
+// Public routes
 router.get("/", handleGetAllListings);
 router.get("/:id", handleGetListingById);
 
-// Protected
-router.post("/", protect, handleCreateListing);
+// Protected routes - require Firebase authentication
+router.post("/", verifyFirebaseToken, handleCreateListing);
 
 export default router;

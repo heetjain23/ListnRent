@@ -4,7 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 // Core fetch wrapper
 // ----------------------------
 export const api = async (endpoint, options = {}) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("auth_token");
 
   const headers = {
     "Content-Type": "application/json",
@@ -31,36 +31,8 @@ export const api = async (endpoint, options = {}) => {
 // ----------------------------
 export const authApi = {
   test: () => api("/api/test"),
-
-  sendPhoneOtp: (phone) =>
-    api("/api/auth/phone/send-otp", {
-      method: "POST",
-      body: JSON.stringify({ phone }),
-    }),
-
-  verifyPhoneOtp: (phone, otp) =>
-    api("/api/auth/phone/verify-otp", {
-      method: "POST",
-      body: JSON.stringify({ phone, otp }),
-    }),
-
-  sendEmailOtp: (email) =>
-    api("/api/auth/email/send-otp", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    }),
-
-  verifyEmailOtp: (email, otp) =>
-    api("/api/auth/email/verify-otp", {
-      method: "POST",
-      body: JSON.stringify({ email, otp }),
-    }),
-
-  googleLogin: (email, name, googleId) =>
-    api("/api/auth/google", {
-      method: "POST",
-      body: JSON.stringify({ email, name, googleId }),
-    }),
+  // Note: Firebase handles auth on frontend (Google OAuth, Magic Link)
+  // No backend auth endpoints needed for MVP
 };
 
 // ----------------------------

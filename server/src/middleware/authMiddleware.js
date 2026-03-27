@@ -1,8 +1,11 @@
-import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+import admin from "../config/firebase-admin.js";
 import { errorResponse } from "../utils/helper.js";
 
-export const protect = async (req, res, next) => {
+// ----------------------------
+// Firebase Token Verification
+// Verifies Firebase ID tokens from frontend
+// ----------------------------
+export const verifyFirebaseToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -12,16 +15,19 @@ export const protect = async (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select("-__v");
+    // Verify Firebase token
+    const decodedToken = await admin.auth().verifyIdToken(token);
 
-    if (!user) {
-      return errorResponse(res, "User not found.", 401);
-    }
+    // Attach user info to request object
+    req.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email || null,
+      firebaseUid: decodedToken.uid,
+    };
 
-    req.user = user;
     next();
   } catch (err) {
+    console.error("[Auth Error]", err.message);
     return errorResponse(res, "Invalid or expired token.", 401);
   }
 };

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useListing } from '../hooks/useListings'
 import Button from '../components/ui/Button'
+import ProtectedAction from '../components/ProtectedAction'
 
 const ListingDetail = () => {
   const { id } = useParams()
@@ -206,9 +207,21 @@ const ListingDetail = () => {
                 </div>
               )}
 
-              <Button variant="accent" fullWidth>
-                Request to Book
-              </Button>
+              <ProtectedAction
+                actionName="booking"
+                onConfirm={() => {
+                  console.log('[Booking] Request initiated:', {
+                    listingId: listing._id,
+                    startDate,
+                    endDate,
+                  })
+                  // Future: Show booking confirmation modal or redirect to payment
+                }}
+              >
+                <Button variant="accent" fullWidth>
+                  Request to Book
+                </Button>
+              </ProtectedAction>
               <p className="text-xs text-center text-[#AAA] mt-3">
                 You won't be charged yet — booking pending owner approval
               </p>
