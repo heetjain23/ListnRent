@@ -1,16 +1,20 @@
 import React, { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useListing } from '../hooks/useListings'
 import ImageGallerySection from '../components/listing-detail/ImageGallerySection'
 import ListingDetailsSection from '../components/listing-detail/ListingDetailsSection'
 import BookingSection from '../components/listing-detail/BookingSection'
+import PaymentCheckout from '../components/ui/PaymentCheckout'
 
 const ListingDetail = () => {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { listing, loading, error } = useListing(id)
   const [activeImage, setActiveImage] = useState(0)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [showPayment, setShowPayment] = useState(false)
+  const [bookingSuccess, setBookingSuccess] = useState(false)
 
   // Loading skeleton
   if (loading) {
@@ -46,6 +50,39 @@ const ListingDetail = () => {
 
   const available = listing.isActive
 
+  const handleRentClick = () => {
+    console.log('Rent clicked - startDate:', startDate, 'endDate:', endDate)
+    if (!startDate || !endDate) {
+      alert('Please select both start and end dates')
+      return
+    }
+    console.log('Setting showPayment to true')
+    setShowPayment(true)
+  }
+
+  const handlePaymentSuccess = (booking) => {
+    setBookingSuccess(true)
+    setTimeout(() => {
+      navigate('/dashboard', { state: { bookingSuccess: true, bookingId: booking._id } })
+    }, 2000)
+  }
+
+  const handlePaymentCancel = () => {
+    setShowPayment(false)
+  }
+
+  // Show Success Message
+  if (bookingSuccess) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 pt-16">
+        <p className="text-7xl">✅</p>
+        <h2 className="text-2xl font-bold text-[#1A1A1A]">Booking Confirmed!</h2>
+        <p className="text-[#666]">Your rental booking has been successfully created</p>
+        <p className="text-sm text-[#AAA]">Redirecting to dashboard...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="pt-20 pb-20 max-w-5xl mx-auto px-6">
       {/* Breadcrumb */}
@@ -69,16 +106,27 @@ const ListingDetail = () => {
           {/* Listing Details Section */}
           <ListingDetailsSection listing={listing} />
 
-          {/* Booking Section */}
-          <BookingSection
-            listing={listing}
-            startDate={startDate}
-            onStartDateChange={setStartDate}
-            endDate={endDate}
-            onEndDateChange={setEndDate}
-            onRentClick={() => console.log('Rent clicked')}
-            available={available}
-          />
+          {/* Booking Section or Payment Checkout */}
+          {showPayment ? (
+            <PaymentCheckout
+              listing={listing}
+              renterId={listing.userId}
+              startDate={startDate}
+              endDate={endDate}
+              onSuccess={handlePaymentSuccess}
+              onCancel={handlePaymentCancel}
+            />
+          ) : (
+            <BookingSection
+              listing={listing}
+              startDate={startDate}
+              onStartDateChange={setStartDate}
+              endDate={endDate}
+              onEndDateChange={setEndDate}
+              onRentClick={handleRentClick}
+              available={available}
+            />
+          )}
         </div>
       </div>
     </div>

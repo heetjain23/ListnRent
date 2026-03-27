@@ -14,10 +14,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Subscribe to Firebase auth state changes
     const unsubscribe = subscribeToAuthChanges((authUser) => {
+      // Store the full Firebase user object (has getIdToken method)
       setUser(authUser)
       setLoading(false)
 
-      // Persist user and token to localStorage
+      // Persist user info to localStorage
       if (authUser) {
         localStorage.setItem(
           'auth_user',
@@ -26,10 +27,8 @@ export const AuthProvider = ({ children }) => {
             email: authUser.email,
             displayName: authUser.displayName,
             photoURL: authUser.photoURL,
-            token: authUser.token,
           })
         )
-        localStorage.setItem('auth_token', authUser.token)
       } else {
         localStorage.removeItem('auth_user')
         localStorage.removeItem('auth_token')

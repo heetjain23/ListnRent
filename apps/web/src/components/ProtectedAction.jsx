@@ -8,22 +8,22 @@ export const ProtectedAction = ({ children, onConfirm, actionName = 'action' }) 
   const { isAuthenticated } = useAuth()
 
   const handleClick = (e) => {
-    // Check if it's a button click and user is not authenticated
+    // Check if user is not authenticated
     if (!isAuthenticated) {
       e.preventDefault()
       e.stopPropagation()
 
-      // Save the current location to redirect back after login
+      // Redirect to login
       navigate('/login', {
         state: {
-          from: location,
+          from: location.pathname,
           intent: actionName,
         },
       })
       return
     }
 
-    // If authenticated, execute the action
+    // If authenticated, execute the callback
     if (onConfirm && typeof onConfirm === 'function') {
       onConfirm()
     }

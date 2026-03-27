@@ -64,18 +64,22 @@ const BookingSection = ({ listing, startDate, onStartDateChange, endDate, onEndD
       )}
 
       {/* Rent Button */}
+      {!total && (
+        <p className="text-xs text-[#999] text-center mb-3">
+          Select dates to proceed
+        </p>
+      )}
       <ProtectedAction
-        fallbackRoute="/login"
-        fallbackState={{ from: { pathname: `/listing/${listing._id}` }, intent: 'rent' }}
+        onConfirm={onRentClick}
+        actionName="rent"
       >
         <Button
-          onClick={onRentClick}
           disabled={!available || !total}
           variant="accent"
           size="lg"
           className="w-full"
         >
-          {available ? `Rent for ₹${total?.rental + total?.deposit || '0'}` : 'Unavailable'}
+          {!available ? 'Unavailable' : total ? `Rent for ₹${total.rental + total.deposit}` : 'Select Dates'}
         </Button>
       </ProtectedAction>
     </div>
