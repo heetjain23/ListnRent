@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import Button from '../components/ui/Button'
+import AuthHeader from '../components/login/AuthHeader'
+import ErrorMessage from '../components/login/ErrorMessage'
+import GoogleAuthSection from '../components/login/GoogleAuthSection'
+import AuthDivider from '../components/login/AuthDivider'
+import EmailAuthSection from '../components/login/EmailAuthSection'
 
 const Login = () => {
   const navigate = useNavigate()
@@ -61,67 +65,28 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center px-4 pt-20">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-[#1A1A1A] mb-2">Welcome to RentFit</h1>
-          <p className="text-sm text-[#666]">Sign in to continue browsing and renting ethnic wear</p>
-        </div>
+        <AuthHeader />
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-        )}
+        <ErrorMessage error={error} />
 
         {/* Initial Step */}
         {step === 'initial' && (
           <div className="space-y-4">
-            {/* Google Login */}
-            <Button
-              onClick={handleGoogleLogin}
-              disabled={isLoading || loadingAction}
-              className="w-full bg-white border-2 border-[#1A1A1A] text-blue-800 hover:bg-[#1A1A1A] hover:text-white"
-              size="lg"
-            >
-              {isLoading ? 'Signing in...' : '🔑 Continue with Google'}
-            </Button>
+            <GoogleAuthSection
+              onGoogleLogin={handleGoogleLogin}
+              isLoading={isLoading}
+              loadingAction={loadingAction}
+            />
 
-            {/* Divider */}
-            <div className="flex items-center gap-3 my-6">
-              <div className="flex-1 h-px bg-[#DDD]"></div>
-              <span className="text-xs text-[#999] font-medium">OR</span>
-              <div className="flex-1 h-px bg-[#DDD]"></div>
-            </div>
+            <AuthDivider />
 
-            {/* Email Magic Link Form */}
-            <form onSubmit={handleSendMagicLink} className="space-y-3">
-              <div>
-                <label htmlFor="email" className="block text-xs font-semibold text-[#1A1A1A] mb-2 uppercase tracking-wide">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading || loadingAction}
-                  className="w-full px-4 py-3 border-2 border-[#E0E0E0] rounded-lg focus:outline-none focus:border-[#C8622A] text-sm disabled:opacity-50"
-                  required
-                />
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isLoading || loadingAction || !email.trim()}
-                size="lg"
-                className="w-full"
-              >
-                {isLoading ? 'Sending link...' : '✉️ Send Magic Link'}
-              </Button>
-            </form>
-
+            <EmailAuthSection
+              email={email}
+              onEmailChange={setEmail}
+              onSendMagicLink={handleSendMagicLink}
+              isLoading={isLoading}
+              loadingAction={loadingAction}
+            />
             {/* Info Box */}
             <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-xs text-blue-700">
