@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext'
 import { completeMagicLinkSignIn } from './services/firebase'
 import Navbar from './components/layout/Navbar'
 import Home from './pages/Home'
+import Collection from './pages/Collection'
 import ListingDetail from './pages/ListingDetail.jsx'
 import CreateListing from './pages/CreateListing'
 import Login from './pages/Login'
@@ -86,6 +87,7 @@ const App = () => {
           <Navbar />
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/collection" element={<Collection />} />
             <Route path="/listing/:id" element={<ListingDetail />} />
             <Route path="/create" element={<CreateListing />} />
             <Route path="/login" element={<Login />} />

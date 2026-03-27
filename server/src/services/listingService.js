@@ -70,6 +70,7 @@ export const updateListing = async (id, userId, data) => {
     "pricePerDay",
     "deposit",
     "condition",
+    "gender",
     "images",
     "location",
     "isActive",

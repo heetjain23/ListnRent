@@ -48,14 +48,14 @@ const Navbar = () => {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-8">
-          <a
-            href="/#listings"
+          <Link
+            to="/collection"
             className={`text-sm font-medium tracking-wide transition-colors hover:text-[#C8622A] ${
-              location.pathname === '/' ? 'text-[#C8622A]' : 'text-[#555]'
+              location.pathname === '/collection' ? 'text-[#C8622A]' : 'text-[#555]'
             }`}
           >
             Browse Collection
-          </a>
+          </Link>
 
           {/* List Outfit - Only show if authenticated */}
           {!loading && user && (
@@ -111,9 +111,9 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-[#FAF7F2] border-t border-[#E8E0D5] px-6 py-4 flex flex-col gap-4">
-          <a href="/#listings" className="text-sm font-medium text-[#555] hover:text-[#C8622A] transition-colors">
+          <Link to="/collection" className="text-sm font-medium text-[#555] hover:text-[#C8622A] transition-colors">
             Browse Collection
-          </a>
+          </Link>
             <Link to="/create" className="text-sm font-medium text-[#C8622A]">
               + List Your Outfit
             </Link>

@@ -12,6 +12,7 @@ const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
         category: listing.category || '',
         occasion: listing.occasion || '',
         size: listing.size || '',
+        gender: listing.gender || '',
         description: listing.description || '',
         pricePerDay: listing.pricePerDay || '',
         condition: listing.condition || '',
@@ -109,13 +110,14 @@ const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
                 className="w-full px-4 py-2 border border-[#E8E0D5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8622A]"
               >
                 <option value="">Select Category</option>
-                <option value="Saree">Saree</option>
-                <option value="Lehenga">Lehenga</option>
-                <option value="Salwar Suit">Salwar Suit</option>
-                <option value="Sherwani">Sherwani</option>
-                <option value="Kurta">Kurta</option>
-                <option value="Gown">Gown</option>
-                <option value="Other">Other</option>
+                <option value="Tuxedo">DESIGNER SUIT/ TUXEDO</option>
+                <option value="Sherwani">INDO-WESTERN/ SHERWANI</option>
+                <option value="Jodhpuri">JODHPURI</option>
+                <option value="Kurta">KURTA JACKET</option>
+                <option value="Blazer">BLAZER/ FORMAL SUIT</option>
+                <option value="Saree">SAREE</option>
+                <option value="Lehenga">LEHENGA</option>
+                <option value="Navratri">NAVRATRI</option>
               </select>
             </div>
 
@@ -140,6 +142,24 @@ const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
               </select>
             </div>
 
+            {/* Gender */}
+            <div>
+              <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">
+                Gender *
+              </label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleInputChange}
+                required
+                className="w-full px-4 py-2 border border-[#E8E0D5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8622A]"
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+
             {/* Size */}
             <div>
               <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">
@@ -153,14 +173,15 @@ const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
                 className="w-full px-4 py-2 border border-[#E8E0D5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8622A]"
               >
                 <option value="">Select Size</option>
-                <option value="XS">XS</option>
-                <option value="S">S</option>
-                <option value="M">M</option>
-                <option value="L">L</option>
-                <option value="XL">XL</option>
-                <option value="XXL">XXL</option>
-                <option value="Free Size">Free Size</option>
-                <option value="Custom">Custom</option>
+                <option value="XS(34)">XS(34)</option>
+                <option value="S(36)">S(36)</option>
+                <option value="M(38)">M(38)</option>
+                <option value="L(40)">L(40)</option>
+                <option value="XL(42)">XL(42)</option>
+                <option value="XXL(44)">XXL(44)</option>
+                <option value="3XL(46)">3XL(46)</option>
+                <option value="4XL(48)">4XL(48)</option>
+                <option value="5XL(50)">5XL(50)</option>
               </select>
             </div>
 

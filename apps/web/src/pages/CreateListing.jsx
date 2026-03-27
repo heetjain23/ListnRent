@@ -2,14 +2,15 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import Button from '../components/ui/Button'
-import { CATEGORIES } from '../constants'
+import { CATEGORIES, GENDER } from '../constants'
 import { listingsApi } from '../services/api'
 import { uploadMultipleImages } from '../services/cloudinary'
 
 const OUTFIT_CATEGORIES = CATEGORIES.filter((c) => c !== 'All')
-const OCCASIONS = ['Wedding', 'Festive', 'Party', 'Casual', 'Other']
-const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free Size', 'Custom']
+const OCCASIONS = ['DESIGNER SUIT/ TUXEDO','INDO-WESTERN/ SHERWANI','JODHPURI','KURTA JACKET','BLAZER/ FORMAL SUIT','SAREE','LEHENGA','NAVRATRI',]
+const SIZES = ['XS(34)','S(36)','M(38)','L(40)','XL(42)','XXL(44)','3XL(46)','4XL(48)','5XL(50)',]
 const CONDITIONS = ['New', 'Like New', 'Used']
+const GENDERS = GENDER.filter((g) => g !== 'All')
 
 const CreateListing = () => {
   const navigate = useNavigate()
@@ -40,6 +41,7 @@ const CreateListing = () => {
     occasion: '',
     size: '',
     condition: '',
+    gender: '',
     pricePerDay: '',
     description: '',
     area: '',
@@ -71,6 +73,7 @@ const CreateListing = () => {
     if (!form.occasion) newErrors.occasion = 'Required'
     if (!form.size) newErrors.size = 'Required'
     if (!form.condition) newErrors.condition = 'Required'
+    if (!form.gender) newErrors.gender = 'Required'
     if (!form.pricePerDay || isNaN(form.pricePerDay) || Number(form.pricePerDay) < 1)
       newErrors.pricePerDay = 'Valid price required'
     if (!form.description.trim()) newErrors.description = 'Required'
@@ -107,6 +110,7 @@ const CreateListing = () => {
         occasion: form.occasion,
         size: form.size,
         condition: form.condition,
+        gender: form.gender,
         pricePerDay: pricePerDay,
         deposit: pricePerDay * 2, // Auto-calculate as 2x rental price
         description: form.description,
@@ -219,8 +223,8 @@ const CreateListing = () => {
               className={inputClass(errors.title)} />
           </Field>
 
-          {/* Category + Occasion */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Category + Occasion + Gender */}
+          <div className="grid grid-cols-3 gap-4">
             <Field label="Category" error={errors.category} required>
               <select name="category" value={form.category} onChange={handleChange}
                 className={inputClass(errors.category)}>
@@ -233,6 +237,13 @@ const CreateListing = () => {
                 className={inputClass(errors.occasion)}>
                 <option value="">Select…</option>
                 {OCCASIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </Field>
+            <Field label="Gender" error={errors.gender} required>
+              <select name="gender" value={form.gender} onChange={handleChange}
+                className={inputClass(errors.gender)}>
+                <option value="">Select…</option>
+                {GENDERS.map((g) => <option key={g} value={g}>{g}</option>)}
               </select>
             </Field>
           </div>

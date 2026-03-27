@@ -28,13 +28,13 @@ const HeroSection = () => {
           >
             + List Your Outfit
           </Link>
-          <a
-            href="#listings"
+          <Link
+            to="/collection"
             className="inline-flex items-center gap-2 px-7 py-3 border border-[#CCC]
               text-[#1A1A1A] text-sm font-semibold rounded-full hover:border-[#1A1A1A] transition-colors tracking-wide"
           >
             Browse Rentals ↓
-          </a>
+          </Link>
         </div>
       </div>
 

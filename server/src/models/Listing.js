@@ -14,7 +14,16 @@ const listingSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ["Saree", "Lehenga", "Salwar Suit", "Sherwani", "Kurta", "Gown", "Other"],
+      enum: [
+        "DESIGNER SUIT/ TUXEDO",
+        "INDO-WESTERN/ SHERWANI",
+        "JODHPURI",
+        "KURTA JACKET",
+        "BLAZER/ FORMAL SUIT",
+        "SAREE",
+        "LEHENGA",
+        "NAVRATRI",
+      ],
     },
     occasion: {
       type: String,
@@ -24,7 +33,7 @@ const listingSchema = new mongoose.Schema(
     size: {
       type: String,
       required: true,
-      enum: ["XS", "S", "M", "L", "XL", "XXL", "Free Size", "Custom"],
+      enum: ['XS(34)','S(36)','M(38)','L(40)','XL(42)','XXL(44)','3XL(46)','4XL(48)','5XL(50)'],
     },
     description: {
       type: String,
@@ -45,6 +54,11 @@ const listingSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: ["New", "Like New", "Used"],
+    },
+    gender: {
+      type: String,
+      required: true,
+      enum: ["Male", "Female"],
     },
     images: {
       type: [String],
@@ -67,7 +81,7 @@ const listingSchema = new mongoose.Schema(
       default: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("Listing", listingSchema);
