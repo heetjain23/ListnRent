@@ -68,7 +68,7 @@ const CompleteMagicLink = () => {
             <p className="text-red-600 mb-4">{error}</p>
             <a
               href="/login"
-              className="inline-block px-6 py-2 bg-[#1A1A1A] text-white rounded-lg hover:bg-[#C8622A] transition-colors"
+              className="inline-block px-6 py-2 bg-[#1A1A1A] text-white rounded-lg hover:bg-[#004D40] transition-colors"
             >
               ← Back to Login
             </a>
