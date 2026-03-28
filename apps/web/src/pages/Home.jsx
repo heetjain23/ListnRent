@@ -3,6 +3,7 @@ import HeroSection from '../components/home/HeroSection'
 import CuratedOccasionsSection from '../components/home/CuratedOccasionsSection'
 import SeamlessJourneySection from '../components/home/SeamlessJourneySection'
 import TrendingNowSection from '../components/home/TrendingNowSection'
+import NewsletterSection from '../components/home/NewsletterSection'
 import { useListings } from '../hooks/useListings'
 
 const Home = () => {
@@ -19,6 +20,7 @@ const Home = () => {
       <CuratedOccasionsSection />
       <SeamlessJourneySection />
       <TrendingNowSection listings={listings} loading={loading} />
+      <NewsletterSection />
     </div>
   )
 }
