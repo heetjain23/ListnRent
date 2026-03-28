@@ -1,5 +1,5 @@
 import React from 'react'
-import ListingCard from '../ui/ListingCard'
+import ListingCard from '../collection/ListingCard'
 
 const TrendingNowSection = ({ listings, loading }) => {
   // Show only first 4 listings for trending section

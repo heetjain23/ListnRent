@@ -21,8 +21,7 @@ export const useListings = (filters = {}) => {
     };
 
     fetchListings();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.category, filters.occasion, filters.city]);
+  }, [JSON.stringify(filters)]);
 
   return { listings, loading, error };
 };

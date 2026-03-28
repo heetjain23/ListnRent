@@ -50,7 +50,14 @@ const CreateListing = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+    let finalValue = value
+    
+    // Auto-capitalize title
+    if (name === 'title' && value) {
+      finalValue = value.charAt(0).toUpperCase() + value.slice(1)
+    }
+    
+    setForm((prev) => ({ ...prev, [name]: finalValue }))
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }))
   }
 

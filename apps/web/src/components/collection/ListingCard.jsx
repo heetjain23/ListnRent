@@ -49,10 +49,17 @@ const ListingCard = ({ listing }) => {
 
       {/* Info */}
       <div className="p-4">
-        <h3 className="text-sm font-semibold text-[#1A1A1A] leading-snug mb-1 line-clamp-2"
-          style={{ fontFamily: "'Georgia', serif" }}>
-          {listing.title}
-        </h3>
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="text-sm font-semibold text-[#1A1A1A] leading-snug line-clamp-2 flex-1"
+            style={{ fontFamily: "'Georgia', serif" }}>
+            {listing.title}
+          </h3>
+          {listing.size && (
+            <span className="text-xs font-medium bg-[#F5F5F5] text-[#1A1A1A] px-2 py-1 rounded whitespace-nowrap">
+              {listing.size}
+            </span>
+          )}
+        </div>
 
         <p className="text-xs text-[#888] mb-3 flex items-center gap-1">
           <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

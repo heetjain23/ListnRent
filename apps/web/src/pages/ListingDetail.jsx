@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useListing } from '../hooks/useListings'
 import ImageGallerySection from '../components/listing-detail/ImageGallerySection'
@@ -15,6 +15,11 @@ const ListingDetail = () => {
   const [endDate, setEndDate] = useState('')
   const [showPayment, setShowPayment] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
+
+  // Scroll to top when listing changes
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [id])
 
   // Loading skeleton
   if (loading) {
@@ -87,7 +92,7 @@ const ListingDetail = () => {
     <div className="pt-20 pb-20 max-w-5xl mx-auto px-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-[#AAA] mb-8">
-        <Link to="/" className="hover:text-[#C8622A] transition-colors">Browse</Link>
+        <Link to="/collection" className="hover:text-[#C8622A] transition-colors">Browse</Link>
         <span>/</span>
         <span className="text-[#1A1A1A] truncate max-w-xs">{listing.title}</span>
       </div>

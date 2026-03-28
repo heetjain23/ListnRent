@@ -56,8 +56,21 @@ export const listingsApi = {
   // GET /api/listings?category=&occasion=&city=
   getAll: (filters = {}) => {
     const params = new URLSearchParams();
-    if (filters.category) params.append("category", filters.category);
-    if (filters.occasion) params.append("occasion", filters.occasion);
+    
+    // Handle multiple categories
+    if (filters.category && Array.isArray(filters.category)) {
+      filters.category.forEach((cat) => params.append("category", cat));
+    } else if (filters.category) {
+      params.append("category", filters.category);
+    }
+    
+    // Handle multiple occasions
+    if (filters.occasion && Array.isArray(filters.occasion)) {
+      filters.occasion.forEach((occ) => params.append("occasion", occ));
+    } else if (filters.occasion) {
+      params.append("occasion", filters.occasion);
+    }
+    
     if (filters.city) params.append("city", filters.city);
     const query = params.toString() ? `?${params.toString()}` : "";
     return api(`/api/listings${query}`);

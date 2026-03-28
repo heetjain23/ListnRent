@@ -27,16 +27,23 @@ const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
+    let finalValue = value
+    
+    // Auto-capitalize title
+    if (name === 'title' && value) {
+      finalValue = value.charAt(0).toUpperCase() + value.slice(1)
+    }
+    
     if (name.includes('.')) {
       const [parent, key] = name.split('.')
       setFormData((prev) => ({
         ...prev,
-        [parent]: { ...prev[parent], [key]: value },
+        [parent]: { ...prev[parent], [key]: finalValue },
       }))
     } else {
       setFormData((prev) => ({
         ...prev,
-        [name]: value,
+        [name]: finalValue,
       }))
     }
   }
