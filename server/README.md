@@ -39,10 +39,6 @@ src/
 
 ## 🔌 API Overview
 
-- Auth
-POST /auth/send-otp
-POST /auth/verify-otp
-
 - Listings
 POST /listings
 GET /listings

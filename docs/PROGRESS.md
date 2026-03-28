@@ -73,9 +73,7 @@
 - Middleware order correct (cors + json before routes)
 - `GET /api/test` — health check route
 - **Auth System (MVP)**
-  - `POST /api/auth/phone/send-otp` + `verify-otp`
-  - `POST /api/auth/email/send-otp` + `verify-otp`
-  - `POST /api/auth/google` — mock Google login
+  - `POST /api/auth/google` —  Google login
   - JWT middleware — protects private routes
 - **Listings System (MVP)**
   - `GET /api/listings` — all active listings (filter by category, occasion, city)

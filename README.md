@@ -45,7 +45,7 @@ rentfit/
 
 ## 🔑 Key Features (MVP)
 
-- User authentication (OTP-based)
+- User authentication
 - List outfits
 - Browse & rent outfits
 - Deposit-based trust system

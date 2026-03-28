@@ -42,7 +42,6 @@ For Renters:
 Access premium outfits at low cost
 🧱 5. Product Scope (MVP)
 🔐 5.1 Authentication
-Phone number login (OTP-based)
 JWT session management
 👤 5.2 User Profile
 Name
@@ -151,8 +150,6 @@ Payments:
 Razorpay
 🔌 9. API Design Overview
 Auth:
-POST /auth/send-otp
-POST /auth/verify-otp
 Listings:
 POST /listings
 GET /listings

@@ -5,10 +5,6 @@ http://localhost:5000/api
 
 ---
 
-## Auth
-POST /auth/send-otp  
-POST /auth/verify-otp  
-
 ---
 
 ## Listings
