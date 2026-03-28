@@ -17,11 +17,6 @@ const API_BASE_URL = (() => {
   return window.location.origin;
 })();
 
-console.log("[API Config] Base URL:", API_BASE_URL);
-
-// ----------------------------
-// Core fetch wrapper
-// ----------------------------
 export const api = async (endpoint, options = {}) => {
   let token = localStorage.getItem("auth_token");
 
@@ -64,12 +59,9 @@ export const api = async (endpoint, options = {}) => {
 export const authApi = {
   test: () => api("/api/test"),
   // Note: Firebase handles auth on frontend (Google OAuth, Magic Link)
-  // No backend auth endpoints needed for MVP
 };
 
-// ----------------------------
 // Listings API calls
-// ----------------------------
 export const listingsApi = {
   // GET /api/listings?category=&occasion=&city=
   getAll: (filters = {}) => {
