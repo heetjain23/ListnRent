@@ -5,12 +5,12 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Initialize Firebase Admin SDK
-import "./config/firebase-admin.js";
+import "./src/config/firebase-admin.js";
 
-import { connectDB } from "./config/db.js";
-import listingRoutes from "./routes/listingRoutes.js";
-import paymentRoutes from "./routes/paymentRoutes.js";
-import newsletterRoutes from "./routes/newsletterRoutes.js";
+import { connectDB } from "./src/config/db.js";
+import listingRoutes from "./src/routes/listingRoutes.js";
+import paymentRoutes from "./src/routes/paymentRoutes.js";
+import newsletterRoutes from "./src/routes/newsletterRoutes.js";
 
 const app = express();
 
