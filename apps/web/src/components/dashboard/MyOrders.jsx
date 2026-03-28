@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useUserBookings } from '../../hooks/useUserBookings'
+import PaymentCheckout from '../ui/PaymentCheckout'
 
 const MyOrders = () => {
   const { bookings, loading, error, fetchUserBookings } = useUserBookings()
+  const [retryingBookingId, setRetryingBookingId] = useState(null)
 
   useEffect(() => {
     fetchUserBookings()
@@ -18,9 +20,32 @@ const MyOrders = () => {
         return 'bg-red-100 text-red-800'
       case 'pending':
         return 'bg-yellow-100 text-yellow-800'
+      case 'failed':
+        return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
     }
+  }
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'completed':
+        return '✓ Payment Confirmed'
+      case 'failed':
+        return '✗ Payment Failed'
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1)
+    }
+  }
+
+  const handlePaymentSuccess = (booking) => {
+    // Refresh bookings to reflect the payment success
+    fetchUserBookings()
+    setRetryingBookingId(null)
+  }
+
+  const handlePaymentCancel = () => {
+    setRetryingBookingId(null)
   }
 
   const formatDate = (date) => {
@@ -112,12 +137,20 @@ const MyOrders = () => {
                 {/* Right: Status and Amount */}
                 <div className="flex flex-col items-end gap-3">
                   <div className={`px-4 py-2 rounded-full text-sm font-semibold ${getStatusBadgeColor(booking.paymentStatus)}`}>
-                    {booking.paymentStatus === 'completed' ? '✓ Payment Confirmed' : booking.paymentStatus.charAt(0).toUpperCase() + booking.paymentStatus.slice(1)}
+                    {getStatusLabel(booking.paymentStatus)}
                   </div>
                   <div className="text-right">
                     <p className="text-[#999] text-xs mb-1">Total Amount</p>
                     <p className="text-2xl font-bold text-[#C8622A]">{formatCurrency(booking.totalAmount)}</p>
                   </div>
+                  {booking.paymentStatus === 'failed' && (
+                    <button
+                      onClick={() => setRetryingBookingId(booking._id)}
+                      className="mt-2 px-4 py-2 bg-[#C8622A] text-white text-sm font-semibold rounded-lg hover:bg-opacity-90 transition-all"
+                    >
+                      Pay Now ₹{formatCurrency(booking.totalAmount)}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -137,6 +170,39 @@ const MyOrders = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Payment Checkout Modal for Retry */}
+      {retryingBookingId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-[#1A1A1A]">Retry Payment</h3>
+                <button
+                  onClick={handlePaymentCancel}
+                  className="text-[#999] hover:text-[#1A1A1A] text-2xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+              {bookings
+                .filter((b) => b._id === retryingBookingId)
+                .map((booking) => (
+                  <PaymentCheckout
+                    key={booking._id}
+                    listing={booking.listingId}
+                    renterId={booking.renterId}
+                    startDate={booking.startDate}
+                    endDate={booking.endDate}
+                    existingBookingId={booking._id}
+                    onSuccess={handlePaymentSuccess}
+                    onCancel={handlePaymentCancel}
+                  />
+                ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

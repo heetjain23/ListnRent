@@ -3,7 +3,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { auth } from "../../services/firebase";
 import Button from "./Button";
 
-const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onCancel }) => {
+const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onCancel, existingBookingId }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -33,7 +33,26 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
   const depositAmount = listing.deposit;
   const totalAmount = rentalAmount + depositAmount;
 
-  const openCheckout = async (key, orderId, amount, idToken) => {
+  const markPaymentAsFailed = async (bookingId, idToken) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/payments/mark-failed`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ bookingId }),
+      });
+
+      if (!response.ok) {
+        console.error("Failed to mark payment as failed");
+      }
+    } catch (err) {
+      console.error("Error marking payment as failed:", err);
+    }
+  };
+
+  const openCheckout = async (key, orderId, bookingId, amount, idToken) => {
     try {
       // Step 3: Open Razorpay checkout
       const options = {
@@ -74,7 +93,9 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
           }
         },
         modal: {
-          ondismiss: () => {
+          ondismiss: async () => {
+            // User dismissed the payment modal without completing payment
+            await markPaymentAsFailed(bookingId, idToken);
             setLoading(false);
           },
         },
@@ -122,6 +143,7 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
           endDate,
           pricePerDay: listing.pricePerDay,
           depositAmount: listing.deposit,
+          existingBookingId,
         }),
       });
 
@@ -131,7 +153,7 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
       }
 
       const orderData = await orderResponse.json();
-      const { orderId, amount, key } = orderData.data;
+      const { orderId, bookingId, amount, key } = orderData.data;
 
       // Step 2: Load Razorpay script if not already loaded
       if (!window.Razorpay) {
@@ -146,10 +168,10 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
         };
 
         script.onload = () => {
-          openCheckout(key, orderId, amount, idToken);
+          openCheckout(key, orderId, bookingId, amount, idToken);
         };
       } else {
-        openCheckout(key, orderId, amount, idToken);
+        openCheckout(key, orderId, bookingId, amount, idToken);
       }
     } catch (err) {
       setError(err.message || "Failed to process payment");

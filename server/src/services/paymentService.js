@@ -32,6 +32,7 @@ export const createOrder = async (bookingData) => {
       endDate,
       pricePerDay,
       depositAmount,
+      existingBookingId,
     } = bookingData;
 
     console.log("[PaymentService] createOrder called with:", bookingData);
@@ -131,25 +132,46 @@ export const createOrder = async (bookingData) => {
       throw new Error(`Razorpay failed: ${errorMessage}`);
     }
 
-    // Create booking in database with pending status
-    const booking = new Booking({
-      listingId,
-      userId,
-      renterId,
-      startDate,
-      endDate,
-      totalDays,
-      pricePerDay: pricePerDayNum,
-      rentalAmount,
-      depositAmount: depositAmountNum,
-      totalAmount,
-      paymentStatus: "pending",
-      razorpayOrderId: razorpayOrder.id,
-    });
+    // Create or update booking in database with pending status
+    let booking;
+    
+    if (existingBookingId) {
+      // Update existing booking (retry scenario)
+      console.log("[PaymentService] Updating existing booking:", existingBookingId);
+      booking = await Booking.findByIdAndUpdate(
+        existingBookingId,
+        {
+          paymentStatus: "pending",
+          razorpayOrderId: razorpayOrder.id,
+        },
+        { new: true }
+      );
+      
+      if (!booking) {
+        throw new Error("Existing booking not found");
+      }
+      console.log("[PaymentService] Booking updated:", booking._id);
+    } else {
+      // Create new booking
+      booking = new Booking({
+        listingId,
+        userId,
+        renterId,
+        startDate,
+        endDate,
+        totalDays,
+        pricePerDay: pricePerDayNum,
+        rentalAmount,
+        depositAmount: depositAmountNum,
+        totalAmount,
+        paymentStatus: "pending",
+        razorpayOrderId: razorpayOrder.id,
+      });
 
-    console.log("[PaymentService] Saving booking to database");
-    await booking.save();
-    console.log("[PaymentService] Booking saved:", booking._id);
+      console.log("[PaymentService] Saving booking to database");
+      await booking.save();
+      console.log("[PaymentService] Booking saved:", booking._id);
+    }
 
     return {
       orderId: razorpayOrder.id,
@@ -236,5 +258,32 @@ export const getRenterBookings = async (renterId) => {
     return bookings;
   } catch (error) {
     throw new Error(`Failed to get renter bookings: ${error.message}`);
+  }
+};
+
+export const markPaymentFailed = async (bookingId, userId) => {
+  try {
+    // Find and update the booking to mark it as failed
+    const booking = await Booking.findByIdAndUpdate(
+      bookingId,
+      {
+        paymentStatus: "failed",
+      },
+      { new: true }
+    ).populate("listingId");
+
+    if (!booking) {
+      throw new Error("Booking not found");
+    }
+
+    // Verify that the booking belongs to the user
+    if (booking.userId !== userId) {
+      throw new Error("Unauthorized: Booking does not belong to this user");
+    }
+
+    console.log("[PaymentService] Marked booking as failed:", bookingId);
+    return booking;
+  } catch (error) {
+    throw new Error(`Failed to mark payment as failed: ${error.message}`);
   }
 };

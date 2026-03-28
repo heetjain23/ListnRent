@@ -5,6 +5,7 @@ import {
   handleGetBooking,
   handleGetUserBookings,
   handleGetRenterBookings,
+  handleMarkPaymentFailed,
 } from "../controllers/paymentController.js";
 import { verifyFirebaseToken } from "../middleware/authMiddleware.js";
 
@@ -41,6 +42,9 @@ router.post("/create-order", verifyFirebaseToken, handleCreateOrder);
 
 // Verify payment
 router.post("/verify-payment", verifyFirebaseToken, handleVerifyPayment);
+
+// Mark payment as failed (when user dismisses payment modal)
+router.post("/mark-failed", verifyFirebaseToken, handleMarkPaymentFailed);
 
 // Get specific booking
 router.get("/booking/:bookingId", verifyFirebaseToken, handleGetBooking);

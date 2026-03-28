@@ -4,13 +4,14 @@ import {
   getBooking,
   getUserBookings,
   getRenterBookings,
+  markPaymentFailed,
 } from "../services/paymentService.js";
 import { successResponse, errorResponse } from "../utils/helper.js";
 
 export const handleCreateOrder = async (req, res) => {
   try {
     const userId = req.user.uid;
-    const { listingId, renterId, startDate, endDate, pricePerDay, depositAmount } = req.body;
+    const { listingId, renterId, startDate, endDate, pricePerDay, depositAmount, existingBookingId } = req.body;
 
     console.log("[Payment Controller] Creating order with data:", {
       userId,
@@ -20,6 +21,7 @@ export const handleCreateOrder = async (req, res) => {
       endDate,
       pricePerDay,
       depositAmount,
+      existingBookingId,
     });
 
     // Validation
@@ -39,6 +41,7 @@ export const handleCreateOrder = async (req, res) => {
       endDate: new Date(endDate),
       pricePerDay: Number(pricePerDay),
       depositAmount: Number(depositAmount),
+      existingBookingId,
     };
 
     console.log("[Payment Controller] Processed booking data:", bookingData);
@@ -99,5 +102,21 @@ export const handleGetRenterBookings = async (req, res) => {
     return successResponse(res, { bookings });
   } catch (error) {
     return errorResponse(res, error.message || "Failed to get renter bookings", 500);
+  }
+};
+
+export const handleMarkPaymentFailed = async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const { bookingId } = req.body;
+
+    if (!bookingId) {
+      return errorResponse(res, "Missing bookingId", 400);
+    }
+
+    const booking = await markPaymentFailed(bookingId, userId);
+    return successResponse(res, { booking }, 200);
+  } catch (error) {
+    return errorResponse(res, error.message || "Failed to mark payment as failed", 500);
   }
 };
