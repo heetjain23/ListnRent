@@ -1,87 +1,258 @@
-import React from 'react'
-import Button from '../ui/Button'
+import React, { useState } from 'react'
 import ProtectedAction from '../ProtectedAction'
+import CustomCalendarPicker from './CustomCalendarPicker'
+import { TrustBadge, ShieldIcon, SparkleIcon, ReturnIcon } from './TrustBadge'
+import PricingRow from './PricingRow'
 
-const BookingSection = ({ listing, startDate, onStartDateChange, endDate, onEndDateChange, onRentClick, available }) => {
-  const calculateTotal = () => {
-    if (!startDate || !endDate) return null
-    const diff = new Date(endDate) - new Date(startDate)
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
-    if (days <= 0) return null
-    return { days, rental: days * listing.pricePerDay, deposit: listing.deposit }
+const BookingSection = ({
+  listing,
+  eventDate,
+  onEventDateChange,
+  durationDays,
+  onDurationChange,
+  onRentClick,
+  available,
+}) => {
+  // ── Calculate minimum date (day after tomorrow) ──────────────────────────────
+  const getMinDate = () => {
+    const today = new Date()
+    const minDate = new Date(today)
+    minDate.setDate(minDate.getDate() + 2) // Day after tomorrow
+    // Format date as YYYY-MM-DD using local date (don't use toISOString as it converts to UTC)
+    const year = minDate.getFullYear()
+    const month = String(minDate.getMonth() + 1).padStart(2, '0')
+    const day = String(minDate.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
-  const total = calculateTotal()
+  const minDate = getMinDate()
 
+  // ── Calculate Take-Away and return dates ──────────────────────────────────────
+  const getCalculatedDates = () => {
+    if (!eventDate) return null
+    const event = new Date(eventDate)
+    
+    // Take-Away = 1 day before event
+    const TakeAway = new Date(event)
+    TakeAway.setDate(TakeAway.getDate() - 1)
+    
+    // Return = event date + selected days
+    const returnDate = new Date(event)
+    returnDate.setDate(returnDate.getDate() + (durationDays || 1))
+    
+    // Format dates as YYYY-MM-DD using local date (don't use toISOString as it converts to UTC)
+    const formatDateStr = (dateObj) => {
+      const year = dateObj.getFullYear()
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+      const day = String(dateObj.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+    
+    return {
+      TakeAway: formatDateStr(TakeAway),
+      returnDate: formatDateStr(returnDate),
+    }
+  }
+
+  const dates = getCalculatedDates()
+
+  // ── Derived totals ──────────────────────────────────────────────────────────
+  const calculateTotal = () => {
+    if (!eventDate || !durationDays) return null
+    // Charge only for selected duration days
+    const rentalDays = durationDays || 1
+    return {
+      days: rentalDays,
+      duration: durationDays,
+      rental: rentalDays * listing.pricePerDay,
+      deposit: listing.deposit,
+    }
+  }
+
+  const total      = calculateTotal()
+  const grandTotal = total ? total.rental + total.deposit : null
+
+  // ── CTA label ───────────────────────────────────────────────────────────────
+  const ctaLabel = (() => {
+    if (!available)     return 'Currently Unavailable'
+    if (!total)         return 'Select Event Date to Continue'
+    return `Reserve Now`
+  })()
+
+  // ────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="sticky top-24 bg-white rounded-2xl border border-[#E8E0D5] p-6 shadow-lg">
-      <h3 className="text-lg font-bold text-[#1A1A1A] mb-4">Rental Details</h3>
+    <div
+      className="rounded-3xl p-6"
+      style={{
+        backgroundColor: '#FDFCF0',
+        border: `1px solid #E8E4D4`,
+        boxShadow: '0 8px 40px rgba(0,77,64,0.08)',
+      }}
+    >
 
-      {/* Date Inputs */}
-      <div className="space-y-3 mb-5">
-        <div>
-          <label className="block text-xs font-semibold text-[#1A1A1A] mb-2 uppercase">
-            Start Date
-          </label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => onStartDateChange(e.target.value)}
-            className="w-full px-3 py-2 border border-[#E8E0D5] rounded-lg text-sm
-              focus:outline-none focus:border-[#C8622A]"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-[#1A1A1A] mb-2 uppercase">
-            End Date
-          </label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => onEndDateChange(e.target.value)}
-            className="w-full px-3 py-2 border border-[#E8E0D5] rounded-lg text-sm
-              focus:outline-none focus:border-[#C8622A]"
-          />
+      {/* 1 ── Rental Price Header */}
+      <div className="mb-5">
+        <p
+          className="text-[10px] font-bold uppercase tracking-widest mb-1"
+          style={{ color: '#9E9E7A' }}
+        >
+          Rental Price
+        </p>
+        <div className="flex items-baseline gap-1">
+          <span
+            className="text-4xl font-black"
+            style={{ color: '#004D40', fontFamily: 'Georgia, serif' }}
+          >
+            ₹{listing.pricePerDay}
+          </span>
+          <span className="text-sm" style={{ color: '#9E9E7A' }}>/ day</span>
         </div>
       </div>
 
-      {/* Pricing Breakdown */}
-      {total && (
-        <div className="space-y-2 border-t border-[#E8E0D5] pt-4 mb-4">
-          <div className="flex justify-between text-sm">
-            <span className="text-[#666]">₹{listing.pricePerDay} × {total.days} days</span>
-            <span className="font-semibold text-[#1A1A1A]">₹{total.rental}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-[#666]">Deposit (refundable)</span>
-            <span className="font-semibold text-[#1A1A1A]">₹{total.deposit}</span>
-          </div>
-          <div className="flex justify-between text-base font-bold border-t border-[#E8E0D5] pt-3 mt-3">
-            <span>Total</span>
-            <span className="text-[#C8622A]">₹{total.rental + total.deposit}</span>
+      {/* 2 ── Event Date Picker */}
+      <div className="mb-6">
+        <p
+          className="text-[10px] font-bold uppercase tracking-widest mb-3"
+          style={{ color: '#004D40' }}
+        >
+          Event Date
+        </p>
+        <CustomCalendarPicker
+          value={eventDate}
+          onChange={onEventDateChange}
+          minDate={minDate}
+        />
+        <p className="text-xs mt-3" style={{ color: '#9E9E7A' }}>
+          We'll prepare it a day before and collect after your event
+        </p>
+      </div>
+
+      {/* 3 ── Duration Selector */}
+      {eventDate && (
+        <div className="mb-6">
+          <p
+            className="text-[10px] font-bold uppercase tracking-widest mb-3"
+            style={{ color: '#004D40' }}
+          >
+            For How Many Days?
+          </p>
+          <div className="grid grid-cols-6 gap-2">
+            {[1, 2, 3, 4, 5, 6].map((day) => (
+              <button
+                key={day}
+                onClick={() => onDurationChange(day)}
+                className="py-2.5 rounded-lg font-semibold text-xs transition-all duration-200 active:scale-95"
+                style={{
+                  backgroundColor: durationDays === day ? '#004D40' : '#F5F2E8',
+                  color: durationDays === day ? '#FDFCF0' : '#1A1A14',
+                  border: `1px solid ${durationDays === day ? '#004D40' : '#E8E4D4'}`,
+                }}
+              >
+                {day}D
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Rent Button */}
+      {/* 4 ── Calculated Dates Display */}
+      {dates && (
+        <div
+          className="grid grid-cols-2 rounded-2xl overflow-hidden mb-4 p-3 gap-3"
+          style={{ backgroundColor: '#F5F2E8', border: `1px solid #E8E4D4` }}
+        >
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: '#9E9E7A' }}>
+              Take-Away
+            </p>
+            <p className="text-sm font-semibold" style={{ color: '#1A1A14' }}>
+              {new Date(dates.TakeAway).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}(1:00 pm)
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: '#9E9E7A' }}>
+              Return
+            </p>
+            <p className="text-sm font-semibold" style={{ color: '#1A1A14' }}>
+              {new Date(dates.returnDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}(1:00 pm)
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 5 ── Pricing Breakdown */}
+      {total && (
+        <div
+          className="space-y-2.5 mb-4 pb-4"
+          style={{ borderBottom: `1px solid #E8E4D4` }}
+        >
+          <PricingRow
+            label={`${total.days} day rental`}
+            amount={total.rental}
+            underline
+          />
+          <PricingRow
+            label="Refundable Security"
+            amount={total.deposit}
+          />
+        </div>
+      )}
+
+      {/* 6 ── Total Row */}
+      {grandTotal && (
+        <div className="flex justify-between items-center mb-5">
+          <span className="font-bold text-base" style={{ color: '#1A1A14' }}>
+            Total
+          </span>
+          <span
+            className="text-2xl font-black"
+            style={{ color: '#004D40', fontFamily: 'Georgia, serif' }}
+          >
+            ₹{grandTotal}
+          </span>
+        </div>
+      )}
+
+      {/* Helper text when no dates selected */}
       {!total && (
-        <p className="text-xs text-[#999] text-center mb-3">
-          Select dates to proceed
+        <p className="text-xs text-center mb-4" style={{ color: '#9E9E7A' }}>
+          Select event date and duration to see pricing
         </p>
       )}
-      <ProtectedAction
-        onConfirm={onRentClick}
-        actionName="rent"
-      >
-        <Button
+
+      {/* 7 ── Reserve Now CTA */}
+      <ProtectedAction onConfirm={onRentClick} actionName="rent">
+        <button
           disabled={!available || !total}
-          variant="accent"
-          size="lg"
-          className="w-full"
+          className="w-full py-4 rounded-2xl font-bold text-base tracking-wide transition-all duration-200
+            disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
+          style={{
+            backgroundColor: available && total ? '#004D40' : '#9E9E7A',
+            color: '#FDFCF0',
+            fontFamily: 'Georgia, serif',
+            letterSpacing: '0.04em',
+          }}
         >
-          {!available ? 'Unavailable' : total ? `Rent for ₹${total.rental + total.deposit}` : 'Select Dates'}
-        </Button>
+          {ctaLabel}
+        </button>
       </ProtectedAction>
+
+      {grandTotal && (
+        <p className="text-center text-xs mt-2" style={{ color: '#9E9E7A' }}>
+          Secure checkout powered by RazorPay
+        </p>
+      )}
+
+      {/* 8 ── Trust Badges */}
+      <div
+        className="grid grid-cols-3 gap-3 mt-5 pt-5"
+        style={{ borderTop: `1px solid #E8E4D4` }}
+      >
+        <TrustBadge icon={<ShieldIcon />}  label="Insured" />
+        <TrustBadge icon={<SparkleIcon />} label={<>Sustainably<br />Cleaned</>} />
+        <TrustBadge icon={<ReturnIcon />}  label="Flexible Returns" />
+      </div>
+
     </div>
   )
 }

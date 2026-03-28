@@ -16,7 +16,7 @@ const Button = ({
   const variants = {
     primary: 'bg-[#00342B] text-white hover:bg-[#00695C] focus:ring-[#00342B]',
     secondary: 'bg-transparent border border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-[#FAF7F2] focus:ring-[#1A1A1A]',
-    accent: 'bg-[#D4AF37] text-[#1A1A1A] hover:bg-[#C9A227] focus:ring-[#D4AF37]',
+    accent: 'bg-[#004D40] text-[#FAF7F2] hover:bg-[#00695C] focus:ring-[#D4AF37]',
     ghost: 'bg-transparent text-[#555] hover:text-[#1A1A1A] hover:bg-[#FDFAF7] focus:ring-[#00342B]',
     outline: 'bg-transparent border border-[#E8E0D5] text-[#1A1A1A] hover:bg-[#FDFAF7] focus:ring-[#00342B]',
     danger: 'bg-[#EE5A6F] text-white hover:bg-[#D64757] focus:ring-[#EE5A6F]',

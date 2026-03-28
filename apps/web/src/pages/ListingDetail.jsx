@@ -1,137 +1,209 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useListing } from '../hooks/useListings'
-import ImageGallerySection from '../components/listing-detail/ImageGallerySection'
-import ListingDetailsSection from '../components/listing-detail/ListingDetailsSection'
-import BookingSection from '../components/listing-detail/BookingSection'
-import PaymentCheckout from '../components/ui/PaymentCheckout'
 
+// Section components
+import ImageGallerySection    from '../components/listing-detail/ImageGallerySection'
+import ListingDetailsSection  from '../components/listing-detail/ListingDetailsSection'
+import BookingSection         from '../components/listing-detail/BookingSection'
+import HostMetadataSection    from '../components/listing-detail/HostMetadataSection'
+import { HostCard }           from '../components/listing-detail/HostMetadataSection'
+import PaymentCheckout        from '../components/ui/PaymentCheckout'
+
+// ─── Breadcrumb ────────────────────────────────────────────────────────────────
+const Breadcrumb = ({ category, title }) => (
+  <nav
+    className="flex items-center gap-2 text-xs mb-8 tracking-wide uppercase"
+    style={{ color: '#9E9E7A' }}
+  >
+    <Link to="/collection" className="hover:text-[#004D40] transition-colors">Collection</Link>
+    <span style={{ color: '#C9C9A8' }}>›</span>
+    <Link to={`/collection?category=${category}`} className="hover:text-[#004D40] transition-colors">
+      {category || 'Collection'}
+    </Link>
+    <span style={{ color: '#C9C9A8' }}>›</span>
+    <span
+      className="font-semibold truncate max-w-55"
+      style={{ color: '#004D40' }}
+    >
+      {title}
+    </span>
+  </nav>
+)
+
+// ─── Loading Skeleton ──────────────────────────────────────────────────────────
+const LoadingSkeleton = () => (
+  <div className="pt-20 pb-20 max-w-6xl mx-auto px-6 animate-pulse">
+    <div className="h-3 rounded-full w-56 mb-8" style={{ backgroundColor: '#E8E4D4' }} />
+    <div className="grid md:grid-cols-2 gap-12">
+      <div className="flex gap-3">
+        <div className="flex flex-col gap-2 w-17">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="w-full rounded-xl"
+              style={{ aspectRatio: '3/4', backgroundColor: '#E8E4D4' }}
+            />
+          ))}
+        </div>
+        <div
+          className="flex-1 rounded-2xl"
+          style={{ aspectRatio: '3/4', backgroundColor: '#E8E4D4' }}
+        />
+      </div>
+      <div className="space-y-4">
+        <div className="h-4 rounded-full w-32"  style={{ backgroundColor: '#E8E4D4' }} />
+        <div className="h-9 rounded-full w-4/5" style={{ backgroundColor: '#E8E4D4' }} />
+        <div className="h-4 rounded-full w-full" style={{ backgroundColor: '#E8E4D4' }} />
+        <div className="h-4 rounded-full w-2/3" style={{ backgroundColor: '#E8E4D4' }} />
+        <div className="h-28 rounded-2xl mt-4"  style={{ backgroundColor: '#E8E4D4' }} />
+        <div className="h-56 rounded-3xl mt-4"  style={{ backgroundColor: '#E8E4D4' }} />
+      </div>
+    </div>
+  </div>
+)
+
+// ─── Booking Success Screen ────────────────────────────────────────────────────
+const BookingSuccessScreen = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center gap-6 pt-16">
+    <span className="text-7xl">✅</span>
+    <h2
+      className="text-2xl font-bold"
+      style={{ color: '#1A1A14', fontFamily: 'Georgia, serif' }}
+    >
+      Booking Confirmed!
+    </h2>
+    <p style={{ color: '#7D6B41' }}>
+      Your rental booking has been successfully created.
+    </p>
+    <p className="text-sm" style={{ color: '#9E9E7A' }}>
+      Redirecting to your dashboard…
+    </p>
+  </div>
+)
+
+// ─── Not Found Screen ──────────────────────────────────────────────────────────
+const NotFoundScreen = ({ error }) => (
+  <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-16">
+    <span className="text-6xl">🪭</span>
+    <h2 className="text-xl font-semibold" style={{ color: '#1A1A14' }}>
+      {error || 'Outfit not found'}
+    </h2>
+    <Link
+      to="/collection"
+      className="text-sm underline transition-colors hover:opacity-70"
+      style={{ color: '#004D40' }}
+    >
+      Back to Collection
+    </Link>
+  </div>
+)
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 const ListingDetail = () => {
-  const { id } = useParams()
-  const navigate = useNavigate()
+  const { id }       = useParams()
+  const navigate     = useNavigate()
   const { listing, loading, error } = useListing(id)
-  const [activeImage, setActiveImage] = useState(0)
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [showPayment, setShowPayment] = useState(false)
+
+  const [activeImage,    setActiveImage]    = useState(0)
+  const [eventDate,      setEventDate]      = useState('')
+  const [durationDays,   setDurationDays]   = useState(1)
+  const [showPayment,    setShowPayment]    = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
 
-  // Scroll to top when listing changes
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [id])
+  useEffect(() => { window.scrollTo(0, 0) }, [id])
 
-  // Loading skeleton
-  if (loading) {
-    return (
-      <div className="pt-20 pb-20 max-w-5xl mx-auto px-6 animate-pulse">
-        <div className="h-4 bg-[#F0EBE3] rounded w-48 mb-8" />
-        <div className="grid md:grid-cols-2 gap-10">
-          <div className="aspect-3/4 bg-[#F0EBE3] rounded-2xl" />
-          <div className="space-y-4">
-            <div className="h-6 bg-[#F0EBE3] rounded w-3/4" />
-            <div className="h-4 bg-[#F0EBE3] rounded w-1/2" />
-            <div className="h-20 bg-[#F0EBE3] rounded" />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Error / Not found
-  if (error || !listing) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-16">
-        <p className="text-6xl">🪭</p>
-        <h2 className="text-xl font-semibold text-[#1A1A1A]">
-          {error || 'Outfit not found'}
-        </h2>
-        <Link to="/" className="text-sm text-[#C8622A] underline">
-          Back to Browse
-        </Link>
-      </div>
-    )
-  }
+  if (loading)           return <LoadingSkeleton />
+  if (error || !listing) return <NotFoundScreen error={error} />
+  if (bookingSuccess)    return <BookingSuccessScreen />
 
   const available = listing.isActive
 
   const handleRentClick = () => {
-    console.log('Rent clicked - startDate:', startDate, 'endDate:', endDate)
-    if (!startDate || !endDate) {
-      alert('Please select both start and end dates')
-      return
-    }
-    console.log('Setting showPayment to true')
+    if (!eventDate || !durationDays) return
     setShowPayment(true)
   }
+
+  // ── Calculate check-in and return dates from event date ──────────────────────
+  const getCalculatedDates = () => {
+    if (!eventDate) return { startDate: '', endDate: '' }
+    const event = new Date(eventDate)
+    
+    // Check-in = 1 day before event
+    const checkIn = new Date(event)
+    checkIn.setDate(checkIn.getDate() - 1)
+    
+    // Return = event date + selected days
+    const returnDate = new Date(event)
+    returnDate.setDate(returnDate.getDate() + (durationDays || 1))
+    
+    return {
+      startDate: checkIn.toISOString().split('T')[0],
+      endDate: returnDate.toISOString().split('T')[0],
+    }
+  }
+
+  const { startDate, endDate } = getCalculatedDates()
 
   const handlePaymentSuccess = (booking) => {
     setBookingSuccess(true)
     setTimeout(() => {
-      navigate('/dashboard', { state: { bookingSuccess: true, bookingId: booking._id, activeTab: 'orders' } })
+      navigate('/dashboard', {
+        state: { bookingSuccess: true, bookingId: booking._id, activeTab: 'orders' },
+      })
     }, 2000)
   }
 
-  const handlePaymentCancel = () => {
-    setShowPayment(false)
-  }
-
-  // Show Success Message
-  if (bookingSuccess) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 pt-16">
-        <p className="text-7xl">✅</p>
-        <h2 className="text-2xl font-bold text-[#1A1A1A]">Booking Confirmed!</h2>
-        <p className="text-[#666]">Your rental booking has been successfully created</p>
-        <p className="text-sm text-[#AAA]">Redirecting to dashboard...</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="pt-20 pb-20 max-w-5xl mx-auto px-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-[#AAA] mb-8">
-        <Link to="/collection" className="hover:text-[#C8622A] transition-colors">Browse</Link>
-        <span>/</span>
-        <span className="text-[#1A1A1A] truncate max-w-xs">{listing.title}</span>
-      </div>
+    <div className="min-h-screen pt-20 pb-24" style={{ backgroundColor: '#FDFCF0' }}>
+      <div className="max-w-6xl mx-auto px-6">
 
-      <div className="grid md:grid-cols-2 gap-10 lg:gap-16">
-        {/* Image Gallery Section */}
-        <ImageGallerySection
-          images={listing.images}
-          activeImage={activeImage}
-          onImageChange={setActiveImage}
-          title={listing.title}
-        />
+        <Breadcrumb category={listing.category} title={listing.title} />
 
-        {/* Details and Booking */}
-        <div>
-          {/* Listing Details Section */}
-          <ListingDetailsSection listing={listing} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16">
 
-          {/* Booking Section or Payment Checkout */}
-          {showPayment ? (
-            <PaymentCheckout
-              listing={listing}
-              renterId={listing.userId}
-              startDate={startDate}
-              endDate={endDate}
-              onSuccess={handlePaymentSuccess}
-              onCancel={handlePaymentCancel}
+          {/* Left — Image gallery + metadata */}
+          <div className="flex flex-col gap-6">
+            <ImageGallerySection
+              images={listing.images}
+              activeImage={activeImage}
+              onImageChange={setActiveImage}
+              title={listing.title}
             />
-          ) : (
-            <BookingSection
-              listing={listing}
-              startDate={startDate}
-              onStartDateChange={setStartDate}
-              endDate={endDate}
-              onEndDateChange={setEndDate}
-              onRentClick={handleRentClick}
-              available={available}
-            />
-          )}
+
+            <HostMetadataSection listing={listing} />
+          </div>
+
+          {/* Right — Details + booking + host card */}
+          <div className="flex flex-col gap-6">
+
+            <ListingDetailsSection listing={listing} />
+
+            {showPayment ? (
+              <PaymentCheckout
+                listing={listing}
+                renterId={listing.userId}
+                startDate={startDate}
+                endDate={endDate}
+                onSuccess={handlePaymentSuccess}
+                onCancel={() => setShowPayment(false)}
+              />
+            ) : (
+              <BookingSection
+                listing={listing}
+                eventDate={eventDate}
+                onEventDateChange={setEventDate}
+                durationDays={durationDays}
+                onDurationChange={setDurationDays}
+                onRentClick={handleRentClick}
+                available={available}
+              />
+            )}
+
+            {/* Host Card */}
+            <HostCard ownerName={listing.userId?.name || listing.owner?.name || 'Ananya Sharma'} />
+
+          </div>
         </div>
       </div>
     </div>
