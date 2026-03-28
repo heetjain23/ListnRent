@@ -10,6 +10,7 @@ import "./config/firebase-admin.js";
 import { connectDB } from "./config/db.js";
 import listingRoutes from "./routes/listingRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import newsletterRoutes from "./routes/newsletterRoutes.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.get("/api/test", (req, res) => {
 // Routes
 app.use("/api/listings", listingRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/newsletter", newsletterRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

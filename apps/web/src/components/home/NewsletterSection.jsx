@@ -3,15 +3,47 @@ import React, { useState } from 'react'
 const NewsletterSection = () => {
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [isSuccess, setIsSuccess] = useState(false)
 
-  const handleSubscribe = (e) => {
+  const handleSubscribe = async (e) => {
     e.preventDefault()
     setIsLoading(true)
-    // TODO: Implement newsletter subscription logic later
-    setTimeout(() => {
+    setMessage('')
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SERVER_API_URL || 'http://localhost:5000'}/api/newsletter/subscribe`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email }),
+        }
+      )
+
+      const data = await response.json()
+
+      if (data.success) {
+        setIsSuccess(true)
+        setMessage('Successfully subscribed to our newsletter!')
+        setEmail('')
+        setTimeout(() => {
+          setMessage('')
+          setIsSuccess(false)
+        }, 3000)
+      } else {
+        setIsSuccess(false)
+        setMessage(data.message || 'Failed to subscribe. Please try again.')
+      }
+    } catch (error) {
+      console.error('Subscription error:', error)
+      setIsSuccess(false)
+      setMessage('An error occurred. Please try again later.')
+    } finally {
       setIsLoading(false)
-      setEmail('')
-    }, 500)
+    }
   }
 
   return (
@@ -76,6 +108,11 @@ const NewsletterSection = () => {
               >
                 {isLoading ? 'Subscribing...' : 'SUBSCRIBE'}
               </button>
+              {message && (
+                <p className={`mt-4 text-center text-sm font-medium ${isSuccess ? 'text-green-600' : 'text-red-600'}`}>
+                  {message}
+                </p>
+              )}
             </form>
           </div>
         </div>
