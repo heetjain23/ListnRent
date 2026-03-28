@@ -47,7 +47,7 @@ const NewsletterSection = () => {
   }
 
   return (
-    <section className="py-20 px-6 bg-[#004D40]">
+    <section className="py-20 px-6 bg-[#00342B]">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           {/* Left Side - Content */}
@@ -85,7 +85,7 @@ const NewsletterSection = () => {
 
           {/* Right Side - Newsletter Form */}
           <div className="bg-[#F5F0EB] rounded-2xl p-8 md:p-10">
-            <h3 className="text-2xl font-extrabold text-[#004D40] mb-4" style={{ fontFamily: "'Georgia', serif" }}>
+            <h3 className="text-2xl font-extrabold text-[#00342B] mb-4" style={{ fontFamily: "'Georgia', serif" }}>
               Join the Atelier
             </h3>
             <p className="text-gray-700 mb-8">
@@ -99,12 +99,12 @@ const NewsletterSection = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 mb-6 border border-gray-300 rounded-lg focus:outline-none focus:border-[#004D40] bg-white text-gray-900"
+                className="w-full px-4 py-3 mb-6 border border-gray-300 rounded-lg focus:outline-none focus:border-[#00342B] bg-white text-gray-900"
               />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-[#004D40] text-white font-bold py-3 rounded-lg hover:bg-[#154a4b] transition-colors disabled:opacity-50"
+                className="w-full bg-[#00342B] text-white font-bold py-3 rounded-lg hover:bg-[#154a4b] transition-colors disabled:opacity-50"
               >
                 {isLoading ? 'Subscribing...' : 'SUBSCRIBE'}
               </button>

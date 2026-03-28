@@ -35,7 +35,7 @@ const TrendingNowSection = ({ listings, loading }) => {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#004D40]"
+            <h2 className="text-3xl md:text-4xl font-bold text-[#00342B]"
               style={{ fontFamily: "'Georgia', serif" }}>
               Trending Now
             </h2>

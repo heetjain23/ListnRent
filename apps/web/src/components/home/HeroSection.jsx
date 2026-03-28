@@ -18,7 +18,7 @@ const HeroSection = () => {
           >
             From Ownership to Access:
             <br />
-            <span className="text-[#004D40]">Redefining Ethnic Wear</span>
+            <span className="text-[#00342B]">Redefining Ethnic Wear</span>
           </h1>
           <p className="text-[#666] text-lg leading-relaxed mb-8 max-w-lg">
             Experience the grandeur of Mumbai's finest designer couture without
@@ -28,7 +28,7 @@ const HeroSection = () => {
           <div className="flex flex-wrap gap-4 mb-6">
             <Link
               to="/collection"
-              className="inline-flex items-center gap-2 px-7 py-3 bg-[#004D40] text-white
+              className="inline-flex items-center gap-2 px-7 py-3 bg-[#00342B] text-white
                 text-sm font-semibold rounded-lg hover:bg-[#00695C] transition-colors duration-200 tracking-wide"
             >
               Explore Collection
@@ -36,7 +36,7 @@ const HeroSection = () => {
             <Link
               to="/create"
               className="inline-flex items-center gap-2 px-7 py-3 border-2 border-[#D4AF37]
-                text-[#004D40] text-sm font-semibold rounded-lg hover:bg-[#D4AF37]/10 transition-colors tracking-wide"
+                text-[#00342B] text-sm font-semibold rounded-lg hover:bg-[#D4AF37]/10 transition-colors tracking-wide"
             >
               How it Works
             </Link>
@@ -49,7 +49,7 @@ const HeroSection = () => {
             ].map((stat) => (
               <div key={stat.label}>
                 <div
-                  className="text-3xl font-black text-[#004D40]"
+                  className="text-3xl font-black text-[#00342B]"
                   style={{ fontFamily: "'Georgia', serif" }}
                 >
                   {stat.value}
@@ -89,7 +89,7 @@ const HeroSection = () => {
           { label: 'Avg Savings', value: '₹4,200' },
         ].map((stat) => (
           <div key={stat.label}>
-            <div className="text-3xl font-black text-[#004D40]" style={{ fontFamily: "'Georgia', serif" }}>
+            <div className="text-3xl font-black text-[#00342B]" style={{ fontFamily: "'Georgia', serif" }}>
               {stat.value}
             </div>
             <div className="text-xs text-[#888] tracking-wide mt-0.5">{stat.label}</div>

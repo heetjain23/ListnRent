@@ -44,7 +44,7 @@ const SeamlessJourneySection = () => {
             <div key={step.id} className="relative">
               {/* Step Number Circle */}
               <div className="flex items-center justify-center mb-6">
-                <div className="w-16 h-16 rounded-full bg-linear-to-br from-[#004D40] to-[#00695C]
+                <div className="w-16 h-16 rounded-full bg-linear-to-br from-[#00342B] to-[#00695C]
                   flex items-center justify-center text-3xl shadow-md">
                   {step.icon}
                 </div>

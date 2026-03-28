@@ -60,7 +60,7 @@ const Navbar = () => {
         <Link to="/" className="flex items-center gap-2 group">
           <span className="text-2xl font-black tracking-tight text-[#1A1A1A]"
             style={{ fontFamily: "'Georgia', serif" }}>
-            Rent<span className="text-[#C8622A]">Fit</span>
+            Rent<span className="text-[#00342B]">Fit</span>
           </span>
           <span className="text-xs text-[#888] font-medium tracking-widest uppercase mt-1 hidden sm:block">
             Ethnic Wear
@@ -71,8 +71,8 @@ const Navbar = () => {
         <div className="hidden md:flex items-center gap-8">
           <Link
             to="/collection"
-            className={`text-sm font-medium tracking-wide transition-colors hover:text-[#C8622A] ${
-              location.pathname === '/collection' ? 'text-[#C8622A]' : 'text-[#555]'
+            className={`text-sm font-medium tracking-wide transition-colors hover:text-[#00342B] ${
+              location.pathname === '/collection' ? 'text-[#00342B]' : 'text-[#555]'
             }`}
           >
             Browse Collection
@@ -82,8 +82,8 @@ const Navbar = () => {
           {!loading && user && (
             <Link
               to="/create"
-              className="text-sm font-medium px-5 py-2 bg-[#1A1A1A] text-[#FAF7F2] rounded-full
-                hover:bg-[#C8622A] transition-colors duration-200 tracking-wide"
+              className="text-sm font-medium px-5 py-2 bg-[#00342B] text-white rounded-full
+                hover:bg-[#00695C] transition-colors duration-200 tracking-wide"
             >
               + List Outfit
             </Link>
@@ -160,10 +160,10 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-[#FAF7F2] border-t border-[#E8E0D5] px-6 py-4 flex flex-col gap-4">
-          <Link to="/collection" className="text-sm font-medium text-[#555] hover:text-[#C8622A] transition-colors">
+          <Link to="/collection" className="text-sm font-medium text-[#555] hover:text-[#00342B] transition-colors">
             Browse Collection
           </Link>
-            <Link to="/create" className="text-sm font-medium text-[#C8622A]">
+            <Link to="/create" className="text-sm font-medium text-[#00342B]">
               + List Your Outfit
             </Link>
 

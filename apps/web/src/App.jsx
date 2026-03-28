@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { completeMagicLinkSignIn } from './services/firebase'
 import Navbar from './components/layout/Navbar'
+import Footer from './components/layout/Footer'
 import Home from './pages/Home'
 import Collection from './pages/Collection'
 import ListingDetail from './pages/ListingDetail.jsx'
@@ -68,7 +69,7 @@ const CompleteMagicLink = () => {
             <p className="text-red-600 mb-4">{error}</p>
             <a
               href="/login"
-              className="inline-block px-6 py-2 bg-[#1A1A1A] text-white rounded-lg hover:bg-[#004D40] transition-colors"
+              className="inline-block px-6 py-2 bg-[#1A1A1A] text-white rounded-lg hover:bg-[#00342B] transition-colors"
             >
               ← Back to Login
             </a>
@@ -83,17 +84,20 @@ const App = () => {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen bg-[#FAF7F2]">
+        <div className="flex flex-col min-h-screen bg-[#FAF7F2]">
           <Navbar />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/collection" element={<Collection />} />
-            <Route path="/listing/:id" element={<ListingDetail />} />
-            <Route path="/create" element={<CreateListing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/complete-magic-link" element={<CompleteMagicLink />} />
-          </Routes>
+          <main className="flex-grow">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/collection" element={<Collection />} />
+              <Route path="/listing/:id" element={<ListingDetail />} />
+              <Route path="/create" element={<CreateListing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/complete-magic-link" element={<CompleteMagicLink />} />
+            </Routes>
+          </main>
+          <Footer />
         </div>
       </Router>
     </AuthProvider>
