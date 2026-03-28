@@ -1,19 +1,51 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useListings } from '../hooks/useListings'
 import ListingCard from '../components/ui/ListingCard'
-import { CATEGORIES, SIZES, GENDER } from '../constants'
+import { CATEGORIES, SIZES, OCCASIONS, GENDER } from '../constants'
 
 const Collection = () => {
+  const [searchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeCategory, setActiveCategory] = useState('All')
+  
+  // Initialize filters from URL params on first render
+  const [activeCategory, setActiveCategory] = useState(() => {
+    const param = searchParams.get('category')
+    return (param && CATEGORIES.includes(param)) ? param : 'All'
+  })
+  
+  const [activeOccasion, setActiveOccasion] = useState(() => {
+    const param = searchParams.get('occasion')
+    return (param && OCCASIONS.includes(param)) ? param : 'All'
+  })
+  
   const [activeSize, setActiveSize] = useState('All')
   const [activeGender, setActiveGender] = useState('All')
-  const [sortBy, setSortBy] = useState('relevance') // relevance, price-low, price-high
+  const [sortBy, setSortBy] = useState('relevance')
 
-  // Fetch listings with category filter
-  const { listings, loading, error } = useListings(
-    activeCategory !== 'All' ? { category: activeCategory } : {}
-  )
+  // Update filters if URL params change
+  useEffect(() => {
+    const occasionParam = searchParams.get('occasion')
+    const categoryParam = searchParams.get('category')
+
+    if (occasionParam && OCCASIONS.includes(occasionParam)) {
+      setActiveOccasion(occasionParam)
+    } else {
+      setActiveOccasion('All')
+    }
+
+    if (categoryParam && CATEGORIES.includes(categoryParam)) {
+      setActiveCategory(categoryParam)
+    } else {
+      setActiveCategory('All')
+    }
+  }, [searchParams])
+
+  // Fetch listings with category and occasion filters
+  const filters = {}
+  if (activeCategory !== 'All') filters.category = activeCategory
+  if (activeOccasion !== 'All') filters.occasion = activeOccasion
+  const { listings, loading, error } = useListings(filters)
 
   // Apply all filters and sorting
   const filtered = useMemo(() => {
@@ -57,7 +89,7 @@ const Collection = () => {
     }
 
     return result
-  }, [listings, searchQuery, activeSize, activeGender, sortBy])
+  }, [listings, searchQuery, activeSize, activeGender, activeOccasion, sortBy])
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] pt-24 pb-20">
@@ -116,6 +148,24 @@ const Collection = () => {
               {CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Occasion Filter */}
+          <div className="w-full lg:w-48">
+            <p className="text-sm font-semibold text-[#1A1A1A] mb-3">Occasion</p>
+            <select
+              value={activeOccasion}
+              onChange={(e) => setActiveOccasion(e.target.value)}
+              className="w-full px-4 py-2 bg-white rounded-lg border border-[#E8E0D5]
+                text-[#1A1A1A] font-medium focus:outline-none focus:border-[#C8622A] focus:ring-2 focus:ring-[#C8622A]/20
+                cursor-pointer transition-all"
+            >
+              {OCCASIONS.map((occasion) => (
+                <option key={occasion} value={occasion}>
+                  {occasion}
                 </option>
               ))}
             </select>
@@ -193,7 +243,8 @@ const Collection = () => {
           </div>
         )}
 
-        {/* Error State */}
+        {/* Error State *Occasion('All')
+                setActive/}
         {error && !loading && (
           <div className="text-center py-12">
             <p className="text-[#C8622A] text-lg">Error loading listings</p>
@@ -211,6 +262,7 @@ const Collection = () => {
               onClick={() => {
                 setSearchQuery('')
                 setActiveCategory('All')
+                setActiveOccasion('All')
                 setActiveSize('All')
                 setActiveGender('All')
               }}

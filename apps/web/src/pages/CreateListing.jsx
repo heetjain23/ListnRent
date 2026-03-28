@@ -2,15 +2,15 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import Button from '../components/ui/Button'
-import { CATEGORIES, GENDER } from '../constants'
+import { CATEGORIES, OCCASIONS, GENDER, SIZES, CONDITIONS } from '../constants'
 import { listingsApi } from '../services/api'
 import { uploadMultipleImages } from '../services/cloudinary'
 
 const OUTFIT_CATEGORIES = CATEGORIES.filter((c) => c !== 'All')
-const OCCASIONS = ['DESIGNER SUIT/ TUXEDO','INDO-WESTERN/ SHERWANI','JODHPURI','KURTA JACKET','BLAZER/ FORMAL SUIT','SAREE','LEHENGA','NAVRATRI',]
-const SIZES = ['XS(34)','S(36)','M(38)','L(40)','XL(42)','XXL(44)','3XL(46)','4XL(48)','5XL(50)',]
-const CONDITIONS = ['New', 'Like New', 'Used']
-const GENDERS = GENDER.filter((g) => g !== 'All')
+const OUTFIT_OCCASIONS = OCCASIONS.filter((o) => o !== 'All')
+const OUTFIT_SIZES = SIZES.filter((s) => s !== 'All')
+const OUTFIT_CONDITIONS = CONDITIONS
+const OUTFIT_GENDERS = GENDER.filter((g) => g !== 'All')
 
 const CreateListing = () => {
   const navigate = useNavigate()
@@ -236,14 +236,14 @@ const CreateListing = () => {
               <select name="occasion" value={form.occasion} onChange={handleChange}
                 className={inputClass(errors.occasion)}>
                 <option value="">Select…</option>
-                {OCCASIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                {OUTFIT_OCCASIONS.map((o) => <option key={o} value={o}>{o}</option>)}
               </select>
             </Field>
             <Field label="Gender" error={errors.gender} required>
               <select name="gender" value={form.gender} onChange={handleChange}
                 className={inputClass(errors.gender)}>
                 <option value="">Select…</option>
-                {GENDERS.map((g) => <option key={g} value={g}>{g}</option>)}
+                {OUTFIT_GENDERS.map((g) => <option key={g} value={g}>{g}</option>)}
               </select>
             </Field>
           </div>
@@ -254,14 +254,14 @@ const CreateListing = () => {
               <select name="size" value={form.size} onChange={handleChange}
                 className={inputClass(errors.size)}>
                 <option value="">Select…</option>
-                {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+                {OUTFIT_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </Field>
             <Field label="Condition" error={errors.condition} required>
               <select name="condition" value={form.condition} onChange={handleChange}
                 className={inputClass(errors.condition)}>
                 <option value="">Select…</option>
-                {CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                {OUTFIT_CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </Field>
           </div>

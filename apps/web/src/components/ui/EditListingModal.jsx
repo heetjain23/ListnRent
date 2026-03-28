@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Button from './Button'
-import { CATEGORIES } from '../../constants'
+import { CATEGORIES, OCCASIONS, SIZES, GENDER, CONDITIONS } from '../../constants'
 
 const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
   const [formData, setFormData] = useState(null)
@@ -132,11 +132,11 @@ const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
                 className="w-full px-4 py-2 border border-[#E8E0D5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8622A]"
               >
                 <option value="">Select Occasion</option>
-                <option value="Wedding">Wedding</option>
-                <option value="Festive">Festive</option>
-                <option value="Party">Party</option>
-                <option value="Casual">Casual</option>
-                <option value="Other">Other</option>
+                {OCCASIONS.filter((o) => o !== 'All').map((occasion) => (
+                  <option key={occasion} value={occasion}>
+                    {occasion}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -153,8 +153,11 @@ const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
                 className="w-full px-4 py-2 border border-[#E8E0D5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8622A]"
               >
                 <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
+                {GENDER.filter((g) => g !== 'All').map((gender) => (
+                  <option key={gender} value={gender}>
+                    {gender}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -171,15 +174,11 @@ const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
                 className="w-full px-4 py-2 border border-[#E8E0D5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8622A]"
               >
                 <option value="">Select Size</option>
-                <option value="XS(34)">XS(34)</option>
-                <option value="S(36)">S(36)</option>
-                <option value="M(38)">M(38)</option>
-                <option value="L(40)">L(40)</option>
-                <option value="XL(42)">XL(42)</option>
-                <option value="XXL(44)">XXL(44)</option>
-                <option value="3XL(46)">3XL(46)</option>
-                <option value="4XL(48)">4XL(48)</option>
-                <option value="5XL(50)">5XL(50)</option>
+                {SIZES.filter((s) => s !== 'All').map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -196,9 +195,11 @@ const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
                 className="w-full px-4 py-2 border border-[#E8E0D5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C8622A]"
               >
                 <option value="">Select Condition</option>
-                <option value="New">New</option>
-                <option value="Like New">Like New</option>
-                <option value="Used">Used</option>
+                {CONDITIONS.map((condition) => (
+                  <option key={condition} value={condition}>
+                    {condition}
+                  </option>
+                ))}
               </select>
             </div>
 

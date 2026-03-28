@@ -5,14 +5,14 @@ import Festivals from '../../assets/Festivals.png'
 import Parties from '../../assets/Parties.png'
 
 const CuratedOccasionsSection = () => {
-  const occasions = [
+  const occasionsData = [
     {
       id: 'weddings',
       title: 'Weddings',
       subtitle: 'Glamorous for the big day',
       icon: '💍',
       bgImage: Wedding,
-      link: '/collection?category=LEHENGA',
+      link: '/collection?occasion=Wedding',
     },
     {
       id: 'parties',
@@ -20,7 +20,7 @@ const CuratedOccasionsSection = () => {
       subtitle: 'Chic looks & cocktail wear',
       icon: '🎉',
       bgImage: Parties,
-      link: '/collection?category=DESIGNER%20SUIT%2F%20TUXEDO',
+      link: '/collection?occasion=Parties',
     },
     {
       id: 'festivals',
@@ -28,7 +28,7 @@ const CuratedOccasionsSection = () => {
       subtitle: 'Vibrant looks you need',
       icon: '✨',
       bgImage: Festivals,
-      link: '/collection?category=KURTA%20JACKET',
+      link: '/collection?occasion=Festivals',
     },
   ]
 
@@ -44,7 +44,7 @@ const CuratedOccasionsSection = () => {
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {occasions.map((occasion) => (
+          {occasionsData.map((occasion) => (
             <Link
               key={occasion.id}
               to={occasion.link}

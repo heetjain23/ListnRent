@@ -28,7 +28,7 @@ const listingSchema = new mongoose.Schema(
     occasion: {
       type: String,
       required: true,
-      enum: ["Wedding", "Festive", "Party", "Casual", "Other"],
+      enum: ["Wedding", "Parties", "Festivals"],
     },
     size: {
       type: String,

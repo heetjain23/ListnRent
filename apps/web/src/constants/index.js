@@ -28,3 +28,16 @@ export const GENDER = [
   'Male',
   'Female',
 ]
+
+export const OCCASIONS = [
+  'All',
+  'Wedding',
+  'Parties',
+  'Festivals',
+]
+
+export const CONDITIONS = [
+  'New',
+  'Like New',
+  'Used',
+]
