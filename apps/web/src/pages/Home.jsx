@@ -1,7 +1,10 @@
 import React, { useState } from 'react'
 import HeroSection from '../components/home/HeroSection'
+import CuratedOccasionsSection from '../components/home/CuratedOccasionsSection'
 import SearchAndFilterSection from '../components/home/SearchAndFilterSection'
+import SeamlessJourneySection from '../components/home/SeamlessJourneySection'
 import ListingsGridSection from '../components/home/ListingsGridSection'
+import TrendingNowSection from '../components/home/TrendingNowSection'
 import { useListings } from '../hooks/useListings'
 
 const Home = () => {
@@ -25,6 +28,7 @@ const Home = () => {
   return (
     <div>
       <HeroSection />
+      <CuratedOccasionsSection />
       <SearchAndFilterSection
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -36,6 +40,8 @@ const Home = () => {
         loading={loading}
         error={error}
       />
+      <SeamlessJourneySection />
+      <TrendingNowSection listings={listings} loading={loading} />
     </div>
   )
 }
