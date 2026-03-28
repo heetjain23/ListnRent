@@ -7,7 +7,7 @@ const GoogleAuthSection = ({ onGoogleLogin, isLoading, loadingAction }) => {
       <Button
         onClick={onGoogleLogin}
         disabled={isLoading || loadingAction}
-        className="w-full bg-white border-2 border-[#1A1A1A] text-blue-800 hover:bg-[#1A1A1A] hover:text-white"
+        className="w-full hover:bg-[#1A1A1A] hover:text-white"
         size="lg"
       >
         {isLoading ? 'Signing in...' : '🔑 Continue with Google'}

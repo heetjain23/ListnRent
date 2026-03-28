@@ -33,15 +33,25 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
   const depositAmount = listing.deposit;
   const totalAmount = rentalAmount + depositAmount;
 
+  const getApiBaseUrl = () => {
+    const env = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL;
+    if (env) return env.endsWith("/") ? env.slice(0, -1) : env;
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return "http://localhost:5000";
+    }
+    return window.location.origin;
+  };
+
   const markPaymentAsFailed = async (bookingId, idToken) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/payments/mark-failed`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/payments/mark-failed`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({ bookingId }),
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -66,7 +76,7 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
         handler: async (response) => {
           try {
             // Step 4: Verify payment on backend
-            const verifyResponse = await fetch("http://localhost:5000/api/payments/verify-payment", {
+            const verifyResponse = await fetch(`${getApiBaseUrl()}/api/payments/verify-payment`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -77,6 +87,7 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
               }),
+              credentials: "include",
             });
 
             if (!verifyResponse.ok) {
@@ -130,7 +141,7 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
       const idToken = await currentUser.getIdToken();
         
       // Step 1: Create order on backend
-      const orderResponse = await fetch("http://localhost:5000/api/payments/create-order", {
+      const orderResponse = await fetch(`${getApiBaseUrl()}/api/payments/create-order`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -145,6 +156,7 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
           depositAmount: listing.deposit,
           existingBookingId,
         }),
+        credentials: "include",
       });
 
       if (!orderResponse.ok) {

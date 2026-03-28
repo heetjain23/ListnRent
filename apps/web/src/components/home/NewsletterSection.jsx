@@ -12,14 +12,17 @@ const NewsletterSection = () => {
     setMessage('')
 
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'
+      const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
       const response = await fetch(
-        `${import.meta.env.VITE_SERVER_API_URL || 'http://localhost:5000'}/api/newsletter/subscribe`,
+        `${baseUrl}/api/newsletter/subscribe`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ email }),
+          credentials: 'include',
         }
       )
 

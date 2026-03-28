@@ -21,7 +21,7 @@ const EmailAuthSection = ({ email, onEmailChange, onSendMagicLink, isLoading, lo
       <Button
         type="submit"
         disabled={isLoading || loadingAction || !email.trim()}
-        className="w-full"
+        className="w-full text-white"
         size="lg"
       >
         {isLoading ? 'Sending...' : '📧 Send Magic Link'}

@@ -23,12 +23,15 @@ export const useUserBookings = () => {
       }
 
       const token = await currentUser.getIdToken()
-      const response = await fetch('http://localhost:5000/api/payments/my-bookings', {
+      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'
+      const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
+      const response = await fetch(`${baseUrl}/api/payments/my-bookings`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
       })
 
       if (!response.ok) {
@@ -59,12 +62,15 @@ export const useUserBookings = () => {
       }
 
       const token = await currentUser.getIdToken()
-      const response = await fetch('http://localhost:5000/api/payments/renter-bookings', {
+      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'
+      const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
+      const response = await fetch(`${baseUrl}/api/payments/renter-bookings`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
       })
 
       if (!response.ok) {

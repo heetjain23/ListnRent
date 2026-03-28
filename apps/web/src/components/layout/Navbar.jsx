@@ -135,12 +135,17 @@ const Navbar = () => {
                 )}
               </div>
             ) : (
-              <Link
-                to="/login"
-                className="text-sm font-medium text-[#555] hover:text-[#1A1A1A] transition-colors"
+              <a
+                href="/login"
+                onClick={(e) => {
+                  e.preventDefault()
+                  window.scrollTo(0, 0)
+                  navigate('/login')
+                }}
+                className="text-sm font-medium text-[#555] hover:text-[#1A1A1A] transition-colors cursor-pointer"
               >
                 {loading ? '...' : 'Sign In'}
-              </Link>
+              </a>
             )}
           </div>
         </div>

@@ -1,6 +1,23 @@
 import { auth } from "./firebase.js";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+// Get API URL from environment variables
+const API_BASE_URL = (() => {
+  const env = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL;
+  
+  if (env) {
+    return env.endsWith("/") ? env.slice(0, -1) : env;
+  }
+  
+  // Development fallback
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return "http://localhost:5000";
+  }
+  
+  // Production: use same origin
+  return window.location.origin;
+})();
+
+console.log("[API Config] Base URL:", API_BASE_URL);
 
 // ----------------------------
 // Core fetch wrapper
@@ -29,6 +46,7 @@ export const api = async (endpoint, options = {}) => {
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
+    credentials: "include",
   });
 
   const data = await res.json();

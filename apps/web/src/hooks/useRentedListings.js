@@ -21,12 +21,15 @@ export const useRentedListings = () => {
       }
 
       const token = await currentUser.getIdToken()
-      const response = await fetch('http://localhost:5000/api/listings/user/rented-listings', {
+      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'
+      const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
+      const response = await fetch(`${baseUrl}/api/listings/user/rented-listings`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
       })
 
       if (!response.ok) {
@@ -56,12 +59,15 @@ export const useRentedListings = () => {
       }
 
       const token = await currentUser.getIdToken()
-      const response = await fetch(`http://localhost:5000/api/listings/relist/${listingId}`, {
+      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'
+      const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
+      const response = await fetch(`${baseUrl}/api/listings/relist/${listingId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
       })
 
       if (!response.ok) {

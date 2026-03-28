@@ -30,6 +30,12 @@ const Dashboard = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [showOnlyActive, setShowOnlyActive] = useState(false)
 
+  // Scroll to top when tab changes
+  const handleTabChange = (tab) => {
+    setActiveTab(tab)
+    window.scrollTo(0, 0)
+  }
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
@@ -100,7 +106,7 @@ const Dashboard = () => {
         {/* Main Layout: Sidebar + Content */}
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar */}
-          <DashboardSidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />
+          <DashboardSidebar activeTab={activeTab} onTabChange={handleTabChange} onLogout={handleLogout} />
 
           {/* Content Area */}
           <div className="flex-1">
