@@ -82,7 +82,7 @@ const BookingSection = ({
   // ────────────────────────────────────────────────────────────────────────────
   return (
     <div
-      className="rounded-3xl p-6"
+      className="rounded-3xl p-4 md:p-6"
       style={{
         backgroundColor: '#FDFCF0',
         border: `1px solid #E8E4D4`,
@@ -91,7 +91,7 @@ const BookingSection = ({
     >
 
       {/* 1 ── Rental Price Header */}
-      <div className="mb-5">
+      <div className="mb-4 md:mb-5">
         <p
           className="text-[10px] font-bold uppercase tracking-widest mb-1"
           style={{ color: '#9E9E7A' }}
@@ -100,17 +100,17 @@ const BookingSection = ({
         </p>
         <div className="flex items-baseline gap-1">
           <span
-            className="text-4xl font-black"
+            className="text-3xl md:text-4xl font-black"
             style={{ color: '#004D40', fontFamily: 'Georgia, serif' }}
           >
             ₹{listing.pricePerDay}
           </span>
-          <span className="text-sm" style={{ color: '#9E9E7A' }}>/ day</span>
+          <span className="text-xs md:text-sm" style={{ color: '#9E9E7A' }}>/ day</span>
         </div>
       </div>
 
       {/* 2 ── Event Date Picker */}
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <p
           className="text-[10px] font-bold uppercase tracking-widest mb-3"
           style={{ color: '#004D40' }}
@@ -129,7 +129,7 @@ const BookingSection = ({
 
       {/* 3 ── Duration Selector */}
       {eventDate && (
-        <div className="mb-6">
+        <div className="mb-4 md:mb-6">
           <p
             className="text-[10px] font-bold uppercase tracking-widest mb-3"
             style={{ color: '#004D40' }}
@@ -141,7 +141,7 @@ const BookingSection = ({
               <button
                 key={day}
                 onClick={() => onDurationChange(day)}
-                className="py-2.5 rounded-lg font-semibold text-xs transition-all duration-200 active:scale-95"
+                className="py-2 md:py-2.5 rounded-lg font-semibold text-xs transition-all duration-200 active:scale-95"
                 style={{
                   backgroundColor: durationDays === day ? '#004D40' : '#F5F2E8',
                   color: durationDays === day ? '#FDFCF0' : '#1A1A14',
@@ -165,7 +165,7 @@ const BookingSection = ({
             <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: '#9E9E7A' }}>
               Take-Away
             </p>
-            <p className="text-sm font-semibold" style={{ color: '#1A1A14' }}>
+            <p className="text-xs md:text-sm font-semibold" style={{ color: '#1A1A14' }}>
               {new Date(dates.TakeAway).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}(1:00 pm)
             </p>
           </div>
@@ -173,7 +173,7 @@ const BookingSection = ({
             <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: '#9E9E7A' }}>
               Return
             </p>
-            <p className="text-sm font-semibold" style={{ color: '#1A1A14' }}>
+            <p className="text-xs md:text-sm font-semibold" style={{ color: '#1A1A14' }}>
               {new Date(dates.returnDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}(1:00 pm)
             </p>
           </div>
@@ -200,12 +200,12 @@ const BookingSection = ({
 
       {/* 6 ── Total Row */}
       {grandTotal && (
-        <div className="flex justify-between items-center mb-5">
-          <span className="font-bold text-base" style={{ color: '#1A1A14' }}>
+        <div className="flex justify-between items-center mb-4 md:mb-5">
+          <span className="font-bold text-sm md:text-base" style={{ color: '#1A1A14' }}>
             Total
           </span>
           <span
-            className="text-2xl font-black"
+            className="text-xl md:text-2xl font-black"
             style={{ color: '#004D40', fontFamily: 'Georgia, serif' }}
           >
             ₹{grandTotal}
@@ -224,7 +224,7 @@ const BookingSection = ({
       <ProtectedAction onConfirm={onRentClick} actionName="rent">
         <button
           disabled={!available || !total}
-          className="w-full py-4 rounded-2xl font-bold text-base tracking-wide transition-all duration-200
+          className="w-full py-3 md:py-4 rounded-2xl font-bold text-base tracking-wide transition-all duration-200
             disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
           style={{
             backgroundColor: available && total ? '#004D40' : '#9E9E7A',
@@ -245,7 +245,7 @@ const BookingSection = ({
 
       {/* 8 ── Trust Badges */}
       <div
-        className="grid grid-cols-3 gap-3 mt-5 pt-5"
+        className="grid grid-cols-3 gap-2 md:gap-3 mt-4 md:mt-5 pt-4 md:pt-5"
         style={{ borderTop: `1px solid #E8E4D4` }}
       >
         <TrustBadge icon={<ShieldIcon />}  label="Insured" />

@@ -13,17 +13,17 @@ import PaymentCheckout        from '../components/ui/PaymentCheckout'
 // ─── Breadcrumb ────────────────────────────────────────────────────────────────
 const Breadcrumb = ({ category, title }) => (
   <nav
-    className="flex items-center gap-2 text-xs mb-8 tracking-wide uppercase"
+    className="flex items-center gap-1 md:gap-2 text-[10px] md:text-xs mb-6 md:mb-8 tracking-wide uppercase overflow-x-auto pb-1"
     style={{ color: '#9E9E7A' }}
   >
-    <Link to="/collection" className="hover:text-[#004D40] transition-colors">Collection</Link>
+    <Link to="/collection" className="hover:text-[#004D40] transition-colors whitespace-nowrap">Collection</Link>
     <span style={{ color: '#C9C9A8' }}>›</span>
-    <Link to={`/collection?category=${category}`} className="hover:text-[#004D40] transition-colors">
+    <Link to={`/collection?category=${category}`} className="hover:text-[#004D40] transition-colors whitespace-nowrap">
       {category || 'Collection'}
     </Link>
     <span style={{ color: '#C9C9A8' }}>›</span>
     <span
-      className="font-semibold truncate max-w-55"
+      className="font-semibold truncate"
       style={{ color: '#004D40' }}
     >
       {title}
@@ -33,11 +33,11 @@ const Breadcrumb = ({ category, title }) => (
 
 // ─── Loading Skeleton ──────────────────────────────────────────────────────────
 const LoadingSkeleton = () => (
-  <div className="pt-20 pb-20 max-w-6xl mx-auto px-6 animate-pulse">
-    <div className="h-3 rounded-full w-56 mb-8" style={{ backgroundColor: '#E8E4D4' }} />
-    <div className="grid md:grid-cols-2 gap-12">
-      <div className="flex gap-3">
-        <div className="flex flex-col gap-2 w-17">
+  <div className="pt-16 md:pt-20 pb-20 md:pb-24 max-w-6xl mx-auto px-4 md:px-6 animate-pulse">
+    <div className="h-3 rounded-full w-56 mb-6 md:mb-8" style={{ backgroundColor: '#E8E4D4' }} />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-12 lg:gap-16">
+      <div className="flex gap-2 md:gap-3">
+        <div className="hidden md:flex flex-col gap-2 w-17">
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
@@ -53,11 +53,11 @@ const LoadingSkeleton = () => (
       </div>
       <div className="space-y-4">
         <div className="h-4 rounded-full w-32"  style={{ backgroundColor: '#E8E4D4' }} />
-        <div className="h-9 rounded-full w-4/5" style={{ backgroundColor: '#E8E4D4' }} />
+        <div className="h-8 md:h-9 rounded-full w-4/5" style={{ backgroundColor: '#E8E4D4' }} />
         <div className="h-4 rounded-full w-full" style={{ backgroundColor: '#E8E4D4' }} />
         <div className="h-4 rounded-full w-2/3" style={{ backgroundColor: '#E8E4D4' }} />
-        <div className="h-28 rounded-2xl mt-4"  style={{ backgroundColor: '#E8E4D4' }} />
-        <div className="h-56 rounded-3xl mt-4"  style={{ backgroundColor: '#E8E4D4' }} />
+        <div className="h-24 md:h-28 rounded-2xl mt-4"  style={{ backgroundColor: '#E8E4D4' }} />
+        <div className="h-48 md:h-56 rounded-3xl mt-4"  style={{ backgroundColor: '#E8E4D4' }} />
       </div>
     </div>
   </div>
@@ -65,18 +65,18 @@ const LoadingSkeleton = () => (
 
 // ─── Booking Success Screen ────────────────────────────────────────────────────
 const BookingSuccessScreen = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center gap-6 pt-16">
-    <span className="text-7xl">✅</span>
+  <div className="min-h-screen flex flex-col items-center justify-center gap-4 md:gap-6 pt-16">
+    <span className="text-6xl md:text-7xl">✅</span>
     <h2
-      className="text-2xl font-bold"
+      className="text-xl md:text-2xl font-bold text-center px-4"
       style={{ color: '#1A1A14', fontFamily: 'Georgia, serif' }}
     >
       Booking Confirmed!
     </h2>
-    <p style={{ color: '#7D6B41' }}>
+    <p className="text-sm md:text-base text-center px-4" style={{ color: '#7D6B41' }}>
       Your rental booking has been successfully created.
     </p>
-    <p className="text-sm" style={{ color: '#9E9E7A' }}>
+    <p className="text-xs md:text-sm text-center px-4" style={{ color: '#9E9E7A' }}>
       Redirecting to your dashboard…
     </p>
   </div>
@@ -84,14 +84,14 @@ const BookingSuccessScreen = () => (
 
 // ─── Not Found Screen ──────────────────────────────────────────────────────────
 const NotFoundScreen = ({ error }) => (
-  <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-16">
-    <span className="text-6xl">🪭</span>
-    <h2 className="text-xl font-semibold" style={{ color: '#1A1A14' }}>
+  <div className="min-h-screen flex flex-col items-center justify-center gap-3 md:gap-4 pt-16">
+    <span className="text-5xl md:text-6xl">🪭</span>
+    <h2 className="text-lg md:text-xl font-semibold text-center px-4" style={{ color: '#1A1A14' }}>
       {error || 'Outfit not found'}
     </h2>
     <Link
       to="/collection"
-      className="text-sm underline transition-colors hover:opacity-70"
+      className="text-xs md:text-sm underline transition-colors hover:opacity-70"
       style={{ color: '#004D40' }}
     >
       Back to Collection
@@ -155,15 +155,18 @@ const ListingDetail = () => {
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-24" style={{ backgroundColor: '#FDFCF0' }}>
-      <div className="max-w-6xl mx-auto px-6">
+    <div className="min-h-screen pt-16 md:pt-20 pb-20 md:pb-24 px-4 md:px-6" style={{ backgroundColor: '#FDFCF0' }}>
+      <div className="max-w-6xl mx-auto">
 
-        <Breadcrumb category={listing.category} title={listing.title} />
+        {/* Breadcrumb - Hidden on mobile, shown on md+ */}
+        <div className="hidden md:block mb-6 md:mb-8">
+          <Breadcrumb category={listing.category} title={listing.title} />
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 lg:gap-16">
 
           {/* Left — Image gallery + metadata */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4 md:gap-6">
             <ImageGallerySection
               images={listing.images}
               activeImage={activeImage}
@@ -171,11 +174,19 @@ const ListingDetail = () => {
               title={listing.title}
             />
 
-            <HostMetadataSection listing={listing} />
+            {/* Metadata - Only show on small screens below md */}
+            <div className="md:hidden">
+              <HostMetadataSection listing={listing} />
+            </div>
+
+            {/* Desktop: Metadata below images on md and up */}
+            <div className="hidden md:block">
+              <HostMetadataSection listing={listing} />
+            </div>
           </div>
 
           {/* Right — Details + booking + host card */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4 md:gap-6">
 
             <ListingDetailsSection listing={listing} />
 

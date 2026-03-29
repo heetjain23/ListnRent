@@ -88,7 +88,7 @@ const CustomCalendarPicker = ({ value, onChange, minDate }) => {
       {/* Input field */}
       <div
         onClick={() => setShowCalendar(!showCalendar)}
-        className="w-full px-4 py-3 rounded-lg text-sm font-semibold bg-white cursor-pointer flex items-center justify-between transition-all"
+        className="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-lg text-xs md:text-sm font-semibold bg-white cursor-pointer flex items-center justify-between transition-all"
         style={{
           border: value ? `1.5px solid #004D40` : `1.5px solid #D4AF37`,
           color: '#1A1A14',
