@@ -212,7 +212,7 @@ const ListingDetail = () => {
             )}
 
             {/* Host Card */}
-            <HostCard ownerName={listing.userId?.name || listing.owner?.name || 'Ananya Sharma'} />
+            <HostCard ownerName={listing.owner?.name || 'Host'} />
 
           </div>
         </div>

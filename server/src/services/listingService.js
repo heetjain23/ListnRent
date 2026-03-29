@@ -1,4 +1,25 @@
 import Listing from "../models/Listing.js";
+import admin from "../config/firebase-admin.js";
+
+// Helper function to fetch owner data from Firebase
+const enrichListingWithOwnerData = async (listing) => {
+  try {
+    if (listing.userId) {
+      const firebaseUser = await admin.auth().getUser(listing.userId);
+      return {
+        ...listing.toObject ? listing.toObject() : listing,
+        owner: {
+          name: firebaseUser.displayName || firebaseUser.email || "User",
+          email: firebaseUser.email,
+          phone: firebaseUser.phoneNumber,
+        },
+      };
+    }
+  } catch (error) {
+    console.warn(`Could not fetch owner data for UID ${listing.userId}:`, error.message);
+  }
+  return listing.toObject ? listing.toObject() : listing;
+};
 
 // ----------------------------
 // Create Listing
@@ -19,22 +40,24 @@ export const getAllListings = async (filters = {}) => {
   if (filters.occasion) query.occasion = filters.occasion;
   if (filters.city) query["location.city"] = filters.city;
 
-  const listings = await Listing.find(query)
-    .populate("userId", "name phone email")
-    .sort({ createdAt: -1 });
+  const listings = await Listing.find(query).sort({ createdAt: -1 });
 
-  return listings;
+  // Enrich each listing with owner data from Firebase
+  const enrichedListings = await Promise.all(
+    listings.map((listing) => enrichListingWithOwnerData(listing))
+  );
+
+  return enrichedListings;
 };
 
 // ----------------------------
 // Get Single Listing by ID
 // ----------------------------
 export const getListingById = async (id) => {
-  const listing = await Listing.findById(id).populate(
-    "userId",
-    "name phone email"
-  );
-  return listing;
+  const listing = await Listing.findById(id);
+  if (!listing) return null;
+  
+  return enrichListingWithOwnerData(listing);
 };
 
 // ----------------------------
