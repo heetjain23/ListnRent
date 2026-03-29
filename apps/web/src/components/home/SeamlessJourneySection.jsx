@@ -39,7 +39,7 @@ const SeamlessJourneySection = () => {
           Accessing luxury should be as effortless as wearing it.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {steps.map((step, index) => (
             <div key={step.id} className="relative">
               {/* Step Number Circle */}
