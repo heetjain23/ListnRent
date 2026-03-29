@@ -7,7 +7,7 @@ const Grid = ({ paginatedItems, loading, error, filteredCount }) => {
   }
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {[...Array(6)].map((_, i) => (
           <div
             key={i}
@@ -47,7 +47,7 @@ const Grid = ({ paginatedItems, loading, error, filteredCount }) => {
     /* Listings Grid */
   }
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
       {paginatedItems.map((listing) => (
         <ListingCard key={listing._id || listing.id} listing={listing} />
       ))}

@@ -4,12 +4,15 @@ import { useListings } from '../hooks/useListings'
 import { CATEGORIES, OCCASIONS } from '../constants'
 import Header from '../components/collection/Header'
 import Sidebar from '../components/collection/Sidebar'
+import FilterModal from '../components/collection/FilterModal'
 import TopBar from '../components/collection/TopBar'
 import Grid from '../components/collection/Grid'
 import Pagination from '../components/collection/Pagination'
 
 const Collection = () => {
   const [searchParams] = useSearchParams()
+  const [showFilterModal, setShowFilterModal] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Initialize filters from URL params on first render
   const [selectedCategories, setSelectedCategories] = useState(() => {
@@ -76,6 +79,17 @@ const Collection = () => {
   const filtered = useMemo(() => {
     let result = listings
 
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter(
+        (l) =>
+          l.title?.toLowerCase().includes(query) ||
+          l.category?.toLowerCase().includes(query) ||
+          l.occasion?.toLowerCase().includes(query)
+      )
+    }
+
     // Size filter
     if (selectedSize !== 'All') {
       result = result.filter((l) => {
@@ -101,7 +115,7 @@ const Collection = () => {
     }
 
     return result
-  }, [listings, selectedSize, priceRange, sortBy])
+  }, [listings, selectedSize, priceRange, sortBy, searchQuery])
 
   // Pagination
   const totalPages = Math.ceil(filtered.length / itemsPerPage)
@@ -121,36 +135,46 @@ const Collection = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] pt-24 pb-20">
-      <div className="px-6 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-[#FAF7F2] pt-24 pb-20 overflow-x-hidden">
+      <div className="px-4 md:px-6 max-w-7xl mx-auto">
         {/* Header Component */}
-        <Header />
+        <Header
+          selectedCategories={selectedCategories}
+          toggleCategory={toggleCategory}
+          onFilterClick={() => setShowFilterModal(true)}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
 
         {/* Main Layout */}
-        <div className="flex gap-8">
-          {/* Sidebar Filters Component */}
-          <Sidebar
-            selectedCategories={selectedCategories}
-            toggleCategory={toggleCategory}
-            selectedSize={selectedSize}
-            setSelectedSize={setSelectedSize}
-            priceRange={priceRange}
-            setPriceRange={setPriceRange}
-            selectedOccasion={selectedOccasion}
-            handleOccasionChange={handleOccasionChange}
-            setCurrentPage={setCurrentPage}
-            minMaxPrice={minMaxPrice}
-          />
+        <div className="flex gap-6 md:gap-8">
+          {/* Sidebar Filters Component - Desktop Only */}
+          <div className="hidden md:block md:w-64 shrink-0">
+            <Sidebar
+              selectedCategories={selectedCategories}
+              toggleCategory={toggleCategory}
+              selectedSize={selectedSize}
+              setSelectedSize={setSelectedSize}
+              priceRange={priceRange}
+              setPriceRange={setPriceRange}
+              selectedOccasion={selectedOccasion}
+              handleOccasionChange={handleOccasionChange}
+              setCurrentPage={setCurrentPage}
+              minMaxPrice={minMaxPrice}
+            />
+          </div>
 
           {/* Main Content */}
           <div className="flex-1">
-            {/* Top Bar Component */}
-            <TopBar
-              filteredCount={filtered.length}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-              setCurrentPage={setCurrentPage}
-            />
+            {/* Top Bar Component - Desktop Only */}
+            <div className="hidden md:block">
+              <TopBar
+                filteredCount={filtered.length}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                setCurrentPage={setCurrentPage}
+              />
+            </div>
 
             {/* Grid Component (handles all states: loading, error, empty, listings) */}
             <Grid
@@ -170,6 +194,21 @@ const Collection = () => {
             )}
           </div>
         </div>
+
+        {/* Filter Modal - Mobile Only */}
+        <FilterModal
+          isOpen={showFilterModal}
+          onClose={() => setShowFilterModal(false)}
+          selectedCategories={selectedCategories}
+          toggleCategory={toggleCategory}
+          selectedSize={selectedSize}
+          setSelectedSize={setSelectedSize}
+          priceRange={priceRange}
+          setPriceRange={setPriceRange}
+          selectedOccasion={selectedOccasion}
+          handleOccasionChange={handleOccasionChange}
+          minMaxPrice={minMaxPrice}
+        />
       </div>
     </div>
   )

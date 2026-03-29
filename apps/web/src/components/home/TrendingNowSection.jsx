@@ -83,7 +83,7 @@ const TrendingNowSection = ({ listings, loading }) => {
             {trendingListings.map((listing, index) => (
               <div
                 key={listing._id}
-                className="flex-shrink-0 w-full transition-transform duration-300"
+                className="shrink-0 w-full transition-transform duration-300"
                 style={{
                   transform: `translateX(${-carouselIndex * 100}%)`,
                 }}
