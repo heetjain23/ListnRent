@@ -64,12 +64,22 @@ const Collection = () => {
     return [min, max]
   }, [listings])
 
-  // Initialize price range when listings load
+  // Reset price range when filters change
   useEffect(() => {
-    if (listings.length > 0 && priceRange === null) {
-      setPriceRange(minMaxPrice)
+    setPriceRange(null)
+  }, [selectedCategories, selectedOccasion])
+
+  // Recalculate price range when listings change
+  useEffect(() => {
+    if (listings.length > 0) {
+      const prices = listings.map((l) => l.pricePerDay || 0).filter((p) => p > 0)
+      if (prices.length > 0) {
+        const min = Math.floor(Math.min(...prices) / 100) * 100
+        const max = Math.ceil(Math.max(...prices) / 100) * 100
+        setPriceRange([min, max])
+      }
     }
-  }, [listings, minMaxPrice, priceRange])
+  }, [listings])
 
   // Scroll to top when page loads
   useEffect(() => {
