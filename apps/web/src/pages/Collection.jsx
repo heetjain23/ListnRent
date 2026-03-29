@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useListings } from '../hooks/useListings'
 import { CATEGORIES, OCCASIONS } from '../constants'
 import Header from '../components/collection/Header'
@@ -11,6 +11,7 @@ import Pagination from '../components/collection/Pagination'
 
 const Collection = () => {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [showFilterModal, setShowFilterModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -123,15 +124,27 @@ const Collection = () => {
   const paginatedItems = filtered.slice(startIdx, startIdx + itemsPerPage)
 
   const toggleCategory = (category) => {
-    setSelectedCategories((prev) =>
-      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
-    )
+    const updated = selectedCategories.includes(category)
+      ? selectedCategories.filter((c) => c !== category)
+      : [...selectedCategories, category]
+    updateUrlParams(updated, selectedOccasion)
     setCurrentPage(1)
   }
 
   const handleOccasionChange = (occasion) => {
-    setSelectedOccasion(occasion)
+    updateUrlParams(selectedCategories, occasion)
     setCurrentPage(1)
+  }
+
+  const updateUrlParams = (categories, occasion) => {
+    const params = new URLSearchParams()
+    if (categories.length > 0) {
+      params.set('category', categories[0])
+    }
+    if (occasion) {
+      params.set('occasion', occasion)
+    }
+    navigate(`/collection${params.toString() ? '?' + params.toString() : ''}`)
   }
 
   return (
