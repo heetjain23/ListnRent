@@ -11,6 +11,7 @@ import { connectDB } from "./src/config/db.js";
 import listingRoutes from "./src/routes/listingRoutes.js";
 import paymentRoutes from "./src/routes/paymentRoutes.js";
 import newsletterRoutes from "./src/routes/newsletterRoutes.js";
+import userRoutes from "./src/routes/userRoutes.js";
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.get("/api/test", (req, res) => {
 app.use("/api/listings", listingRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/newsletter", newsletterRoutes);
+app.use("/api/users", userRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

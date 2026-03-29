@@ -1,18 +1,16 @@
 import React from 'react'
 
-const DashboardTabs = ({ activeTab, onTabChange, onLogout }) => {
+const DashboardTabs = ({ activeTab, onTabChange }) => {
   const tabs = [
-    { id: 'personal', label: 'Personal Information' },
     { id: 'listings', label: 'My Listings' },
     { id: 'orders', label: 'My Orders' },
-    { id: 'earnings', label: 'Earnings' },
     { id: 'rentals', label: 'My Rentals (Owner)' },
     { id: 'messages', label: 'Messages' },
     { id: 'settings', label: 'Settings' },
   ]
 
   return (
-    <div className="border-b border-[#E8E0D5] mb-6 md:mb-8 flex items-center justify-between overflow-x-auto">
+    <div className="border-b border-[#E8E0D5] mb-6 md:mb-8 flex overflow-x-auto">
       <div className="flex gap-4 md:gap-8">
         {tabs.map((tab) => (
           <button
@@ -28,14 +26,6 @@ const DashboardTabs = ({ activeTab, onTabChange, onLogout }) => {
           </button>
         ))}
       </div>
-      {onLogout && (
-        <button
-          onClick={onLogout}
-          className="text-red-600 hover:text-red-700 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ml-auto pl-4"
-        >
-          Log Out
-        </button>
-      )}
     </div>
   )
 }

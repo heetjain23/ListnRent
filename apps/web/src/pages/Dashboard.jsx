@@ -9,9 +9,10 @@ import DashboardTabs from '../components/dashboard/DashboardTabs'
 import ListingsTable from '../components/dashboard/ListingsTable'
 import MobileListingCard from '../components/dashboard/MobileListingCard'
 import PromoBanner from '../components/dashboard/PromoBanner'
-import PersonalInformation from '../components/dashboard/PersonalInformation'
+import SettingsSection from '../components/dashboard/SettingsSection'
 import MyOrders from '../components/dashboard/MyOrders'
 import MyRentalsAsOwner from '../components/dashboard/MyRentalsAsOwner'
+import { api } from '../services/api'
 
 const Dashboard = () => {
   const navigate = useNavigate()
@@ -26,10 +27,11 @@ const Dashboard = () => {
     toggleListingActive,
   } = useUserListings(false)
 
-  const [activeTab, setActiveTab] = useState('personal')
+  const [activeTab, setActiveTab] = useState('listings')
   const [editingId, setEditingId] = useState(null)
   const [editingListing, setEditingListing] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [userData, setUserData] = useState(user)
 
   // Calculate stats from listings
   const activeListings = listings.filter((l) => l.isActive).length
@@ -50,10 +52,34 @@ const Dashboard = () => {
     }
   }
 
+  const handleDeleteAccount = async () => {
+    try {
+      await api('/api/users/account', {
+        method: 'DELETE',
+      })
+      // Clear local auth state
+      localStorage.removeItem('auth_user')
+      localStorage.removeItem('auth_token')
+      navigate('/login')
+    } catch (error) {
+      console.error('Delete account error:', error)
+      throw error
+    }
+  }
+
+  const handleNameUpdate = (newName) => {
+    setUserData({
+      ...userData,
+      displayName: newName,
+    })
+  }
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login')
+    } else if (user) {
+      setUserData(user)
     }
   }, [user, authLoading, navigate])
 
@@ -153,10 +179,7 @@ const Dashboard = () => {
           </div>
 
         {/* Dashboard Tabs */}
-        <DashboardTabs activeTab={activeTab} onTabChange={handleTabChange} onLogout={handleLogout} />
-
-        {/* Personal Information Tab */}
-        {activeTab === 'personal' && <PersonalInformation user={user} />}
+        <DashboardTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
         {/* My Listings Tab */}
         {activeTab === 'listings' && (
@@ -236,14 +259,6 @@ const Dashboard = () => {
         {/* My Orders Tab */}
         {activeTab === 'orders' && <MyOrders />}
 
-        {/* Earnings Tab */}
-        {activeTab === 'earnings' && (
-          <div className="bg-white rounded-lg border border-[#E8E0D5] p-6 md:p-8">
-            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-6">Earnings</h2>
-            <p className="text-[#666]">Earnings analytics coming soon.</p>
-          </div>
-        )}
-
         {/* My Rentals (As Owner) Tab */}
         {activeTab === 'rentals' && <MyRentalsAsOwner />}
 
@@ -257,10 +272,12 @@ const Dashboard = () => {
 
         {/* Settings Tab */}
         {activeTab === 'settings' && (
-          <div className="bg-white rounded-lg border border-[#E8E0D5] p-6 md:p-8">
-            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-6">Settings</h2>
-            <p className="text-[#666]">Settings coming soon.</p>
-          </div>
+          <SettingsSection
+            user={userData}
+            onDeleteAccount={handleDeleteAccount}
+            onNameUpdate={handleNameUpdate}
+            onLogout={handleLogout}
+          />
         )}
 
         {/* Edit Modal */}
