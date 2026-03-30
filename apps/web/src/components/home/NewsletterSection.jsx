@@ -41,7 +41,6 @@ const NewsletterSection = () => {
         setMessage(data.message || 'Failed to subscribe. Please try again.')
       }
     } catch (error) {
-      console.error('Subscription error:', error)
       setIsSuccess(false)
       setMessage('An error occurred. Please try again later.')
     } finally {

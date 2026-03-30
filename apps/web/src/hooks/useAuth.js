@@ -44,7 +44,6 @@ export const useAuth = () => {
     setError(null)
     try {
       await sendMagicLink(email)
-      console.log('[Auth] Magic link sent to:', email)
       return { success: true }
     } catch (err) {
       const errorMsg = err.message || 'Failed to send magic link'
@@ -63,7 +62,6 @@ export const useAuth = () => {
     setError(null)
     try {
       const userData = await completeMagicLinkSignIn(email)
-      console.log('[Auth] Magic link signin successful:', userData)
       return userData
     } catch (err) {
       const errorMsg = err.message || 'Magic link signin failed'

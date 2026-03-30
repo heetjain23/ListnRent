@@ -40,7 +40,6 @@ export const useRentedListings = () => {
       setRentedListings(data.data.listings || [])
     } catch (err) {
       setError(err.message)
-      console.error('Error fetching rented listings:', err)
     } finally {
       setLoading(false)
     }
@@ -81,7 +80,6 @@ export const useRentedListings = () => {
       return data.data.listing
     } catch (err) {
       setError(err.message)
-      console.error('Error relisting:', err)
       throw err
     } finally {
       setLoading(false)

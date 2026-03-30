@@ -50,9 +50,6 @@ const EditListing = () => {
         setListing(data)
         setIsDraft(data.isDraft || false)
         
-        console.log('[EditListing] Fetched listing material:', data.material)
-        console.log('[EditListing] Available materials:', OUTFIT_MATERIALS)
-        
         // Set existing images
         setExistingImages(data.images || [])
         setPreviewImages(data.images || [])
@@ -60,9 +57,6 @@ const EditListing = () => {
         // Initialize form with listing data
         // Check if material is custom (not in predefined list)
         const isMaterialCustom = data.material && !OUTFIT_MATERIALS.includes(data.material)
-        
-        console.log('[EditListing] Is material custom?', isMaterialCustom)
-        console.log('[EditListing] Data material in list?', data.material, OUTFIT_MATERIALS.includes(data.material))
         
         const initialForm = {
           title: data.title || '',
@@ -78,11 +72,9 @@ const EditListing = () => {
           area: data.location?.area || '',
         }
         
-        console.log('[EditListing] Initialized form:', initialForm)
         setForm(initialForm)
         setLoading(false)
       } catch (err) {
-        console.error('[EditListing] Error loading listing:', err)
         setSubmitError('Failed to load listing: ' + err.message)
         setLoading(false)
       }
@@ -183,7 +175,6 @@ const EditListing = () => {
       
       // Upload new images if any
       if (imageFiles.length > 0) {
-        console.log('[Draft] Uploading', imageFiles.length, 'images to Cloudinary...')
         const newUrls = await uploadMultipleImages(imageFiles)
         cloudinaryUrls = [...cloudinaryUrls, ...newUrls]
       }
@@ -209,15 +200,12 @@ const EditListing = () => {
         isDraft: true,
       }
 
-      console.log('[Draft] Saving as draft:', payload)
       const res = await listingsApi.update(listingId, payload)
-      console.log('[Draft] Response from server:', res)
       setSubmitAction('draft')
       setSubmitted(true)
       // Navigate back to dashboard after short delay
       setTimeout(() => navigate('/dashboard', { state: { activeTab: 'listings' } }), 1500)
     } catch (err) {
-      console.error('Draft save error:', err)
       setSubmitError(err.message || 'Failed to save draft')
       setUploading(false)
     } finally {
@@ -250,7 +238,6 @@ const EditListing = () => {
       
       // Upload new images if any
       if (imageFiles.length > 0) {
-        console.log('[Listing] Uploading', imageFiles.length, 'images to Cloudinary...')
         const newUrls = await uploadMultipleImages(imageFiles)
         cloudinaryUrls = [...cloudinaryUrls, ...newUrls]
       }
@@ -261,10 +248,6 @@ const EditListing = () => {
       
       // Ensure material is set
       const finalMaterial = form.material === 'Other' ? form.customMaterial : form.material
-      
-      console.log('[EditListing Save] form.material:', form.material)
-      console.log('[EditListing Save] form.customMaterial:', form.customMaterial)
-      console.log('[EditListing Save] finalMaterial:', finalMaterial)
       
       if (!finalMaterial || !finalMaterial.trim()) {
         throw new Error('Material is required. Please select or specify a material.')
@@ -286,15 +269,12 @@ const EditListing = () => {
         isDraft: false, // Mark as live/published
       }
 
-      console.log('[EditListing Save] Full payload being sent:', payload)
       const res = await listingsApi.update(listingId, payload)
-      console.log('[EditListing Save] Response from server:', res)
       setSubmitAction('publish')
       setSubmitted(true)
       // Navigate back to listing after short delay
       setTimeout(() => navigate(`/listing/${listingId}`), 1500)
     } catch (err) {
-      console.error('Update error:', err)
       setSubmitError(err.message || 'Failed to update listing')
       setUploading(false)
     } finally {

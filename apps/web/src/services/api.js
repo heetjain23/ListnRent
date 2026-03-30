@@ -28,7 +28,6 @@ export const api = async (endpoint, options = {}) => {
         token = await currentUser.getIdToken();
       }
     } catch (err) {
-      console.error("Error getting Firebase token:", err);
     }
   }
 

@@ -1,10 +1,6 @@
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
 
-if (!CLOUDINARY_CLOUD_NAME) {
-  console.warn('[Cloudinary] VITE_CLOUDINARY_CLOUD_NAME not configured')
-}
-
 /**
  * Upload a single image to Cloudinary
  * @param {File} file - Image file to upload
@@ -35,7 +31,6 @@ export const uploadImage = async (file) => {
     const data = await response.json()
     return data.secure_url // Return the HTTPS URL
   } catch (error) {
-    console.error('[Cloudinary] Upload error:', error)
     throw error
   }
 }
@@ -55,7 +50,6 @@ export const uploadMultipleImages = async (files) => {
     const urls = await Promise.all(uploadPromises)
     return urls
   } catch (error) {
-    console.error('[Cloudinary] Batch upload error:', error)
     throw error
   }
 }
@@ -66,7 +60,6 @@ export const uploadMultipleImages = async (files) => {
  * @param {string} publicId - Cloudinary public ID
  */
 export const deleteImage = async (publicId) => {
-  console.warn('[Cloudinary] Direct deletion not supported. Use backend API.')
   throw new Error('Use backend API for secure image deletion')
 }
 

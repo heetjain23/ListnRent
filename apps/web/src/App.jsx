@@ -35,7 +35,6 @@ const CompleteMagicLink = () => {
           window.location.href = '/dashboard'
         }, 2000)
       } catch (err) {
-        console.error('Magic link completion error:', err)
         setStatus('error')
         setError(err.message || 'Failed to complete sign-in. Link may have expired.')
       }

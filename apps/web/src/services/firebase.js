@@ -21,11 +21,6 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 }
 
-// Validate Firebase config
-if (!firebaseConfig.apiKey) {
-  console.error('[Firebase] Configuration missing. Check .env.local')
-}
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
 

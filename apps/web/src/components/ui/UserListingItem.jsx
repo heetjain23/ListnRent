@@ -14,7 +14,6 @@ const UserListingItem = ({ listing, onEdit, onDelete, onToggleActive }) => {
       await onDelete(listing._id)
       setShowDeleteConfirm(false)
     } catch (error) {
-      console.error('Delete error:', error)
     } finally {
       setIsDeleting(false)
     }
@@ -25,7 +24,6 @@ const UserListingItem = ({ listing, onEdit, onDelete, onToggleActive }) => {
       setIsTogglingActive(true)
       await onToggleActive(listing._id, listing.isActive)
     } catch (error) {
-      console.error('Toggle active error:', error)
     } finally {
       setIsTogglingActive(false)
     }

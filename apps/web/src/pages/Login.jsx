@@ -40,7 +40,6 @@ const Login = () => {
       await loginWithGoogle()
       // Redirect happens automatically via useEffect when isAuthenticated changes
     } catch (err) {
-      console.error('Google login error:', err)
     } finally {
       setIsLoading(false)
     }
@@ -56,7 +55,6 @@ const Login = () => {
       await sendMagicLinkToEmail(email)
       setStep('email-sent')
     } catch (err) {
-      console.error('Magic link error:', err)
     } finally {
       setIsLoading(false)
     }

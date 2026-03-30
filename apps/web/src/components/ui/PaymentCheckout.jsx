@@ -54,11 +54,7 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
         credentials: "include",
       });
 
-      if (!response.ok) {
-        console.error("Failed to mark payment as failed");
-      }
     } catch (err) {
-      console.error("Error marking payment as failed:", err);
     }
   };
 

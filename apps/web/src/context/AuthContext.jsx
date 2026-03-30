@@ -15,8 +15,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Subscribe to Firebase auth state changes
     const unsubscribe = subscribeToAuthChanges(async (authUser) => {
-      console.log('[AuthContext] Auth state changed:', authUser?.uid)
-      
       // Store the full Firebase user object (has getIdToken method)
       setUser(authUser)
       setLoading(false)
@@ -24,19 +22,11 @@ export const AuthProvider = ({ children }) => {
       // Initialize user in database if they just logged in
       if (authUser) {
         try {
-          console.log('[AuthContext] Calling usersApi.init() with:', {
-            displayName: authUser.displayName,
-            photoURL: authUser.photoURL,
-          })
-          
           const response = await usersApi.init({
             displayName: authUser.displayName,
             photoURL: authUser.photoURL,
           })
-          
-          console.log('[AuthContext] User initialized in database:', response)
         } catch (error) {
-          console.warn('[AuthContext] Failed to initialize user in database:', error)
           // Don't fail the whole auth flow if this fails
         }
 
@@ -66,7 +56,6 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('auth_user')
       localStorage.removeItem('auth_token')
     } catch (error) {
-      console.error('Logout error:', error)
       throw error
     }
   }

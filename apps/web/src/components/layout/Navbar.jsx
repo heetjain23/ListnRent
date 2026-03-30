@@ -39,13 +39,17 @@ const Navbar = () => {
     setProfileDropdownOpen(false)
   }
 
+  const handleClickLogo = () => {
+    navigate('/')
+    window.scrollTo(0, 0)
+  }
+
   const handleLogout = async () => {
     try {
       await logout()
       navigate('/')
       setProfileDropdownOpen(false)
     } catch (error) {
-      console.error('Logout error:', error)
     }
   }
 
@@ -57,7 +61,7 @@ const Navbar = () => {
     >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 group">
+        <Link to="/" onClick={handleClickLogo} className="flex items-center gap-2 group">
           <span className="text-2xl font-black tracking-tight text-[#1A1A1A]"
             style={{ fontFamily: "'Georgia', serif" }}>
             Rent<span className="text-[#00342B]">Fit</span>

@@ -42,7 +42,6 @@ export const useUserBookings = () => {
       setBookings(data.data.bookings || [])
     } catch (err) {
       setError(err.message)
-      console.error('Error fetching user bookings:', err)
     } finally {
       setLoading(false)
     }
@@ -81,7 +80,6 @@ export const useUserBookings = () => {
       setRenterBookings(data.data.bookings || [])
     } catch (err) {
       setError(err.message)
-      console.error('Error fetching renter bookings:', err)
     } finally {
       setLoading(false)
     }

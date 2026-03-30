@@ -104,7 +104,6 @@ const CreateListing = () => {
       
       // Upload images if any are provided
       if (imageFiles.length > 0) {
-        console.log('[Draft] Uploading', imageFiles.length, 'images to Cloudinary...')
         cloudinaryUrls = await uploadMultipleImages(imageFiles)
       }
       setUploading(false)
@@ -127,14 +126,12 @@ const CreateListing = () => {
         isDraft: true, // Mark as draft
       }
 
-      console.log('[Draft] Saving draft listing...')
       const res = await listingsApi.create(payload)
       setIsDraftSubmitted(true)
       setSubmitted(true)
       // Navigate to dashboard after short delay
       setTimeout(() => navigate('/dashboard', { state: { activeTab: 'listings' } }), 1500)
     } catch (err) {
-      console.error('[Draft] Error:', err)
       setSubmitError(err.message || 'Failed to save draft')
       setUploading(false)
     } finally {
@@ -160,7 +157,6 @@ const CreateListing = () => {
     setUploading(true)
     try {
       // Upload images to Cloudinary
-      console.log('[Listing] Uploading', imageFiles.length, 'images to Cloudinary...')
       const cloudinaryUrls = await uploadMultipleImages(imageFiles)
       setUploading(false)
 
@@ -181,7 +177,6 @@ const CreateListing = () => {
         userId: user?.uid || 'anonymous', // Include user ID from Firebase
       }
 
-      console.log('[Listing] Creating listing with Cloudinary images...')
       const res = await listingsApi.create(payload)
       setSubmitted(true)
       // Navigate to the new listing after short delay

@@ -49,7 +49,6 @@ const Dashboard = () => {
       await logout()
       navigate('/')
     } catch (error) {
-      console.error('Logout error:', error)
     }
   }
 
@@ -63,7 +62,6 @@ const Dashboard = () => {
       localStorage.removeItem('auth_token')
       navigate('/login')
     } catch (error) {
-      console.error('Delete account error:', error)
       throw error
     }
   }
