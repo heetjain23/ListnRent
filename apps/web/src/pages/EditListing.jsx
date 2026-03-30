@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import Button from '../components/ui/Button'
 import { CATEGORIES, OCCASIONS, GENDER, SIZES, CONDITIONS, MATERIALS } from '../constants'
@@ -11,13 +11,20 @@ const OUTFIT_OCCASIONS = OCCASIONS.filter((o) => o !== 'All')
 const OUTFIT_SIZES = SIZES.filter((s) => s !== 'All')
 const OUTFIT_CONDITIONS = CONDITIONS
 const OUTFIT_GENDERS = GENDER.filter((g) => g !== 'All')
+const OUTFIT_MATERIALS = MATERIALS
 
-const CreateListing = () => {
+const EditListing = () => {
   const navigate = useNavigate()
-  const { user, loading, isAuthenticated } = useAuth()
+  const { listingId } = useParams()
+  const { user, loading: authLoading, isAuthenticated } = useAuth()
   const fileInputRef = useRef(null)
+  
+  const [listing, setListing] = useState(null)
   const [previewImages, setPreviewImages] = useState([])
-  const [imageFiles, setImageFiles] = useState([]) // Track actual file objects
+  const [imageFiles, setImageFiles] = useState([]) // New/replaced files
+  const [existingImages, setExistingImages] = useState([]) // Original images
+  const [imagesToDelete, setImagesToDelete] = useState([]) // Indices of existing images to delete
+  const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
@@ -25,15 +32,61 @@ const CreateListing = () => {
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      navigate('/login', {
-        state: {
-          from: { pathname: '/create' },
-          intent: 'create-listing',
-        },
-      })
+    if (!authLoading && !isAuthenticated) {
+      navigate('/login')
     }
-  }, [isAuthenticated, loading, navigate])
+  }, [isAuthenticated, authLoading, navigate])
+
+  // Fetch listing data
+  useEffect(() => {
+    if (!listingId) return
+    
+    const fetchListing = async () => {
+      try {
+        const res = await listingsApi.getById(listingId)
+        const data = res.data.listing
+        setListing(data)
+        
+        console.log('[EditListing] Fetched listing material:', data.material)
+        console.log('[EditListing] Available materials:', OUTFIT_MATERIALS)
+        
+        // Set existing images
+        setExistingImages(data.images || [])
+        setPreviewImages(data.images || [])
+        
+        // Initialize form with listing data
+        // Check if material is custom (not in predefined list)
+        const isMaterialCustom = data.material && !OUTFIT_MATERIALS.includes(data.material)
+        
+        console.log('[EditListing] Is material custom?', isMaterialCustom)
+        console.log('[EditListing] Data material in list?', data.material, OUTFIT_MATERIALS.includes(data.material))
+        
+        const initialForm = {
+          title: data.title || '',
+          category: data.category || '',
+          occasion: data.occasion || '',
+          size: data.size || '',
+          condition: data.condition || '',
+          gender: data.gender || '',
+          material: isMaterialCustom ? 'Other' : (data.material || ''),
+          customMaterial: isMaterialCustom ? data.material : '',
+          pricePerDay: data.pricePerDay || '',
+          description: data.description || '',
+          area: data.location?.area || '',
+        }
+        
+        console.log('[EditListing] Initialized form:', initialForm)
+        setForm(initialForm)
+        setLoading(false)
+      } catch (err) {
+        console.error('[EditListing] Error loading listing:', err)
+        setSubmitError('Failed to load listing: ' + err.message)
+        setLoading(false)
+      }
+    }
+    
+    fetchListing()
+  }, [listingId])
 
   const [form, setForm] = useState({
     title: '',
@@ -66,13 +119,33 @@ const CreateListing = () => {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files)
     const previews = files.map((f) => URL.createObjectURL(f))
+    
+    const totalImages = existingImages.length - imagesToDelete.length + imageFiles.length + files.length
+    if (totalImages > 5) {
+      setSubmitError(`Maximum 5 images allowed. You would have ${totalImages}`)
+      return
+    }
+    
     setPreviewImages((prev) => [...prev, ...previews].slice(0, 5))
     setImageFiles((prev) => [...prev, ...files].slice(0, 5))
+    setSubmitError(null)
   }
 
   const removeImage = (index) => {
+    const isExisting = index < existingImages.length
+    
+    if (isExisting) {
+      // Mark existing image for deletion
+      const existingIndex = existingImages.findIndex((_, i) => i === index)
+      setImagesToDelete((prev) => [...prev, existingIndex])
+      setExistingImages((prev) => prev.filter((_, i) => i !== index))
+    } else {
+      // Remove new image
+      const newImageIndex = index - existingImages.length + imagesToDelete.length
+      setImageFiles((prev) => prev.filter((_, i) => i !== newImageIndex))
+    }
+    
     setPreviewImages((prev) => prev.filter((_, i) => i !== index))
-    setImageFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
   const validate = () => {
@@ -98,24 +171,44 @@ const CreateListing = () => {
     const errs = validate()
     if (Object.keys(errs).length) {
       setErrors(errs)
+      setSubmitError('Please fill in all required fields')
       return
     }
 
     // Validate images - minimum 3 required
-    if (imageFiles.length < 3) {
-      setSubmitError('Please upload at least 3 images (front, back, and side views)')
+    const remainingImages = existingImages.length + imageFiles.length
+    if (remainingImages < 3) {
+      setSubmitError('Please ensure minimum 3 images - Front view, Back view, and Side view')
       return
     }
 
     setSubmitting(true)
     setUploading(true)
     try {
-      // Upload images to Cloudinary
-      console.log('[Listing] Uploading', imageFiles.length, 'images to Cloudinary...')
-      const cloudinaryUrls = await uploadMultipleImages(imageFiles)
+      let cloudinaryUrls = [...existingImages]
+      
+      // Upload new images if any
+      if (imageFiles.length > 0) {
+        console.log('[Listing] Uploading', imageFiles.length, 'images to Cloudinary...')
+        const newUrls = await uploadMultipleImages(imageFiles)
+        cloudinaryUrls = [...cloudinaryUrls, ...newUrls]
+      }
+      
       setUploading(false)
 
       const pricePerDay = Number(form.pricePerDay)
+      
+      // Ensure material is set
+      const finalMaterial = form.material === 'Other' ? form.customMaterial : form.material
+      
+      console.log('[EditListing Save] form.material:', form.material)
+      console.log('[EditListing Save] form.customMaterial:', form.customMaterial)
+      console.log('[EditListing Save] finalMaterial:', finalMaterial)
+      
+      if (!finalMaterial || !finalMaterial.trim()) {
+        throw new Error('Material is required. Please select or specify a material.')
+      }
+
       const payload = {
         title: form.title,
         category: form.category,
@@ -123,22 +216,23 @@ const CreateListing = () => {
         size: form.size,
         condition: form.condition,
         gender: form.gender,
-        material: form.material === 'Other' ? form.customMaterial : form.material,
+        material: finalMaterial,
         pricePerDay: pricePerDay,
-        deposit: pricePerDay * 2, // Auto-calculate as 2x rental price
+        deposit: pricePerDay * 2,
         description: form.description,
         location: { area: form.area, city: 'Mumbai' },
-        images: cloudinaryUrls, // Use Cloudinary URLs
-        userId: user?.uid || 'anonymous', // Include user ID from Firebase
+        images: cloudinaryUrls,
       }
 
-      console.log('[Listing] Creating listing with Cloudinary images...')
-      const res = await listingsApi.create(payload)
+      console.log('[EditListing Save] Full payload being sent:', payload)
+      const res = await listingsApi.update(listingId, payload)
+      console.log('[EditListing Save] Response from server:', res)
       setSubmitted(true)
-      // Navigate to the new listing after short delay
-      setTimeout(() => navigate(`/listing/${res.data.listing._id}`), 1500)
+      // Navigate back to listing after short delay
+      setTimeout(() => navigate(`/listing/${listingId}`), 1500)
     } catch (err) {
-      setSubmitError(err.message)
+      console.error('Update error:', err)
+      setSubmitError(err.message || 'Failed to update listing')
       setUploading(false)
     } finally {
       setSubmitting(false)
@@ -152,26 +246,24 @@ const CreateListing = () => {
           ✓
         </div>
         <h2 className="text-2xl font-black text-[#1A1A1A]" style={{ fontFamily: "'Georgia', serif" }}>
-          Listing submitted!
+          Listing updated!
         </h2>
         <p className="text-sm text-[#888] text-center max-w-sm">
-          Your outfit is now live. Taking you to the listing…
+          Your changes have been saved. Taking you back…
         </p>
       </div>
     )
   }
 
-  // Show loading while checking auth
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-16 px-6">
         <div className="text-4xl animate-spin mb-4">⏳</div>
-        <p className="text-[#666]">Checking your authentication...</p>
+        <p className="text-[#666]">Loading listing details...</p>
       </div>
     )
   }
 
-  // Already redirected to login if not authenticated via useEffect
   if (!isAuthenticated) {
     return null
   }
@@ -182,20 +274,20 @@ const CreateListing = () => {
         {/* Header */}
         <div className="mb-8">
           <p className="text-xs font-semibold tracking-[0.2em] uppercase text-[#C8622A] mb-2">
-            Start Earning
+            Update Your Listing
           </p>
           <h1 className="text-3xl md:text-4xl font-black text-[#1A1A1A]" style={{ fontFamily: "'Georgia', serif" }}>
-            Share Your Collection
+            Edit Your Collection
           </h1>
           <p className="text-sm text-[#888] mt-2">
-            Turn your curated wardrobe into a sustainable investment.
+            Update details and manage images for your outfit.
           </p>
         </div>
 
         {/* Main Form Container - Responsive Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           
-          {/* Left Column - Visual Portfolio (Desktop) / Top (Mobile) */}
+          {/* Left Column - Visual Portfolio */}
           <div className="lg:col-span-1 order-first lg:order-0">
             <VisualPortfolio 
               previewImages={previewImages}
@@ -234,7 +326,7 @@ const CreateListing = () => {
                       <select name="material" value={form.material} onChange={handleChange}
                         className={inputClass(errors.material)}>
                         <option value="">Select…</option>
-                        {MATERIALS.map((m) => <option key={m} value={m}>{m}</option>)}
+                        {OUTFIT_MATERIALS.map((m) => <option key={m} value={m}>{m}</option>)}
                         <option value="Other">Other</option>
                       </select>
                     </Field>
@@ -343,7 +435,7 @@ const CreateListing = () => {
 
               {/* Terms Banner */}
               <div className="p-4 bg-[#FAFAFA] rounded-xl border border-[#E8E0D5] text-xs text-[#666] leading-relaxed">
-                By submitting, you agree to our <a href="#" className="text-[#C8622A] font-semibold hover:underline">Heritage Preservation Terms & Condition Guidelines</a>
+                By saving, you agree to our <a href="#" className="text-[#C8622A] font-semibold hover:underline">Heritage Preservation Terms & Condition Guidelines</a>
               </div>
 
               {/* Submit Error */}
@@ -359,13 +451,14 @@ const CreateListing = () => {
                   type="button"
                   className="flex-1 px-6 py-3 text-sm font-semibold text-[#1A1A1A] bg-[#F5F5F5] 
                     rounded-lg hover:bg-[#EFEFEF] transition-colors"
+                  onClick={() => navigate(`/listing/${listingId}`)}
                   disabled={submitting}
                 >
-                  Save Draft
+                  Cancel
                 </button>
                 <Button variant="accent" fullWidth size="lg"
                   onClick={handleSubmit} disabled={submitting || uploading}>
-                  {uploading ? '📸 Uploading images...' : submitting ? '⏳ Submitting…' : 'Publish Listing →'}
+                  {uploading ? '📸 Uploading images...' : submitting ? '⏳ Saving…' : 'Save Changes →'}
                 </Button>
               </div>
             </div>
@@ -386,7 +479,7 @@ const VisualPortfolio = ({ previewImages, removeImage, fileInputRef, handleImage
       
       {/* Guidelines Banner */}
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
-        <strong>📸 Required:</strong> Upload minimum 3 images - Front view, Back view, and Side view
+        <strong>📸 Required:</strong> Minimum 3 images - Front view, Back view, and Side view
       </div>
 
       <div className="space-y-3">
@@ -522,7 +615,7 @@ const VisualPortfolio = ({ previewImages, removeImage, fileInputRef, handleImage
 
         {/* Info Label */}
         <p className="text-xs text-[#AAA] text-center pt-2">
-          {previewImages.length}/5 images uploaded
+          {previewImages.length}/5 images
         </p>
       </div>
 
@@ -557,4 +650,4 @@ const inputClass = (error) =>
     error ? 'border-red-300 focus:border-red-400' : 'border-[#E8E0D5] focus:border-[#C8622A]'
   }`
 
-export default CreateListing
+export default EditListing

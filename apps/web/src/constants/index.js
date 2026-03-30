@@ -41,3 +41,19 @@ export const CONDITIONS = [
   'Like New',
   'Used',
 ]
+
+export const MATERIALS = [
+  'Silk',
+  'Cotton',
+  'Linen',
+  'Wool',
+  'Polyester',
+  'Satin',
+  'Chiffon',
+  'Georgette',
+  'Velvet',
+  'Brocade',
+  'Art Silk',
+  'Khadi',
+  'Blend',
+]

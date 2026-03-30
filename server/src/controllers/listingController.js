@@ -16,7 +16,7 @@ export const handleCreateListing = async (req, res) => {
 
     const required = [
       "title", "category", "occasion", "size",
-      "description", "pricePerDay", "deposit", "condition", "gender",
+      "description", "pricePerDay", "deposit", "condition", "gender", "material",
     ];
 
     for (const field of required) {

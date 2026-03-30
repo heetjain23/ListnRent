@@ -60,6 +60,11 @@ const listingSchema = new mongoose.Schema(
       required: true,
       enum: ["Male", "Female"],
     },
+    material: {
+      type: String,
+      trim: true,
+      default: '', // Empty default for old listings without material
+    },
     images: {
       type: [String],
       default: [],

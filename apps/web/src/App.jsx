@@ -8,6 +8,7 @@ import Home from './pages/Home'
 import Collection from './pages/Collection'
 import ListingDetail from './pages/ListingDetail.jsx'
 import CreateListing from './pages/CreateListing'
+import EditListing from './pages/EditListing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 
@@ -92,6 +93,7 @@ const App = () => {
               <Route path="/collection" element={<Collection />} />
               <Route path="/listing/:id" element={<ListingDetail />} />
               <Route path="/create" element={<CreateListing />} />
+              <Route path="/edit/:listingId" element={<EditListing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/complete-magic-link" element={<CompleteMagicLink />} />

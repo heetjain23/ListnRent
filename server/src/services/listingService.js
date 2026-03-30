@@ -94,6 +94,7 @@ export const updateListing = async (id, userId, data) => {
     "deposit",
     "condition",
     "gender",
+    "material",
     "images",
     "location",
     "isActive",

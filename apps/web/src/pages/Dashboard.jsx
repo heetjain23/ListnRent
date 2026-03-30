@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useUserListings } from '../hooks/useUserListings'
-import EditListingModal from '../components/ui/EditListingModal'
 import DashboardHeader from '../components/dashboard/DashboardHeader'
 import StatCard from '../components/dashboard/StatCard'
 import DashboardTabs from '../components/dashboard/DashboardTabs'
@@ -28,9 +27,6 @@ const Dashboard = () => {
   } = useUserListings(false)
 
   const [activeTab, setActiveTab] = useState('listings')
-  const [editingId, setEditingId] = useState(null)
-  const [editingListing, setEditingListing] = useState(null)
-  const [isSaving, setIsSaving] = useState(false)
   const [userData, setUserData] = useState(user)
 
   // Calculate stats from listings
@@ -91,23 +87,8 @@ const Dashboard = () => {
   }, [user, fetchUserListings])
 
   const handleEditClick = (id) => {
-    const listing = listings.find((l) => l._id === id)
-    setEditingListing(listing)
-    setEditingId(id)
-  }
-
-  const handleSaveListing = async (formData) => {
-    try {
-      setIsSaving(true)
-      await updateListing(editingId, formData)
-      setEditingId(null)
-      setEditingListing(null)
-    } catch (error) {
-      console.error('Save error:', error)
-      throw error
-    } finally {
-      setIsSaving(false)
-    }
+    navigate(`/edit/${id}`)
+    window.scrollTo(0, 0)
   }
 
   if (authLoading) {
@@ -277,19 +258,6 @@ const Dashboard = () => {
             onDeleteAccount={handleDeleteAccount}
             onNameUpdate={handleNameUpdate}
             onLogout={handleLogout}
-          />
-        )}
-
-        {/* Edit Modal */}
-        {editingListing && (
-          <EditListingModal
-            listing={editingListing}
-            onClose={() => {
-              setEditingId(null)
-              setEditingListing(null)
-            }}
-            onSave={handleSaveListing}
-            loading={isSaving}
           />
         )}
       </div>

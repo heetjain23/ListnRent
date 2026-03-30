@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import { useListing } from '../hooks/useListings'
 
 // Section components
@@ -103,6 +104,7 @@ const NotFoundScreen = ({ error }) => (
 const ListingDetail = () => {
   const { id }       = useParams()
   const navigate     = useNavigate()
+  const { user }     = useAuth()
   const { listing, loading, error } = useListing(id)
 
   const [activeImage,    setActiveImage]    = useState(0)
@@ -118,6 +120,7 @@ const ListingDetail = () => {
   if (bookingSuccess)    return <BookingSuccessScreen />
 
   const available = listing.isActive
+  const isOwner = user && user.uid === listing.userId
 
   const handleRentClick = () => {
     if (!eventDate || !durationDays) return
@@ -144,6 +147,11 @@ const ListingDetail = () => {
   }
 
   const { startDate, endDate } = getCalculatedDates()
+
+  const handleEditClick = () => {
+    navigate(`/edit/${listing._id}`)
+    window.scrollTo(0, 0)
+  }
 
   const handlePaymentSuccess = (booking) => {
     setBookingSuccess(true)
@@ -189,6 +197,18 @@ const ListingDetail = () => {
           <div className="flex flex-col gap-4 md:gap-6">
 
             <ListingDetailsSection listing={listing} />
+
+            {/* Edit Button for Owner */}
+            {isOwner && (
+              <div className="mt-2">
+                <button
+                  onClick={handleEditClick}
+                  className="text-sm font-semibold text-[#004D40] hover:text-[#003830] hover:underline transition-colors"
+                >
+                  ✏️ Edit This Listing
+                </button>
+              </div>
+            )}
 
             {showPayment ? (
               <PaymentCheckout

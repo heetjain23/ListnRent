@@ -7,7 +7,6 @@ const ListingsTable = ({
   error,
   onEdit,
   onDelete,
-  onToggleActive,
   onCreateNew,
 }) => {
   const getStatusColor = (status) => {
