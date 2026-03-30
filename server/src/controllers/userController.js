@@ -1,5 +1,26 @@
 import * as userService from '../services/userService.js'
 
+export const handleInitializeUser = async (req, res) => {
+  try {
+    console.log('[UserController] Init user request - User data:', req.user)
+    console.log('[UserController] Init user request - Body:', req.body)
+    
+    const userId = req.user.uid
+    const email = req.user.email
+    const { displayName, photoURL } = req.body
+
+    console.log('[UserController] Calling initializeUser with:', { userId, email, displayName, photoURL })
+    
+    const user = await userService.initializeUser(userId, email, { displayName, photoURL })
+    
+    console.log('[UserController] User initialization successful:', user)
+    res.status(200).json({ message: 'User initialized successfully', user })
+  } catch (error) {
+    console.error('[UserController] Initialize user error:', error)
+    res.status(500).json({ message: error.message || 'Failed to initialize user' })
+  }
+}
+
 export const handleGetProfile = async (req, res) => {
   try {
     const userId = req.user.uid

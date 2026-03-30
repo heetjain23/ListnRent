@@ -1,12 +1,16 @@
 import express from 'express'
 import { verifyFirebaseToken } from '../middleware/authMiddleware.js'
 import {
+  handleInitializeUser,
   handleGetProfile,
   handleUpdateProfile,
   handleDeleteAccount,
 } from '../controllers/userController.js'
 
 const router = express.Router()
+
+// POST /api/users/init - Initialize/create user in database (protected)
+router.post('/init', verifyFirebaseToken, handleInitializeUser)
 
 // GET /api/users/profile - Get user profile (protected)
 router.get('/profile', verifyFirebaseToken, handleGetProfile)

@@ -8,7 +8,7 @@ const ListingCard = ({ listing }) => {
     ? `${listing.location.area}, ${listing.location.city || 'Mumbai'}`
     : listing.location || ''
   const available = listing.isActive !== undefined ? listing.isActive : listing.available
-  const ownerName = listing.owner?.name || 'Owner'
+  const ownerName = listing.owner?.displayName || listing.owner?.name || 'Owner'
   const ownerRating = listing.owner?.rating || null
 
   return (

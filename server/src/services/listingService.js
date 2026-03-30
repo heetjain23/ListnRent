@@ -1,15 +1,50 @@
 import Listing from "../models/Listing.js";
+import User from "../models/User.js";
 import admin from "../config/firebase-admin.js";
 
-// Helper function to fetch owner data from Firebase
+// Helper function to fetch owner data from MongoDB
 const enrichListingWithOwnerData = async (listing) => {
   try {
     if (listing.userId) {
+      console.log('[ListingService] Fetching owner for listing from DB:', listing.userId)
+      
+      // First try to get user from MongoDB
+      let dbUser = await User.findOne({ uid: listing.userId });
+      
+      if (dbUser) {
+        console.log('[ListingService] Found user in DB:', dbUser.displayName)
+        return {
+          ...listing.toObject ? listing.toObject() : listing,
+          owner: {
+            displayName: dbUser.displayName || 'User',
+            name: dbUser.displayName || 'User',
+            email: dbUser.email,
+            phone: null,
+          },
+        };
+      }
+      
+      // Fallback to Firebase if user not in DB
+      console.log('[ListingService] User not in DB, falling back to Firebase')
       const firebaseUser = await admin.auth().getUser(listing.userId);
+      
+      // Determine displayName: use Firebase displayName, or create default from email
+      let displayName = firebaseUser.displayName;
+      if (!displayName) {
+        // Create default displayName from email (e.g., "john.doe@gmail.com" -> "John Doe")
+        if (firebaseUser.email) {
+          displayName = firebaseUser.email.split('@')[0].replace(/[._-]/g, ' ');
+          displayName = displayName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        } else {
+          displayName = 'User';
+        }
+      }
+      
       return {
         ...listing.toObject ? listing.toObject() : listing,
         owner: {
-          name: firebaseUser.displayName || firebaseUser.email || "User",
+          displayName: displayName,
+          name: displayName,
           email: firebaseUser.email,
           phone: firebaseUser.phoneNumber,
         },
@@ -32,9 +67,10 @@ export const createListing = async (userId, data) => {
 // ----------------------------
 // Get All Active Listings
 // Optional filters: category, city, occasion
+// Excludes draft listings
 // ----------------------------
 export const getAllListings = async (filters = {}) => {
-  const query = { isActive: true };
+  const query = { isActive: true, isDraft: { $ne: true } };
 
   if (filters.category) query.category = filters.category;
   if (filters.occasion) query.occasion = filters.occasion;
@@ -98,6 +134,7 @@ export const updateListing = async (id, userId, data) => {
     "images",
     "location",
     "isActive",
+    "isDraft",
   ];
 
   for (const field of updatableFields) {

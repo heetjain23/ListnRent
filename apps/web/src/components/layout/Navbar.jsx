@@ -33,6 +33,12 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const handleDashboardClick = () => {
+    navigate('/dashboard')
+    window.scrollTo(0, 0)
+    setProfileDropdownOpen(false)
+  }
+
   const handleLogout = async () => {
     try {
       await logout()
@@ -41,12 +47,6 @@ const Navbar = () => {
     } catch (error) {
       console.error('Logout error:', error)
     }
-  }
-
-  const handleNavigateToDashboard = (tab) => {
-    navigate('/dashboard', { state: { activeTab: tab } })
-    setProfileDropdownOpen(false)
-    setMenuOpen(false)
   }
 
   return (
@@ -108,29 +108,19 @@ const Navbar = () => {
                 {profileDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg border border-[#E8E0D5] shadow-lg z-50 overflow-hidden">
                     <button
-                      onClick={() => handleNavigateToDashboard('personal')}
+                      onClick={handleDashboardClick}
                       className="w-full px-4 py-3 text-left text-sm font-medium text-[#555] hover:bg-[#FAF7F2] transition-colors flex items-center gap-2"
                     >
-                      <span>👤</span> Personal Information
+                      <span>📊</span> Dashboard
                     </button>
-                    <button
-                      onClick={() => handleNavigateToDashboard('listings')}
-                      className="w-full px-4 py-3 text-left text-sm font-medium text-[#555] hover:bg-[#FAF7F2] transition-colors flex items-center gap-2 border-t border-[#E8E0D5]"
-                    >
-                      <span>📋</span> My Listings
-                    </button>
-                    <button
-                      onClick={() => handleNavigateToDashboard('orders')}
-                      className="w-full px-4 py-3 text-left text-sm font-medium text-[#555] hover:bg-[#FAF7F2] transition-colors flex items-center gap-2 border-t border-[#E8E0D5]"
-                    >
-                      <span>📦</span> My Orders
-                    </button>
-                    <button
-                      onClick={() => handleNavigateToDashboard('rentals')}
-                      className="w-full px-4 py-3 text-left text-sm font-medium text-[#555] hover:bg-[#FAF7F2] transition-colors flex items-center gap-2 border-t border-[#E8E0D5]"
-                    >
-                      <span>🏠</span> My Rentals (Owner)
-                    </button>
+                    <div className="border-t border-[#E8E0D5]">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-[#FFE8E0] transition-colors flex items-center gap-2"
+                      >
+                        <span>↪️</span> Log Out
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -178,30 +168,16 @@ const Navbar = () => {
               <div className="border-t border-[#DDD] pt-4">
                 <p className="text-xs text-[#999] mb-3">Logged in as {user.email}</p>
                 <button
-                  onClick={() => handleNavigateToDashboard('personal')}
-                  className="block w-full text-left text-sm font-medium text-[#555] mb-2 hover:text-[#1A1A1A] px-2 py-1"
+                  onClick={() => {
+                    navigate('/dashboard')
+                    window.scrollTo(0, 0)
+                    setMenuOpen(false)
+                  }}
+                  className="block w-full text-left text-sm font-medium text-[#555] mb-4 hover:text-[#1A1A1A] px-2 py-2 rounded hover:bg-[#F0EDE5] transition-colors"
                 >
-                  👤 Personal Information
+                  📊 Dashboard
                 </button>
-                <button
-                  onClick={() => handleNavigateToDashboard('listings')}
-                  className="block w-full text-left text-sm font-medium text-[#555] mb-2 hover:text-[#1A1A1A] px-2 py-1"
-                >
-                  📋 My Listings
-                </button>
-                <button
-                  onClick={() => handleNavigateToDashboard('orders')}
-                  className="block w-full text-left text-sm font-medium text-[#555] mb-2 hover:text-[#1A1A1A] px-2 py-1"
-                >
-                  📦 My Orders
-                </button>
-                <button
-                  onClick={() => handleNavigateToDashboard('rentals')}
-                  className="block w-full text-left text-sm font-medium text-[#555] mb-2 hover:text-[#1A1A1A] px-2 py-1"
-                >
-                  🏠 My Rentals (Owner)
-                </button>
-                <div className="border-t border-[#DDD] mt-3 pt-3">
+                <div className="border-t border-[#DDD] pt-4">
                   <button
                     onClick={handleLogout}
                     className="block w-full text-left text-sm font-medium text-red-600 hover:text-red-700 px-2 py-1"

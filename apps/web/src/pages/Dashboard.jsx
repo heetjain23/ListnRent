@@ -27,11 +27,16 @@ const Dashboard = () => {
   } = useUserListings(false)
 
   const [activeTab, setActiveTab] = useState('listings')
+  const [listingsSubTab, setListingsSubTab] = useState('live') // 'live' or 'drafts'
   const [userData, setUserData] = useState(user)
 
+  // Separate listings into live and drafts
+  const liveListings = listings.filter((l) => !l.isDraft)
+  const draftListings = listings.filter((l) => l.isDraft)
+
   // Calculate stats from listings
-  const activeListings = listings.filter((l) => l.isActive).length
-  const totalEarnings = listings.reduce((sum, l) => sum + (l.pricePerDay || 0), 0) * 30 // Rough estimate
+  const activeListings = liveListings.filter((l) => l.isActive).length
+  const totalEarnings = liveListings.reduce((sum, l) => sum + (l.pricePerDay || 0), 0) * 30 // Rough estimate
   const pendingRequests = Math.floor(Math.random() * 10) + 1 // Placeholder
 
   const handleTabChange = (tab) => {
@@ -166,73 +171,172 @@ const Dashboard = () => {
         {activeTab === 'listings' && (
           <div className="space-y-6 md:space-y-8">
             <div>
-              <div className="flex items-center justify-between mb-4 md:mb-6">
-                <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A]">Live Listings</h2>
+              {/* Sub-tabs: Live vs Drafts */}
+              <div className="border-b border-[#E8E0D5] mb-6 flex gap-6">
                 <button
-                  onClick={() => navigate('/create')}
-                  className="text-[#004D40] font-medium text-xs md:text-sm hover:underline"
+                  onClick={() => setListingsSubTab('live')}
+                  className={`pb-4 font-medium transition-colors border-b-2 text-sm md:text-base ${
+                    listingsSubTab === 'live'
+                      ? 'text-[#004D40] border-b-[#004D40]'
+                      : 'text-[#999] border-b-transparent hover:text-[#666]'
+                  }`}
                 >
-                  + ADD NEW ITEM
+                  Live Listings ({liveListings.length})
+                </button>
+                <button
+                  onClick={() => setListingsSubTab('drafts')}
+                  className={`pb-4 font-medium transition-colors border-b-2 text-sm md:text-base ${
+                    listingsSubTab === 'drafts'
+                      ? 'text-[#004D40] border-b-[#004D40]'
+                      : 'text-[#999] border-b-transparent hover:text-[#666]'
+                  }`}
+                >
+                  Drafts ({draftListings.length})
                 </button>
               </div>
 
-              {/* Desktop Table View */}
-              <div className="hidden md:block bg-white rounded-lg border border-[#E8E0D5] p-6">
-                <ListingsTable
-                  listings={listings}
-                  loading={listingsLoading}
-                  error={listingsError}
-                  onEdit={handleEditClick}
-                  onDelete={deleteListing}
-                  onToggleActive={toggleListingActive}
-                  onCreateNew={() => navigate('/create')}
-                />
-              </div>
-
-              {/* Mobile Card View */}
-              <div className="md:hidden">
-                {listingsLoading ? (
-                  <div className="flex justify-center items-center py-12">
-                    <div className="text-center">
-                      <div className="text-3xl animate-spin mb-2">⏳</div>
-                      <p className="text-[#666]">Loading your listings...</p>
-                    </div>
-                  </div>
-                ) : listingsError ? (
-                  <div className="p-4 bg-[#FFE8E0] text-[#C8622A] rounded-lg">
-                    {listingsError}
-                  </div>
-                ) : listings.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="text-4xl mb-3">👗</div>
-                    <h4 className="text-lg font-semibold text-[#1A1A1A] mb-2">No items yet</h4>
-                    <p className="text-[#666] mb-6">Start listing your outfits to earn by renting them out!</p>
+              {/* Live Listings Section */}
+              {listingsSubTab === 'live' && (
+                <>
+                  <div className="flex items-center justify-between mb-4 md:mb-6">
+                    <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A]">Live Listings</h2>
                     <button
                       onClick={() => navigate('/create')}
-                      className="bg-[#004D40] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#003830] transition-colors"
+                      className="text-[#004D40] font-medium text-xs md:text-sm hover:underline"
                     >
-                      Add Your First Item
+                      + ADD NEW ITEM
                     </button>
                   </div>
-                ) : (
-                  <div>
-                    {listings.map((listing) => (
-                      <MobileListingCard
-                        key={listing._id}
-                        listing={listing}
-                        onEdit={handleEditClick}
-                        onDelete={deleteListing}
-                        onToggleActive={toggleListingActive}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Promotional Banner - Desktop only */}
-            <div className="hidden md:block">
-              <PromoBanner onBoost={() => alert('Boost feature coming soon!')} />
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block bg-white rounded-lg border border-[#E8E0D5] p-6">
+                    <ListingsTable
+                      listings={liveListings}
+                      loading={listingsLoading}
+                      error={listingsError}
+                      onEdit={handleEditClick}
+                      onDelete={deleteListing}
+                      onToggleActive={toggleListingActive}
+                      onCreateNew={() => navigate('/create')}
+                    />
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="md:hidden">
+                    {listingsLoading ? (
+                      <div className="flex justify-center items-center py-12">
+                        <div className="text-center">
+                          <div className="text-3xl animate-spin mb-2">⏳</div>
+                          <p className="text-[#666]">Loading your listings...</p>
+                        </div>
+                      </div>
+                    ) : listingsError ? (
+                      <div className="p-4 bg-[#FFE8E0] text-[#C8622A] rounded-lg">
+                        {listingsError}
+                      </div>
+                    ) : liveListings.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="text-4xl mb-3">👗</div>
+                        <h4 className="text-lg font-semibold text-[#1A1A1A] mb-2">No live items yet</h4>
+                        <p className="text-[#666] mb-6">Start listing your outfits to earn by renting them out!</p>
+                        <button
+                          onClick={() => navigate('/create')}
+                          className="bg-[#004D40] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#003830] transition-colors"
+                        >
+                          Add Your First Item
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        {liveListings.map((listing) => (
+                          <MobileListingCard
+                            key={listing._id}
+                            listing={listing}
+                            onEdit={handleEditClick}
+                            onDelete={deleteListing}
+                            onToggleActive={toggleListingActive}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Promotional Banner - Desktop only */}
+                  <div className="hidden md:block mt-8">
+                    <PromoBanner onBoost={() => alert('Boost feature coming soon!')} />
+                  </div>
+                </>
+              )}
+
+              {/* Drafts Section */}
+              {listingsSubTab === 'drafts' && (
+                <>
+                  <div className="flex items-center justify-between mb-4 md:mb-6">
+                    <h2 className="text-xl md:text-2xl font-bold text-[#1A1A1A]">Drafts</h2>
+                    <button
+                      onClick={() => navigate('/create')}
+                      className="text-[#004D40] font-medium text-xs md:text-sm hover:underline"
+                    >
+                      + NEW DRAFT
+                    </button>
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block bg-white rounded-lg border border-[#E8E0D5] p-6">
+                    <ListingsTable
+                      listings={draftListings}
+                      loading={listingsLoading}
+                      error={listingsError}
+                      onEdit={handleEditClick}
+                      onDelete={deleteListing}
+                      onToggleActive={toggleListingActive}
+                      onCreateNew={() => navigate('/create')}
+                      isDraft={true}
+                    />
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="md:hidden">
+                    {listingsLoading ? (
+                      <div className="flex justify-center items-center py-12">
+                        <div className="text-center">
+                          <div className="text-3xl animate-spin mb-2">⏳</div>
+                          <p className="text-[#666]">Loading your drafts...</p>
+                        </div>
+                      </div>
+                    ) : listingsError ? (
+                      <div className="p-4 bg-[#FFE8E0] text-[#C8622A] rounded-lg">
+                        {listingsError}
+                      </div>
+                    ) : draftListings.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="text-4xl mb-3">📝</div>
+                        <h4 className="text-lg font-semibold text-[#1A1A1A] mb-2">No drafts yet</h4>
+                        <p className="text-[#666] mb-6">Start creating and save a draft to continue later!</p>
+                        <button
+                          onClick={() => navigate('/create')}
+                          className="bg-[#004D40] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#003830] transition-colors"
+                        >
+                          Create Draft
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        {draftListings.map((listing) => (
+                          <MobileListingCard
+                            key={listing._id}
+                            listing={listing}
+                            onEdit={handleEditClick}
+                            onDelete={deleteListing}
+                            onToggleActive={toggleListingActive}
+                            isDraft={true}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

@@ -13,20 +13,24 @@ import { successResponse, errorResponse } from "../utils/helper.js";
 export const handleCreateListing = async (req, res) => {
   try {
     const data = req.body;
+    const isDraft = data.isDraft === true;
 
-    const required = [
-      "title", "category", "occasion", "size",
-      "description", "pricePerDay", "deposit", "condition", "gender", "material",
-    ];
+    // For drafts, no fields are required
+    if (!isDraft) {
+      const required = [
+        "title", "category", "occasion", "size",
+        "description", "pricePerDay", "deposit", "condition", "gender", "material",
+      ];
 
-    for (const field of required) {
-      if (!data[field] && data[field] !== 0) {
-        return errorResponse(res, `${field} is required`, 400);
+      for (const field of required) {
+        if (!data[field] && data[field] !== 0) {
+          return errorResponse(res, `${field} is required`, 400);
+        }
       }
-    }
 
-    if (!data.location?.area) {
-      return errorResponse(res, "location.area is required", 400);
+      if (!data.location?.area) {
+        return errorResponse(res, "location.area is required", 400);
+      }
     }
 
     // Extract Firebase UID from verified token (set by verifyFirebaseToken middleware)

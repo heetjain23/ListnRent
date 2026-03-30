@@ -22,6 +22,7 @@ const CreateListing = () => {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
   const [submitted, setSubmitted] = useState(false)
+  const [isDraftSubmitted, setIsDraftSubmitted] = useState(false)
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -93,6 +94,54 @@ const CreateListing = () => {
     return newErrors
   }
 
+  const handleSaveDraft = async () => {
+    setSubmitError(null)
+    
+    setSubmitting(true)
+    setUploading(true)
+    try {
+      let cloudinaryUrls = []
+      
+      // Upload images if any are provided
+      if (imageFiles.length > 0) {
+        console.log('[Draft] Uploading', imageFiles.length, 'images to Cloudinary...')
+        cloudinaryUrls = await uploadMultipleImages(imageFiles)
+      }
+      setUploading(false)
+
+      const pricePerDay = form.pricePerDay ? Number(form.pricePerDay) : 0
+      const payload = {
+        title: form.title || '',
+        category: form.category || '',
+        occasion: form.occasion || '',
+        size: form.size || '',
+        condition: form.condition || '',
+        gender: form.gender || '',
+        material: form.material === 'Other' ? form.customMaterial : form.material,
+        pricePerDay: pricePerDay,
+        deposit: pricePerDay > 0 ? pricePerDay * 2 : 0,
+        description: form.description || '',
+        location: { area: form.area || '', city: 'Mumbai' },
+        images: cloudinaryUrls,
+        userId: user?.uid || 'anonymous',
+        isDraft: true, // Mark as draft
+      }
+
+      console.log('[Draft] Saving draft listing...')
+      const res = await listingsApi.create(payload)
+      setIsDraftSubmitted(true)
+      setSubmitted(true)
+      // Navigate to dashboard after short delay
+      setTimeout(() => navigate('/dashboard', { state: { activeTab: 'listings' } }), 1500)
+    } catch (err) {
+      console.error('[Draft] Error:', err)
+      setSubmitError(err.message || 'Failed to save draft')
+      setUploading(false)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const handleSubmit = async () => {
     setSubmitError(null)
     const errs = validate()
@@ -152,10 +201,10 @@ const CreateListing = () => {
           ✓
         </div>
         <h2 className="text-2xl font-black text-[#1A1A1A]" style={{ fontFamily: "'Georgia', serif" }}>
-          Listing submitted!
+          {isDraftSubmitted ? 'Draft saved!' : 'Listing published!'}
         </h2>
         <p className="text-sm text-[#888] text-center max-w-sm">
-          Your outfit is now live. Taking you to the listing…
+          {isDraftSubmitted ? 'Your draft has been saved. Taking you to the dashboard…' : 'Your outfit is now live. Taking you to the listing…'}
         </p>
       </div>
     )
@@ -357,11 +406,12 @@ const CreateListing = () => {
               <div className="flex gap-3 pt-2">
                 <button 
                   type="button"
+                  onClick={handleSaveDraft}
                   className="flex-1 px-6 py-3 text-sm font-semibold text-[#1A1A1A] bg-[#F5F5F5] 
-                    rounded-lg hover:bg-[#EFEFEF] transition-colors"
-                  disabled={submitting}
+                    rounded-lg hover:bg-[#EFEFEF] transition-colors disabled:opacity-50"
+                  disabled={submitting || uploading}
                 >
-                  Save Draft
+                  {uploading ? '📸 Uploading...' : submitting ? '⏳ Saving...' : '💾 Save Draft'}
                 </button>
                 <Button variant="accent" fullWidth size="lg"
                   onClick={handleSubmit} disabled={submitting || uploading}>

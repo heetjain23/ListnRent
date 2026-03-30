@@ -8,12 +8,10 @@ const listingSchema = new mongoose.Schema(
     },
     title: {
       type: String,
-      required: true,
       trim: true,
     },
     category: {
       type: String,
-      required: true,
       enum: [
         "DESIGNER SUIT/ TUXEDO",
         "INDO-WESTERN/ SHERWANI",
@@ -27,37 +25,30 @@ const listingSchema = new mongoose.Schema(
     },
     occasion: {
       type: String,
-      required: true,
       enum: ["Wedding", "Parties", "Festivals"],
     },
     size: {
       type: String,
-      required: true,
       enum: ['XS(34)','S(36)','M(38)','L(40)','XL(42)','XXL(44)','3XL(46)','4XL(48)','5XL(50)'],
     },
     description: {
       type: String,
-      required: true,
       trim: true,
     },
     pricePerDay: {
       type: Number,
-      required: true,
       min: 1,
     },
     deposit: {
       type: Number,
-      required: true,
       min: 0,
     },
     condition: {
       type: String,
-      required: true,
       enum: ["New", "Like New", "Used"],
     },
     gender: {
       type: String,
-      required: true,
       enum: ["Male", "Female"],
     },
     material: {
@@ -72,7 +63,6 @@ const listingSchema = new mongoose.Schema(
     location: {
       area: {
         type: String,
-        required: true,
         trim: true,
       },
       city: {
@@ -84,6 +74,10 @@ const listingSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    isDraft: {
+      type: Boolean,
+      default: false,
     },
     isRented: {
       type: Boolean,

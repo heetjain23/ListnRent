@@ -115,3 +115,32 @@ export const listingsApi = {
       method: "DELETE",
     }),
 };
+
+// Users API calls
+export const usersApi = {
+  // POST /api/users/init (protected) - Initialize user in database
+  init: (data) =>
+    api("/api/users/init", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // GET /api/users/profile (protected) - Get user profile
+  getProfile: () =>
+    api("/api/users/profile", {
+      method: "GET",
+    }),
+
+  // PATCH /api/users/profile (protected) - Update user profile
+  updateProfile: (data) =>
+    api("/api/users/profile", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  // DELETE /api/users/account (protected) - Delete user account
+  deleteAccount: () =>
+    api("/api/users/account", {
+      method: "DELETE",
+    }),
+};

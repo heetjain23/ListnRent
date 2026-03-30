@@ -232,7 +232,10 @@ const ListingDetail = () => {
             )}
 
             {/* Host Card */}
-            <HostCard ownerName={listing.owner?.name || 'Host'} />
+            <HostCard 
+              displayName={listing.owner?.displayName || listing.owner?.name || 'Host'} 
+              ownerName={listing.owner?.name}
+            />
 
           </div>
         </div>

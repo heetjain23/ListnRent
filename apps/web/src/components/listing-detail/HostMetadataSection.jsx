@@ -1,7 +1,11 @@
 import React from 'react'
 
 // ─── Host Card ─────────────────────────────────────────────────────────────────
-export const HostCard = ({ ownerName }) => (
+export const HostCard = ({ ownerName, displayName }) => {
+  // Use displayName if available, otherwise fall back to ownerName
+  const name = displayName || ownerName || 'Host'
+  
+  return (
   <div
     className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 md:p-4 rounded-2xl"
     style={{ backgroundColor: '#F5F2E8', border: `1px solid #E8E4D4` }}
@@ -11,14 +15,14 @@ export const HostCard = ({ ownerName }) => (
         className="w-10 md:w-11 h-10 md:h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
         style={{ backgroundColor: '#004D40' }}
       >
-        {ownerName?.[0]?.toUpperCase() || 'A'}
+        {name?.[0]?.toUpperCase() || 'A'}
       </div>
       <div>
         <p className="text-xs md:text-sm font-semibold" style={{ color: '#1A1A14' }}>
           Curated by
         </p>
         <p className="text-sm md:text-base font-semibold" style={{ color: '#1A1A14' }}>
-          {ownerName}
+          {name}
         </p>
       </div>
     </div>
@@ -34,7 +38,7 @@ export const HostCard = ({ ownerName }) => (
       Message
     </button>
   </div>
-)
+)}
 
 // ─── Metadata Grid ─────────────────────────────────────────────────────────────
 const MetaGrid = ({ listing }) => {

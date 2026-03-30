@@ -20,6 +20,7 @@ const EditListing = () => {
   const fileInputRef = useRef(null)
   
   const [listing, setListing] = useState(null)
+  const [isDraft, setIsDraft] = useState(false)
   const [previewImages, setPreviewImages] = useState([])
   const [imageFiles, setImageFiles] = useState([]) // New/replaced files
   const [existingImages, setExistingImages] = useState([]) // Original images
@@ -29,6 +30,7 @@ const EditListing = () => {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
   const [submitted, setSubmitted] = useState(false)
+  const [submitAction, setSubmitAction] = useState(null) // 'publish' or 'draft'
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -46,6 +48,7 @@ const EditListing = () => {
         const res = await listingsApi.getById(listingId)
         const data = res.data.listing
         setListing(data)
+        setIsDraft(data.isDraft || false)
         
         console.log('[EditListing] Fetched listing material:', data.material)
         console.log('[EditListing] Available materials:', OUTFIT_MATERIALS)
@@ -148,30 +151,88 @@ const EditListing = () => {
     setPreviewImages((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const validate = () => {
+  const validate = (forPublish = false) => {
     const newErrors = {}
-    if (!form.title.trim()) newErrors.title = 'Required'
-    if (!form.category) newErrors.category = 'Required'
-    if (!form.occasion) newErrors.occasion = 'Required'
-    if (!form.size) newErrors.size = 'Required'
-    if (!form.condition) newErrors.condition = 'Required'
-    if (!form.gender) newErrors.gender = 'Required'
-    if (!form.material) newErrors.material = 'Required'
-    if (form.material === 'Other' && !form.customMaterial.trim()) 
-      newErrors.customMaterial = 'Please specify the material'
-    if (!form.pricePerDay || isNaN(form.pricePerDay) || Number(form.pricePerDay) < 1)
-      newErrors.pricePerDay = 'Valid price required'
-    if (!form.description.trim()) newErrors.description = 'Required'
-    if (!form.area.trim()) newErrors.area = 'Required'
+    
+    // Only validate fields that are required for publishing
+    if (forPublish) {
+      if (!form.title.trim()) newErrors.title = 'Required'
+      if (!form.category) newErrors.category = 'Required'
+      if (!form.occasion) newErrors.occasion = 'Required'
+      if (!form.size) newErrors.size = 'Required'
+      if (!form.condition) newErrors.condition = 'Required'
+      if (!form.gender) newErrors.gender = 'Required'
+      if (!form.material) newErrors.material = 'Required'
+      if (form.material === 'Other' && !form.customMaterial.trim()) 
+        newErrors.customMaterial = 'Please specify the material'
+      if (!form.pricePerDay || isNaN(form.pricePerDay) || Number(form.pricePerDay) < 1)
+        newErrors.pricePerDay = 'Valid price required'
+      if (!form.description.trim()) newErrors.description = 'Required'
+      if (!form.area.trim()) newErrors.area = 'Required'
+    }
+    
     return newErrors
+  }
+
+  const handleSaveDraft = async () => {
+    setSubmitError(null)
+    setSubmitting(true)
+    setUploading(true)
+    try {
+      let cloudinaryUrls = [...existingImages]
+      
+      // Upload new images if any
+      if (imageFiles.length > 0) {
+        console.log('[Draft] Uploading', imageFiles.length, 'images to Cloudinary...')
+        const newUrls = await uploadMultipleImages(imageFiles)
+        cloudinaryUrls = [...cloudinaryUrls, ...newUrls]
+      }
+      
+      setUploading(false)
+
+      const pricePerDay = form.pricePerDay ? Number(form.pricePerDay) : 0
+      const finalMaterial = form.material === 'Other' ? form.customMaterial : form.material
+
+      const payload = {
+        title: form.title || '',
+        category: form.category || '',
+        occasion: form.occasion || '',
+        size: form.size || '',
+        condition: form.condition || '',
+        gender: form.gender || '',
+        material: finalMaterial || '',
+        pricePerDay: pricePerDay,
+        deposit: pricePerDay > 0 ? pricePerDay * 2 : 0,
+        description: form.description || '',
+        location: { area: form.area || '', city: 'Mumbai' },
+        images: cloudinaryUrls,
+        isDraft: true,
+      }
+
+      console.log('[Draft] Saving as draft:', payload)
+      const res = await listingsApi.update(listingId, payload)
+      console.log('[Draft] Response from server:', res)
+      setSubmitAction('draft')
+      setSubmitted(true)
+      // Navigate back to dashboard after short delay
+      setTimeout(() => navigate('/dashboard', { state: { activeTab: 'listings' } }), 1500)
+    } catch (err) {
+      console.error('Draft save error:', err)
+      setSubmitError(err.message || 'Failed to save draft')
+      setUploading(false)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleSubmit = async () => {
     setSubmitError(null)
-    const errs = validate()
+    
+    // Validate all fields for publishing
+    const errs = validate(true)
     if (Object.keys(errs).length) {
       setErrors(errs)
-      setSubmitError('Please fill in all required fields')
+      setSubmitError('Please fill in all required fields to publish')
       return
     }
 
@@ -222,11 +283,13 @@ const EditListing = () => {
         description: form.description,
         location: { area: form.area, city: 'Mumbai' },
         images: cloudinaryUrls,
+        isDraft: false, // Mark as live/published
       }
 
       console.log('[EditListing Save] Full payload being sent:', payload)
       const res = await listingsApi.update(listingId, payload)
       console.log('[EditListing Save] Response from server:', res)
+      setSubmitAction('publish')
       setSubmitted(true)
       // Navigate back to listing after short delay
       setTimeout(() => navigate(`/listing/${listingId}`), 1500)
@@ -246,10 +309,12 @@ const EditListing = () => {
           ✓
         </div>
         <h2 className="text-2xl font-black text-[#1A1A1A]" style={{ fontFamily: "'Georgia', serif" }}>
-          Listing updated!
+          {submitAction === 'draft' ? 'Saved to drafts!' : 'Listing published!'}
         </h2>
         <p className="text-sm text-[#888] text-center max-w-sm">
-          Your changes have been saved. Taking you back…
+          {submitAction === 'draft' 
+            ? 'Your draft has been saved. Taking you to the dashboard…' 
+            : 'Your listing is now live. Taking you back…'}
         </p>
       </div>
     )
@@ -449,16 +514,16 @@ const EditListing = () => {
               <div className="flex gap-3 pt-2">
                 <button 
                   type="button"
+                  onClick={handleSaveDraft}
                   className="flex-1 px-6 py-3 text-sm font-semibold text-[#1A1A1A] bg-[#F5F5F5] 
-                    rounded-lg hover:bg-[#EFEFEF] transition-colors"
-                  onClick={() => navigate(`/listing/${listingId}`)}
-                  disabled={submitting}
+                    rounded-lg hover:bg-[#EFEFEF] transition-colors disabled:opacity-50"
+                  disabled={submitting || uploading}
                 >
-                  Cancel
+                  {uploading ? '📸 Uploading...' : submitting ? '⏳ Saving...' : '💾 Save as Draft'}
                 </button>
                 <Button variant="accent" fullWidth size="lg"
                   onClick={handleSubmit} disabled={submitting || uploading}>
-                  {uploading ? '📸 Uploading images...' : submitting ? '⏳ Saving…' : 'Save Changes →'}
+                  {uploading ? '📸 Uploading images...' : submitting ? '⏳ Saving…' : (isDraft ? 'Publish →' : 'Save Changes →')}
                 </Button>
               </div>
             </div>
