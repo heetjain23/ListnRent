@@ -66,9 +66,16 @@ const CreateListing = () => {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files)
-    const previews = files.map((f) => URL.createObjectURL(f))
+    
+    // Safety check: ensure files are actual File objects
+    const validFiles = files.filter(file => file instanceof File)
+    if (validFiles.length === 0) {
+      return
+    }
+    
+    const previews = validFiles.map((f) => URL.createObjectURL(f))
     setPreviewImages((prev) => [...prev, ...previews].slice(0, 5))
-    setImageFiles((prev) => [...prev, ...files].slice(0, 5))
+    setImageFiles((prev) => [...prev, ...validFiles].slice(0, 5))
   }
 
   const removeImage = (index) => {
@@ -102,13 +109,16 @@ const CreateListing = () => {
     try {
       let cloudinaryUrls = []
       
-      // Upload images if any are provided
+      // Upload ONLY actual File objects
       if (imageFiles.length > 0) {
-        cloudinaryUrls = await uploadMultipleImages(imageFiles)
+        const actualNewFiles = imageFiles.filter(file => file instanceof File)
+        if (actualNewFiles.length > 0) {
+          cloudinaryUrls = await uploadMultipleImages(actualNewFiles)
+        }
       }
       setUploading(false)
 
-      const pricePerDay = form.pricePerDay ? Number(form.pricePerDay) : 0
+      const pricePerDay = form.pricePerDay ? parseInt(form.pricePerDay, 10) : 0
       const payload = {
         title: form.title || '',
         category: form.category || '',
@@ -156,11 +166,17 @@ const CreateListing = () => {
     setSubmitting(true)
     setUploading(true)
     try {
-      // Upload images to Cloudinary
-      const cloudinaryUrls = await uploadMultipleImages(imageFiles)
+      // Upload ONLY actual File objects that are truly new
+      let cloudinaryUrls = []
+      if (imageFiles.length > 0) {
+        const actualNewFiles = imageFiles.filter(file => file instanceof File)
+        if (actualNewFiles.length > 0) {
+          cloudinaryUrls = await uploadMultipleImages(actualNewFiles)
+        }
+      }
       setUploading(false)
 
-      const pricePerDay = Number(form.pricePerDay)
+      const pricePerDay = parseInt(form.pricePerDay, 10)
       const payload = {
         title: form.title,
         category: form.category,
@@ -360,7 +376,14 @@ const CreateListing = () => {
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#1A1A1A]">₹</span>
                         <input name="pricePerDay" type="number" value={form.pricePerDay}
-                          onChange={handleChange} placeholder="2,500" min="1"
+                          onChange={handleChange} placeholder="2,500" min="1" step="1"
+                          onWheel={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.blur()
+                          }}
+                          onMouseDown={(e) => {
+                            if (e.button === 1) e.preventDefault()
+                          }}
                           className={`${inputClass(errors.pricePerDay)} pl-7`} />
                       </div>
                     </Field>

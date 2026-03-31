@@ -113,16 +113,24 @@ const EditListing = () => {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files)
-    const previews = files.map((f) => URL.createObjectURL(f))
     
-    const totalImages = existingImages.length - imagesToDelete.length + imageFiles.length + files.length
+    // Safety check: ensure files are actual File objects
+    const validFiles = files.filter(file => file instanceof File)
+    if (validFiles.length === 0) {
+      setSubmitError('Please select valid image files')
+      return
+    }
+    
+    const previews = validFiles.map((f) => URL.createObjectURL(f))
+    
+    const totalImages = existingImages.length - imagesToDelete.length + imageFiles.length + validFiles.length
     if (totalImages > 5) {
       setSubmitError(`Maximum 5 images allowed. You would have ${totalImages}`)
       return
     }
     
     setPreviewImages((prev) => [...prev, ...previews].slice(0, 5))
-    setImageFiles((prev) => [...prev, ...files].slice(0, 5))
+    setImageFiles((prev) => [...prev, ...validFiles].slice(0, 5))
     setSubmitError(null)
   }
 
@@ -173,15 +181,19 @@ const EditListing = () => {
     try {
       let cloudinaryUrls = [...existingImages]
       
-      // Upload new images if any
+      // Upload ONLY new File objects (not URLs that are already uploaded)
       if (imageFiles.length > 0) {
-        const newUrls = await uploadMultipleImages(imageFiles)
-        cloudinaryUrls = [...cloudinaryUrls, ...newUrls]
+        // Filter to ensure we only have File objects, not URL strings
+        const actualNewFiles = imageFiles.filter(file => file instanceof File)
+        if (actualNewFiles.length > 0) {
+          const newUrls = await uploadMultipleImages(actualNewFiles)
+          cloudinaryUrls = [...cloudinaryUrls, ...newUrls]
+        }
       }
       
       setUploading(false)
 
-      const pricePerDay = form.pricePerDay ? Number(form.pricePerDay) : 0
+      const pricePerDay = form.pricePerDay ? parseInt(form.pricePerDay, 10) : 0
       const finalMaterial = form.material === 'Other' ? form.customMaterial : form.material
 
       const payload = {
@@ -236,15 +248,19 @@ const EditListing = () => {
     try {
       let cloudinaryUrls = [...existingImages]
       
-      // Upload new images if any
+      // Upload ONLY new File objects (not URLs that are already uploaded)
       if (imageFiles.length > 0) {
-        const newUrls = await uploadMultipleImages(imageFiles)
-        cloudinaryUrls = [...cloudinaryUrls, ...newUrls]
+        // Filter to ensure we only have File objects, not URL strings
+        const actualNewFiles = imageFiles.filter(file => file instanceof File)
+        if (actualNewFiles.length > 0) {
+          const newUrls = await uploadMultipleImages(actualNewFiles)
+          cloudinaryUrls = [...cloudinaryUrls, ...newUrls]
+        }
       }
       
       setUploading(false)
 
-      const pricePerDay = Number(form.pricePerDay)
+      const pricePerDay = parseInt(form.pricePerDay, 10)
       
       // Ensure material is set
       const finalMaterial = form.material === 'Other' ? form.customMaterial : form.material
@@ -453,7 +469,14 @@ const EditListing = () => {
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#1A1A1A]">₹</span>
                         <input name="pricePerDay" type="number" value={form.pricePerDay}
-                          onChange={handleChange} placeholder="2,500" min="1"
+                          onChange={handleChange} placeholder="2,500" min="1" step="1"
+                          onWheel={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.blur()
+                          }}
+                          onMouseDown={(e) => {
+                            if (e.button === 1) e.preventDefault()
+                          }}
                           className={`${inputClass(errors.pricePerDay)} pl-7`} />
                       </div>
                     </Field>

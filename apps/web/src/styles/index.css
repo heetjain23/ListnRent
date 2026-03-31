@@ -7,3 +7,28 @@ html, body {
 button {
     cursor: pointer;
 }
+
+/* Disable number input scroll and spinner */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+    display: none;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+input[type="number"]:focus {
+    -moz-appearance: textfield;
+}
+
+/* Prevent wheel event on ALL number inputs */
+input[type="number"] {
+    scroll-behavior: auto;
+}
+
+input[type="number"]::-webkit-calendar-picker-indicator {
+    display: none;
+}
