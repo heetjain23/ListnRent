@@ -26,7 +26,7 @@ export const handleGetProfile = async (req, res) => {
     const userId = req.user.uid
     const email = req.user.email
     const user = await userService.getUserById(userId, email)
-    res.status(200).json(user)
+    res.status(200).json({ user })
   } catch (error) {
     console.error('Get profile error:', error)
     res.status(404).json({ message: error.message || 'User not found' })

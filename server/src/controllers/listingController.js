@@ -45,8 +45,8 @@ export const handleCreateListing = async (req, res) => {
 
 export const handleGetAllListings = async (req, res) => {
   try {
-    const { category, occasion, city } = req.query;
-    const listings = await getAllListings({ category, occasion, city });
+    const { category, occasion, gender, city } = req.query;
+    const listings = await getAllListings({ category, occasion, gender, city });
     return successResponse(res, { listings });
   } catch (error) {
     return errorResponse(res, error.message || "Failed to fetch listings", 500);

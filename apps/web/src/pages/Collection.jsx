@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useListings } from '../hooks/useListings'
-import { CATEGORIES, OCCASIONS } from '../constants'
+import { CATEGORIES, OCCASIONS, GENDER } from '../constants'
 import Header from '../components/collection/Header'
 import Sidebar from '../components/collection/Sidebar'
 import FilterModal from '../components/collection/FilterModal'
@@ -26,6 +26,11 @@ const Collection = () => {
     return param && OCCASIONS.includes(param) ? param : ''
   })
 
+  const [selectedGender, setSelectedGender] = useState(() => {
+    const param = searchParams.get('gender')
+    return param && GENDER.includes(param) ? param : ''
+  })
+
   const [selectedSize, setSelectedSize] = useState('All')
   const [priceRange, setPriceRange] = useState(null)
   const [sortBy, setSortBy] = useState('Relevance')
@@ -36,6 +41,7 @@ const Collection = () => {
   useEffect(() => {
     const occasionParam = searchParams.get('occasion')
     const categoryParam = searchParams.get('category')
+    const genderParam = searchParams.get('gender')
 
     if (occasionParam && OCCASIONS.includes(occasionParam)) {
       setSelectedOccasion(occasionParam)
@@ -48,12 +54,19 @@ const Collection = () => {
     } else {
       setSelectedCategories([])
     }
+
+    if (genderParam && GENDER.includes(genderParam)) {
+      setSelectedGender(genderParam)
+    } else {
+      setSelectedGender('')
+    }
   }, [searchParams])
 
-  // Fetch listings with category and occasion filters
+  // Fetch listings with category, occasion, and gender filters
   const filters = {}
   if (selectedCategories.length > 0) filters.category = selectedCategories
   if (selectedOccasion) filters.occasion = [selectedOccasion]
+  if (selectedGender) filters.gender = [selectedGender]
   const { listings, loading, error } = useListings(filters)
 
   // Calculate dynamic price range from listings
@@ -67,7 +80,7 @@ const Collection = () => {
   // Reset price range when filters change
   useEffect(() => {
     setPriceRange(null)
-  }, [selectedCategories, selectedOccasion])
+  }, [selectedCategories, selectedOccasion, selectedGender])
 
   // Recalculate price range when listings change
   useEffect(() => {
@@ -137,22 +150,30 @@ const Collection = () => {
     const updated = selectedCategories.includes(category)
       ? selectedCategories.filter((c) => c !== category)
       : [...selectedCategories, category]
-    updateUrlParams(updated, selectedOccasion)
+    updateUrlParams(updated, selectedOccasion, selectedGender)
     setCurrentPage(1)
   }
 
   const handleOccasionChange = (occasion) => {
-    updateUrlParams(selectedCategories, occasion)
+    updateUrlParams(selectedCategories, occasion, selectedGender)
     setCurrentPage(1)
   }
 
-  const updateUrlParams = (categories, occasion) => {
+  const handleGenderChange = (gender) => {
+    updateUrlParams(selectedCategories, selectedOccasion, gender)
+    setCurrentPage(1)
+  }
+
+  const updateUrlParams = (categories, occasion, gender) => {
     const params = new URLSearchParams()
     if (categories.length > 0) {
       params.set('category', categories[0])
     }
     if (occasion) {
       params.set('occasion', occasion)
+    }
+    if (gender) {
+      params.set('gender', gender)
     }
     navigate(`/collection${params.toString() ? '?' + params.toString() : ''}`)
   }
@@ -182,6 +203,8 @@ const Collection = () => {
               setPriceRange={setPriceRange}
               selectedOccasion={selectedOccasion}
               handleOccasionChange={handleOccasionChange}
+              selectedGender={selectedGender}
+              handleGenderChange={handleGenderChange}
               setCurrentPage={setCurrentPage}
               minMaxPrice={minMaxPrice}
             />

@@ -72,8 +72,19 @@ export const createListing = async (userId, data) => {
 export const getAllListings = async (filters = {}) => {
   const query = { isActive: true, isDraft: { $ne: true } };
 
-  if (filters.category) query.category = filters.category;
-  if (filters.occasion) query.occasion = filters.occasion;
+  // Handle filters - convert to array if string for consistent $in usage
+  if (filters.category) {
+    const categories = Array.isArray(filters.category) ? filters.category : [filters.category];
+    query.category = { $in: categories };
+  }
+  if (filters.occasion) {
+    const occasions = Array.isArray(filters.occasion) ? filters.occasion : [filters.occasion];
+    query.occasion = { $in: occasions };
+  }
+  if (filters.gender) {
+    const genders = Array.isArray(filters.gender) ? filters.gender : [filters.gender];
+    query.gender = { $in: genders };
+  }
   if (filters.city) query["location.city"] = filters.city;
 
   const listings = await Listing.find(query).sort({ createdAt: -1 });

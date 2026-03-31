@@ -62,7 +62,7 @@ export const authApi = {
 
 // Listings API calls
 export const listingsApi = {
-  // GET /api/listings?category=&occasion=&city=
+  // GET /api/listings?category=&occasion=&gender=&city=
   getAll: (filters = {}) => {
     const params = new URLSearchParams();
     
@@ -78,6 +78,13 @@ export const listingsApi = {
       filters.occasion.forEach((occ) => params.append("occasion", occ));
     } else if (filters.occasion) {
       params.append("occasion", filters.occasion);
+    }
+    
+    // Handle multiple genders
+    if (filters.gender && Array.isArray(filters.gender)) {
+      filters.gender.forEach((gen) => params.append("gender", gen));
+    } else if (filters.gender) {
+      params.append("gender", filters.gender);
     }
     
     if (filters.city) params.append("city", filters.city);

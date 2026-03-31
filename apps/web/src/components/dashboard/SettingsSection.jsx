@@ -5,7 +5,7 @@ import { api } from '../../services/api'
 
 const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
   const [isEditingName, setIsEditingName] = useState(false)
-  const [displayName, setDisplayName] = useState(user?.displayName || '')
+  const [displayName, setDisplayName] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
   const [updateError, setUpdateError] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -32,18 +32,10 @@ const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
     return window.location.origin
   }
 
-  // Initialize delivery details from user data
+  // Set flag to fetch user profile on mount
   useEffect(() => {
-    if (user?.deliveryDetails) {
-      setDeliveryDetails({
-        mobileNumber: user.deliveryDetails.mobileNumber || '',
-        deliveryAddress: user.deliveryDetails.deliveryAddress || '',
-        landmark: user.deliveryDetails.landmark || '',
-        pincode: user.deliveryDetails.pincode || '',
-      })
-    }
-    setFetchingUserData(false)
-  }, [user])
+    setFetchingUserData(true)
+  }, [])
 
   // Fetch user profile from database
   useEffect(() => {
@@ -64,7 +56,16 @@ const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
         })
 
         if (response.ok) {
-          const userData = await response.json()
+          const responseData = await response.json()
+          // Extract user from response (could be responseData.user or responseData)
+          const userData = responseData.user || responseData
+          
+          // Update display name if available
+          if (userData.displayName) {
+            setDisplayName(userData.displayName)
+          }
+          
+          // Update delivery details if available
           if (userData.deliveryDetails) {
             setDeliveryDetails({
               mobileNumber: userData.deliveryDetails.mobileNumber || '',

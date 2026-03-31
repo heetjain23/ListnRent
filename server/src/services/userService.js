@@ -1,25 +1,48 @@
 import User from '../models/User.js'
 
-// Initialize user - ensure user exists in database
+// Initialize user - ensure user exists in database (without overwriting existing data)
 export const initializeUser = async (uid, email, additionalData = {}) => {
   try {
     console.log('[UserService] Initializing user:', { uid, email, additionalData })
     
-    const user = await User.findOneAndUpdate(
-      { uid },
-      {
+    // First check if user already exists
+    const existingUser = await User.findOne({ uid })
+    
+    if (existingUser) {
+      // User exists - only update email if changed, don't overwrite other fields
+      console.log('[UserService] User already exists, preserving existing data')
+      const updateData = { email }
+      
+      // Only set displayName if it's not already set
+      if (!existingUser.displayName && additionalData.displayName) {
+        updateData.displayName = additionalData.displayName
+      }
+      
+      // Only set photoURL if it's not already set
+      if (!existingUser.photoURL && additionalData.photoURL) {
+        updateData.photoURL = additionalData.photoURL
+      }
+      
+      const user = await User.findOneAndUpdate(
+        { uid },
+        updateData,
+        { returnDocument: 'after' }
+      )
+      
+      console.log('[UserService] User updated (preserved existing data):', user)
+      return user
+    } else {
+      // New user - create with all initial data
+      console.log('[UserService] New user, creating with initial data')
+      const user = await User.create({
         uid,
         email,
         ...additionalData,
-      },
-      { 
-        returnDocument: 'after',
-        upsert: true, // Create if doesn't exist
-      }
-    )
-
-    console.log('[UserService] User initialized/updated in DB:', user)
-    return user
+      })
+      
+      console.log('[UserService] New user created:', user)
+      return user
+    }
   } catch (error) {
     console.error('[UserService] Error initializing user:', error)
     throw error

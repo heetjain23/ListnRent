@@ -1,5 +1,5 @@
 import React from 'react'
-import { CATEGORIES, SIZES, OCCASIONS } from '../../constants'
+import { CATEGORIES, SIZES, OCCASIONS, GENDER } from '../../constants'
 
 const Sidebar = ({
   selectedCategories,
@@ -10,6 +10,8 @@ const Sidebar = ({
   setPriceRange,
   selectedOccasion,
   handleOccasionChange,
+  selectedGender,
+  handleGenderChange,
   setCurrentPage,
   minMaxPrice,
 }) => {
@@ -29,6 +31,39 @@ const Sidebar = ({
       <div 
         className="bg-white rounded-lg p-6 sticky top-24 h-[calc(100vh-9rem)] overflow-y-auto"
       >
+        {/* Gender */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-[#1A1A1A] mb-4">Gender</h3>
+          <div className="space-y-3">
+            <label className="flex items-center cursor-pointer group">
+              <input
+                type="radio"
+                name="gender"
+                checked={selectedGender === ''}
+                onChange={() => handleGenderChange('')}
+                className="w-4 h-4 text-[#C8622A] focus:ring-[#C8622A] cursor-pointer"
+              />
+              <span className="ml-3 text-[#666] group-hover:text-[#1A1A1A] transition-colors">
+                All
+              </span>
+            </label>
+            {GENDER.filter((g) => g !== 'All').map((gender) => (
+              <label key={gender} className="flex items-center cursor-pointer group">
+                <input
+                  type="radio"
+                  name="gender"
+                  checked={selectedGender === gender}
+                  onChange={() => handleGenderChange(gender)}
+                  className="w-4 h-4 text-[#C8622A] focus:ring-[#C8622A] cursor-pointer"
+                />
+                <span className="ml-3 text-[#666] group-hover:text-[#1A1A1A] transition-colors">
+                  {gender}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
         {/* Category */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-[#1A1A1A] mb-4">Category</h3>
