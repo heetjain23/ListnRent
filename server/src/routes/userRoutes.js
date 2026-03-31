@@ -4,6 +4,7 @@ import {
   handleInitializeUser,
   handleGetProfile,
   handleUpdateProfile,
+  handleUpdateDeliveryDetails,
   handleDeleteAccount,
 } from '../controllers/userController.js'
 
@@ -17,6 +18,9 @@ router.get('/profile', verifyFirebaseToken, handleGetProfile)
 
 // PATCH /api/users/profile - Update user profile (protected)
 router.patch('/profile', verifyFirebaseToken, handleUpdateProfile)
+
+// PATCH /api/users/delivery-details - Update user delivery details (protected)
+router.patch('/delivery-details', verifyFirebaseToken, handleUpdateDeliveryDetails)
 
 // DELETE /api/users/account - Delete user account and all listings (protected)
 router.delete('/account', verifyFirebaseToken, handleDeleteAccount)

@@ -1,4 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useAuth } from '../../hooks/useAuth'
+import { auth } from '../../services/firebase'
 import { api } from '../../services/api'
 
 const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
@@ -7,6 +9,82 @@ const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
   const [isUpdating, setIsUpdating] = useState(false)
   const [updateError, setUpdateError] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  // Delivery details state
+  const [deliveryDetails, setDeliveryDetails] = useState({
+    mobileNumber: '',
+    deliveryAddress: '',
+    landmark: '',
+    pincode: '',
+  })
+  const [isEditingDelivery, setIsEditingDelivery] = useState(false)
+  const [deliveryLoading, setDeliveryLoading] = useState(false)
+  const [deliveryError, setDeliveryError] = useState(null)
+  const [deliverySuccess, setDeliverySuccess] = useState(null)
+  const [fetchingUserData, setFetchingUserData] = useState(true)
+
+  const getApiBaseUrl = () => {
+    const env = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL
+    if (env) return env.endsWith('/') ? env.slice(0, -1) : env
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:5000'
+    }
+    return window.location.origin
+  }
+
+  // Initialize delivery details from user data
+  useEffect(() => {
+    if (user?.deliveryDetails) {
+      setDeliveryDetails({
+        mobileNumber: user.deliveryDetails.mobileNumber || '',
+        deliveryAddress: user.deliveryDetails.deliveryAddress || '',
+        landmark: user.deliveryDetails.landmark || '',
+        pincode: user.deliveryDetails.pincode || '',
+      })
+    }
+    setFetchingUserData(false)
+  }, [user])
+
+  // Fetch user profile from database
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const currentUser = auth.currentUser
+        if (!currentUser) return
+
+        const idToken = await currentUser.getIdToken()
+
+        const response = await fetch(`${getApiBaseUrl()}/api/users/profile`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          credentials: 'include',
+        })
+
+        if (response.ok) {
+          const userData = await response.json()
+          if (userData.deliveryDetails) {
+            setDeliveryDetails({
+              mobileNumber: userData.deliveryDetails.mobileNumber || '',
+              deliveryAddress: userData.deliveryDetails.deliveryAddress || '',
+              landmark: userData.deliveryDetails.landmark || '',
+              pincode: userData.deliveryDetails.pincode || '',
+            })
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch user profile:', err)
+      } finally {
+        setFetchingUserData(false)
+      }
+    }
+
+    if (fetchingUserData) {
+      fetchUserProfile()
+    }
+  }, [])
 
   const handleSaveName = async () => {
     if (!displayName.trim()) {
@@ -37,6 +115,79 @@ const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
     }
   }
 
+  const handleDeliveryInputChange = (e) => {
+    const { name, value } = e.target
+    setDeliveryDetails((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+    setDeliveryError(null)
+  }
+
+  const validateDeliveryDetails = () => {
+    if (!deliveryDetails.mobileNumber.match(/^\d{10}$/)) {
+      setDeliveryError('Please enter a valid 10-digit mobile number')
+      return false
+    }
+    if (!deliveryDetails.deliveryAddress.trim()) {
+      setDeliveryError('Delivery address is required')
+      return false
+    }
+    if (!deliveryDetails.landmark.trim()) {
+      setDeliveryError('Landmark is required')
+      return false
+    }
+    if (!deliveryDetails.pincode.match(/^\d{6}$/)) {
+      setDeliveryError('Please enter a valid 6-digit pincode')
+      return false
+    }
+    return true
+  }
+
+  const handleSaveDeliveryDetails = async () => {
+    if (!validateDeliveryDetails()) {
+      return
+    }
+
+    setDeliveryLoading(true)
+    setDeliveryError(null)
+    setDeliverySuccess(null)
+
+    try {
+      const currentUser = auth.currentUser
+      if (!currentUser) {
+        throw new Error('User not authenticated')
+      }
+
+      const idToken = await currentUser.getIdToken()
+
+      const response = await fetch(`${getApiBaseUrl()}/api/users/delivery-details`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(deliveryDetails),
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.message || 'Failed to update delivery details')
+      }
+
+      setDeliverySuccess('Delivery details saved successfully!')
+      setIsEditingDelivery(false)
+      setDeliveryLoading(false)
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setDeliverySuccess(null), 3000)
+    } catch (err) {
+      setDeliveryError(err.message || 'Failed to save delivery details')
+      setDeliveryLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -59,6 +210,27 @@ const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
             <p className="text-sm sm:text-base text-[#666] mt-1">{user?.email || 'No email provided'}</p>
           </div>
         </div>
+
+        {/* Missing Phone Number Banner */}
+        {!deliveryDetails.mobileNumber && !fetchingUserData && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <span className="text-xl">📞</span>
+              <div className="flex-1">
+                <h4 className="font-semibold text-amber-900 mb-1">Add Your Phone Number</h4>
+                <p className="text-sm text-amber-800 mb-3">
+                  Please add your phone number and delivery address for a smooth checkout experience on your next purchase.
+                </p>
+                <button
+                  onClick={() => setIsEditingDelivery(true)}
+                  className="text-sm font-semibold text-amber-900 hover:text-amber-800 underline"
+                >
+                  Add Now
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Personal Information Section */}
         <div>
@@ -130,7 +302,145 @@ const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
           </div>
         </div>
 
-        {/* Account Actions Section */}
+        {/* Delivery Details Section */}
+        <div className="border-t border-[#E8E0D5] pt-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-semibold text-[#1A1A1A]">Delivery Address</h3>
+            <button
+              onClick={() => setIsEditingDelivery(!isEditingDelivery)}
+              className="text-sm font-semibold text-[#004D40] hover:text-[#003830] transition-colors"
+            >
+              {isEditingDelivery ? '✕ Cancel' : '✎ Edit'}
+            </button>
+          </div>
+
+          {deliveryError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+              ⚠️ {deliveryError}
+            </div>
+          )}
+
+          {deliverySuccess && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded text-sm">
+              ✓ {deliverySuccess}
+            </div>
+          )}
+
+          {isEditingDelivery ? (
+            <div className="space-y-4">
+              {/* Mobile Number */}
+              <div>
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">Mobile Number</label>
+                <div className="flex">
+                  <span className="inline-flex items-center px-4 bg-[#F5F5F5] border border-[#E8E0D5] rounded-l-lg text-sm text-[#666]">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    name="mobileNumber"
+                    value={deliveryDetails.mobileNumber}
+                    onChange={handleDeliveryInputChange}
+                    placeholder="9876543210"
+                    maxLength="10"
+                    className="flex-1 px-4 py-3 border border-l-0 border-[#E8E0D5] rounded-r-lg focus:outline-none focus:ring-2 focus:ring-[#004D40] placeholder-[#CCC] text-sm md:text-base"
+                  />
+                </div>
+              </div>
+
+              {/* Delivery Address */}
+              <div>
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">Delivery Address (Mumbai only)</label>
+                <input
+                  type="text"
+                  name="deliveryAddress"
+                  value={deliveryDetails.deliveryAddress}
+                  onChange={handleDeliveryInputChange}
+                  placeholder="Flat/House No, Building, Area"
+                  className="w-full px-4 py-3 border border-[#E8E0D5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004D40] placeholder-[#CCC] text-sm md:text-base"
+                />
+              </div>
+
+              {/* Landmark and Pincode */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">Landmark</label>
+                  <input
+                    type="text"
+                    name="landmark"
+                    value={deliveryDetails.landmark}
+                    onChange={handleDeliveryInputChange}
+                    placeholder="Near Gateway of India"
+                    className="w-full px-4 py-3 border border-[#E8E0D5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004D40] placeholder-[#CCC] text-sm md:text-base"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">Pincode</label>
+                  <input
+                    type="text"
+                    name="pincode"
+                    value={deliveryDetails.pincode}
+                    onChange={handleDeliveryInputChange}
+                    placeholder="400001"
+                    maxLength="6"
+                    className="w-full px-4 py-3 border border-[#E8E0D5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004D40] placeholder-[#CCC] text-sm md:text-base"
+                  />
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setIsEditingDelivery(false)}
+                  disabled={deliveryLoading}
+                  className="flex-1 border border-[#E8E0D5] text-[#666] px-4 py-2 rounded-lg font-medium hover:bg-[#F5F5F5] transition-colors disabled:bg-gray-400 text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveDeliveryDetails}
+                  disabled={deliveryLoading}
+                  className="flex-1 bg-[#004D40] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#003830] transition-colors disabled:bg-gray-400 text-sm"
+                >
+                  {deliveryLoading ? 'Saving...' : 'Save Details'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Display Mobile Number */}
+              <div>
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">Mobile Number</label>
+                <div className="px-4 py-3 bg-[#FAF7F2] border border-[#E8E0D5] rounded-lg text-[#1A1A1A] text-sm md:text-base">
+                  {deliveryDetails.mobileNumber ? `+91 ${deliveryDetails.mobileNumber}` : 'Not added'}
+                </div>
+              </div>
+
+              {/* Display Pincode */}
+              <div>
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">Pincode</label>
+                <div className="px-4 py-3 bg-[#FAF7F2] border border-[#E8E0D5] rounded-lg text-[#1A1A1A] text-sm md:text-base">
+                  {deliveryDetails.pincode || 'Not added'}
+                </div>
+              </div>
+
+              {/* Display Address */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">Delivery Address</label>
+                <div className="px-4 py-3 bg-[#FAF7F2] border border-[#E8E0D5] rounded-lg text-[#1A1A1A] text-sm md:text-base">
+                  {deliveryDetails.deliveryAddress || 'Not added'}
+                </div>
+              </div>
+
+              {/* Display Landmark */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">Landmark</label>
+                <div className="px-4 py-3 bg-[#FAF7F2] border border-[#E8E0D5] rounded-lg text-[#1A1A1A] text-sm md:text-base">
+                  {deliveryDetails.landmark || 'Not added'}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="pt-6 border-t border-[#E8E0D5] space-y-4">
           <h3 className="text-lg font-semibold text-[#1A1A1A] mb-4">Account Actions</h3>
 

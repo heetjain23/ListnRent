@@ -7,6 +7,7 @@ import Footer from './components/layout/Footer'
 import Home from './pages/Home'
 import Collection from './pages/Collection'
 import ListingDetail from './pages/ListingDetail.jsx'
+import Checkout from './pages/Checkout'
 import CreateListing from './pages/CreateListing'
 import EditListing from './pages/EditListing'
 import Login from './pages/Login'
@@ -91,6 +92,7 @@ const App = () => {
               <Route path="/" element={<Home />} />
               <Route path="/collection" element={<Collection />} />
               <Route path="/listing/:id" element={<ListingDetail />} />
+              <Route path="/checkout" element={<Checkout />} />
               <Route path="/create" element={<CreateListing />} />
               <Route path="/edit/:listingId" element={<EditListing />} />
               <Route path="/login" element={<Login />} />

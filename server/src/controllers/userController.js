@@ -50,6 +50,30 @@ export const handleUpdateProfile = async (req, res) => {
   }
 }
 
+export const handleUpdateDeliveryDetails = async (req, res) => {
+  try {
+    const userId = req.user.uid
+    const { mobileNumber, deliveryAddress, landmark, pincode } = req.body
+
+    if (!mobileNumber && !deliveryAddress && !landmark && !pincode) {
+      return res.status(400).json({ message: 'No delivery details to update' })
+    }
+
+    const deliveryDetails = {
+      ...(mobileNumber && { mobileNumber }),
+      ...(deliveryAddress && { deliveryAddress }),
+      ...(landmark && { landmark }),
+      ...(pincode && { pincode }),
+    }
+
+    const user = await userService.updateDeliveryDetails(userId, deliveryDetails)
+    res.status(200).json({ message: 'Delivery details updated successfully', user })
+  } catch (error) {
+    console.error('Update delivery details error:', error)
+    res.status(500).json({ message: error.message || 'Failed to update delivery details' })
+  }
+}
+
 export const handleDeleteAccount = async (req, res) => {
   try {
     const userId = req.user.uid

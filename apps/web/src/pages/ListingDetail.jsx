@@ -9,7 +9,6 @@ import ListingDetailsSection  from '../components/listing-detail/ListingDetailsS
 import BookingSection         from '../components/listing-detail/BookingSection'
 import HostMetadataSection    from '../components/listing-detail/HostMetadataSection'
 import { HostCard }           from '../components/listing-detail/HostMetadataSection'
-import PaymentCheckout        from '../components/ui/PaymentCheckout'
 
 // ─── Breadcrumb ────────────────────────────────────────────────────────────────
 const Breadcrumb = ({ category, title }) => (
@@ -110,21 +109,26 @@ const ListingDetail = () => {
   const [activeImage,    setActiveImage]    = useState(0)
   const [eventDate,      setEventDate]      = useState('')
   const [durationDays,   setDurationDays]   = useState(1)
-  const [showPayment,    setShowPayment]    = useState(false)
-  const [bookingSuccess, setBookingSuccess] = useState(false)
 
   useEffect(() => { window.scrollTo(0, 0) }, [id])
 
   if (loading)           return <LoadingSkeleton />
   if (error || !listing) return <NotFoundScreen error={error} />
-  if (bookingSuccess)    return <BookingSuccessScreen />
 
   const available = listing.isActive
   const isOwner = user && user.uid === listing.userId
 
   const handleRentClick = () => {
     if (!eventDate || !durationDays) return
-    setShowPayment(true)
+    window.scrollTo(0, 0)
+    navigate('/checkout', {
+      state: {
+        listing,
+        renterId: listing.userId,
+        startDate,
+        endDate,
+      },
+    })
   }
 
   // ── Calculate check-in and return dates from event date ──────────────────────
@@ -151,15 +155,6 @@ const ListingDetail = () => {
   const handleEditClick = () => {
     navigate(`/edit/${listing._id}`)
     window.scrollTo(0, 0)
-  }
-
-  const handlePaymentSuccess = (booking) => {
-    setBookingSuccess(true)
-    setTimeout(() => {
-      navigate('/dashboard', {
-        state: { bookingSuccess: true, bookingId: booking._id, activeTab: 'orders' },
-      })
-    }, 2000)
   }
 
   return (
@@ -210,26 +205,15 @@ const ListingDetail = () => {
               </div>
             )}
 
-            {showPayment ? (
-              <PaymentCheckout
-                listing={listing}
-                renterId={listing.userId}
-                startDate={startDate}
-                endDate={endDate}
-                onSuccess={handlePaymentSuccess}
-                onCancel={() => setShowPayment(false)}
-              />
-            ) : (
-              <BookingSection
-                listing={listing}
-                eventDate={eventDate}
-                onEventDateChange={setEventDate}
-                durationDays={durationDays}
-                onDurationChange={setDurationDays}
-                onRentClick={handleRentClick}
-                available={available}
-              />
-            )}
+            <BookingSection
+              listing={listing}
+              eventDate={eventDate}
+              onEventDateChange={setEventDate}
+              durationDays={durationDays}
+              onDurationChange={setDurationDays}
+              onRentClick={handleRentClick}
+              available={available}
+            />
 
             {/* Host Card */}
             <HostCard 

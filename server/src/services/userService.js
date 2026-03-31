@@ -75,6 +75,29 @@ export const updateUserProfile = async (uid, data) => {
   }
 }
 
+// Update user delivery details
+export const updateDeliveryDetails = async (uid, deliveryDetails) => {
+  try {
+    console.log('[UserService] Updating delivery details for user:', uid)
+    
+    const user = await User.findOneAndUpdate(
+      { uid },
+      { deliveryDetails },
+      { 
+        returnDocument: 'after',
+        upsert: true,
+      }
+    )
+
+    if (!user) throw new Error('User not found')
+    console.log('[UserService] Delivery details updated:', user.deliveryDetails)
+    return user
+  } catch (error) {
+    console.error('[UserService] Error updating delivery details:', error)
+    throw error
+  }
+}
+
 // Delete user account and all their listings
 export const deleteUserAccount = async (uid) => {
   try {

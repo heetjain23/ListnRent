@@ -18,6 +18,21 @@ const userSchema = new mongoose.Schema(
     photoURL: {
       type: String,
     },
+    // Delivery Details
+    deliveryDetails: {
+      mobileNumber: {
+        type: String,
+      },
+      deliveryAddress: {
+        type: String,
+      },
+      landmark: {
+        type: String,
+      },
+      pincode: {
+        type: String,
+      },
+    },
   },
   { timestamps: true }
 )
