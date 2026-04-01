@@ -1,8 +1,12 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import ListingCard from '../collection/ListingCard'
 
 const TrendingNowSection = ({ listings, loading }) => {
   const [carouselIndex, setCarouselIndex] = useState(0)
+  const [touchStart, setTouchStart] = useState(0)
+  const [touchEnd, setTouchEnd] = useState(0)
+  const carouselRef = useRef(null)
+  
   // Show only first 4 listings for trending section
   const trendingListings = listings.slice(0, 4)
 
@@ -14,6 +18,30 @@ const TrendingNowSection = ({ listings, loading }) => {
     setCarouselIndex((prev) =>
       Math.min(trendingListings.length - 1, prev + 1)
     )
+  }
+
+  const handleTouchStart = (e) => {
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchEnd = (e) => {
+    setTouchEnd(e.changedTouches[0].clientX)
+    handleSwipe()
+  }
+
+  const handleSwipe = () => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+
+    if (isLeftSwipe && carouselIndex < trendingListings.length - 1) {
+      setCarouselIndex((prev) => Math.min(trendingListings.length - 1, prev + 1))
+    }
+    if (isRightSwipe && carouselIndex > 0) {
+      setCarouselIndex((prev) => Math.max(0, prev - 1))
+    }
   }
 
   if (loading) {
@@ -78,14 +106,19 @@ const TrendingNowSection = ({ listings, loading }) => {
         </p>
 
         {/* Mobile Carousel */}
-        <div className="md:hidden mb-8">
-          <div className="flex gap-4 overflow-hidden">
+        <div className="md:hidden mb-8 overflow-hidden">
+          <div 
+            ref={carouselRef}
+            className="flex gap-4"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             {trendingListings.map((listing, index) => (
               <div
                 key={listing._id}
                 className="shrink-0 w-full transition-transform duration-300"
                 style={{
-                  transform: `translateX(${-carouselIndex * 100}%)`,
+                  transform: `translateX(calc(${-carouselIndex} * (100% + 1rem)))`,
                 }}
               >
                 <ListingCard listing={listing} />
