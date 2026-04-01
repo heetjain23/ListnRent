@@ -1,4 +1,5 @@
 import User from '../models/User.js'
+import { getCache, setCache, deleteCache, CACHE_EXPIRY } from "../utils/redis.js";
 
 // Initialize user - ensure user exists in database (without overwriting existing data)
 export const initializeUser = async (uid, email, additionalData = {}) => {
@@ -52,6 +53,15 @@ export const initializeUser = async (uid, email, additionalData = {}) => {
 // Get user by UID (Firebase UID) - creates if not exists
 export const getUserById = async (uid, email = null) => {
   try {
+    const cacheKey = `user:${uid}`;
+    
+    // Check cache first
+    const cachedUser = await getCache(cacheKey);
+    if (cachedUser) {
+      console.log('[UserService] Returning cached user:', uid);
+      return cachedUser;
+    }
+    
     console.log('[UserService] Getting user by UID:', uid)
     
     let user = await User.findOne({ uid })
@@ -67,6 +77,9 @@ export const getUserById = async (uid, email = null) => {
     } else {
       console.log('[UserService] User found:', user)
     }
+    
+    // Cache for 24 hours
+    await setCache(cacheKey, user, CACHE_EXPIRY.LONG);
     
     return user
   } catch (error) {
@@ -92,6 +105,15 @@ export const updateUserProfile = async (uid, data) => {
     )
 
     if (!user) throw new Error('User not found')
+    
+    // Invalidate user cache on update
+    try {
+      await deleteCache(`user:${uid}`);
+      console.log('[UserService] Invalidated cache for user:', uid);
+    } catch (error) {
+      console.error('[UserService] Cache invalidation error:', error.message);
+    }
+    
     return user
   } catch (error) {
     throw error
@@ -114,6 +136,14 @@ export const updateDeliveryDetails = async (uid, deliveryDetails) => {
 
     if (!user) throw new Error('User not found')
     console.log('[UserService] Delivery details updated:', user.deliveryDetails)
+    
+    // Invalidate user cache on update
+    try {
+      await deleteCache(`user:${uid}`);
+    } catch (error) {
+      console.error('[UserService] Cache invalidation error:', error.message);
+    }
+    
     return user
   } catch (error) {
     console.error('[UserService] Error updating delivery details:', error)

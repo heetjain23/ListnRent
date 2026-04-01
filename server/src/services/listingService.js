@@ -1,6 +1,7 @@
 import Listing from "../models/Listing.js";
 import User from "../models/User.js";
 import admin from "../config/firebase-admin.js";
+import { getCache, setCache, deleteCache, CACHE_EXPIRY } from "../utils/redis.js";
 
 // Helper function to fetch owner data from MongoDB
 const enrichListingWithOwnerData = async (listing) => {
@@ -61,6 +62,19 @@ const enrichListingWithOwnerData = async (listing) => {
 // ----------------------------
 export const createListing = async (userId, data) => {
   const listing = await Listing.create({ userId, ...data });
+  
+  // Invalidate all listings cache on creation
+  try {
+    const client = (await import("../config/redis.js")).getRedisClient();
+    const keys = await client.keys("listings:*");
+    if (keys.length > 0) {
+      await client.del(keys);
+      console.log("[ListingService] Invalidated listings cache on creation");
+    }
+  } catch (error) {
+    console.error("[ListingService] Cache invalidation error:", error.message);
+  }
+  
   return listing;
 };
 
@@ -70,6 +84,16 @@ export const createListing = async (userId, data) => {
 // Excludes draft listings
 // ----------------------------
 export const getAllListings = async (filters = {}) => {
+  // Create cache key from filters
+  const cacheKey = `listings:${JSON.stringify(filters)}`;
+  
+  // Check cache first
+  const cachedListings = await getCache(cacheKey);
+  if (cachedListings) {
+    console.log("[ListingService] Returning cached listings for filters:", filters);
+    return cachedListings;
+  }
+  
   const query = { isActive: true, isDraft: { $ne: true } };
 
   // Handle filters - convert to array if string for consistent $in usage
@@ -94,6 +118,9 @@ export const getAllListings = async (filters = {}) => {
     listings.map((listing) => enrichListingWithOwnerData(listing))
   );
 
+  // Cache for 24 hours
+  await setCache(cacheKey, enrichedListings, CACHE_EXPIRY.LONG);
+  
   return enrichedListings;
 };
 
@@ -101,10 +128,24 @@ export const getAllListings = async (filters = {}) => {
 // Get Single Listing by ID
 // ----------------------------
 export const getListingById = async (id) => {
+  const cacheKey = `listing:${id}`;
+  
+  // Check cache first
+  const cachedListing = await getCache(cacheKey);
+  if (cachedListing) {
+    console.log("[ListingService] Returning cached listing:", id);
+    return cachedListing;
+  }
+  
   const listing = await Listing.findById(id);
   if (!listing) return null;
   
-  return enrichListingWithOwnerData(listing);
+  const enrichedListing = await enrichListingWithOwnerData(listing);
+  
+  // Cache for 24 hours
+  await setCache(cacheKey, enrichedListing, CACHE_EXPIRY.LONG);
+  
+  return enrichedListing;
 };
 
 // ----------------------------
@@ -155,6 +196,20 @@ export const updateListing = async (id, userId, data) => {
   }
 
   const updated = await listing.save();
+  
+  // Invalidate caches on update
+  try {
+    await deleteCache(`listing:${id}`);
+    const client = (await import("../config/redis.js")).getRedisClient();
+    const keys = await client.keys("listings:*");
+    if (keys.length > 0) {
+      await client.del(keys);
+      console.log("[ListingService] Invalidated all listings cache on update");
+    }
+  } catch (error) {
+    console.error("[ListingService] Cache invalidation error:", error.message);
+  }
+  
   return updated;
 };
 
@@ -173,6 +228,20 @@ export const deleteListing = async (id, userId) => {
   }
 
   await Listing.deleteOne({ _id: id });
+  
+  // Invalidate caches on delete
+  try {
+    await deleteCache(`listing:${id}`);
+    const client = (await import("../config/redis.js")).getRedisClient();
+    const keys = await client.keys("listings:*");
+    if (keys.length > 0) {
+      await client.del(keys);
+      console.log("[ListingService] Invalidated all listings cache on delete");
+    }
+  } catch (error) {
+    console.error("[ListingService] Cache invalidation error:", error.message);
+  }
+  
   return { success: true, message: "Listing deleted successfully" };
 };
 

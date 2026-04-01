@@ -2,6 +2,7 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import Booking from "../models/Booking.js";
 import { getListingById, markListingAsRented } from "./listingService.js";
+import { getCache, setCache, deleteCache, CACHE_EXPIRY } from "../utils/redis.js";
 
 // Initialize Razorpay with error checking
 let razorpay;
@@ -221,9 +222,24 @@ export const verifyPayment = async (paymentData) => {
     // Mark the listing as rented
     await markListingAsRented(booking.listingId._id, booking, {
       userId: booking.userId,
-      email: `user_${booking.userId}@rentfit.com`, // Will be updated with actual user data if needed
+      email: `user_${booking.userId}@rentfit.com`,
       displayName: "Renter",
     });
+
+    // Invalidate booking caches on successful payment verification
+    try {
+      await deleteCache(`booking:${booking._id}`);
+      const client = (await import("../config/redis.js")).getRedisClient();
+      const bookingKeys = await client.keys("userBookings:*");
+      const renterKeys = await client.keys("renterBookings:*");
+      const allKeys = [...bookingKeys, ...renterKeys];
+      if (allKeys.length > 0) {
+        await client.del(allKeys);
+        console.log("[PaymentService] Invalidated booking caches on payment verification");
+      }
+    } catch (cacheError) {
+      console.error("[PaymentService] Cache invalidation error:", cacheError.message);
+    }
 
     return booking;
   } catch (error) {
@@ -233,10 +249,23 @@ export const verifyPayment = async (paymentData) => {
 
 export const getBooking = async (bookingId) => {
   try {
+    const cacheKey = `booking:${bookingId}`;
+    
+    // Check cache first
+    const cachedBooking = await getCache(cacheKey);
+    if (cachedBooking) {
+      console.log("[PaymentService] Returning cached booking:", bookingId);
+      return cachedBooking;
+    }
+    
     const booking = await Booking.findById(bookingId).populate("listingId");
     if (!booking) {
       throw new Error("Booking not found");
     }
+    
+    // Cache for 1 hour
+    await setCache(cacheKey, booking, CACHE_EXPIRY.LONG);
+    
     return booking;
   } catch (error) {
     throw new Error(`Failed to get booking: ${error.message}`);
@@ -245,7 +274,20 @@ export const getBooking = async (bookingId) => {
 
 export const getUserBookings = async (userId) => {
   try {
+    const cacheKey = `userBookings:${userId}`;
+    
+    // Check cache first
+    const cachedBookings = await getCache(cacheKey);
+    if (cachedBookings) {
+      console.log("[PaymentService] Returning cached user bookings:", userId);
+      return cachedBookings;
+    }
+    
     const bookings = await Booking.find({ userId }).populate("listingId").sort({ createdAt: -1 });
+    
+    // Cache for 30 minutes
+    await setCache(cacheKey, bookings, CACHE_EXPIRY.MEDIUM);
+    
     return bookings;
   } catch (error) {
     throw new Error(`Failed to get user bookings: ${error.message}`);
@@ -254,7 +296,20 @@ export const getUserBookings = async (userId) => {
 
 export const getRenterBookings = async (renterId) => {
   try {
+    const cacheKey = `renterBookings:${renterId}`;
+    
+    // Check cache first
+    const cachedBookings = await getCache(cacheKey);
+    if (cachedBookings) {
+      console.log("[PaymentService] Returning cached renter bookings:", renterId);
+      return cachedBookings;
+    }
+    
     const bookings = await Booking.find({ renterId }).populate("listingId").sort({ createdAt: -1 });
+    
+    // Cache for 30 minutes
+    await setCache(cacheKey, bookings, CACHE_EXPIRY.MEDIUM);
+    
     return bookings;
   } catch (error) {
     throw new Error(`Failed to get renter bookings: ${error.message}`);
@@ -279,6 +334,21 @@ export const markPaymentFailed = async (bookingId, userId) => {
     // Verify that the booking belongs to the user
     if (booking.userId !== userId) {
       throw new Error("Unauthorized: Booking does not belong to this user");
+    }
+
+    // Invalidate caches on payment failure
+    try {
+      await deleteCache(`booking:${bookingId}`);
+      const client = (await import("../config/redis.js")).getRedisClient();
+      const bookingKeys = await client.keys("userBookings:*");
+      const renterKeys = await client.keys("renterBookings:*");
+      const allKeys = [...bookingKeys, ...renterKeys];
+      if (allKeys.length > 0) {
+        await client.del(allKeys);
+        console.log("[PaymentService] Invalidated booking caches on payment failure");
+      }
+    } catch (cacheError) {
+      console.error("[PaymentService] Cache invalidation error:", cacheError.message);
     }
 
     console.log("[PaymentService] Marked booking as failed:", bookingId);

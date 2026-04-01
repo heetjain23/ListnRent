@@ -8,6 +8,7 @@ dotenv.config();
 import "./src/config/firebase-admin.js";
 
 import { connectDB } from "./src/config/db.js";
+import { initializeRedis, disconnectRedis } from "./src/config/redis.js";
 import listingRoutes from "./src/routes/listingRoutes.js";
 import paymentRoutes from "./src/routes/paymentRoutes.js";
 import newsletterRoutes from "./src/routes/newsletterRoutes.js";
@@ -55,15 +56,38 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: "Internal server error" });
 });
 
-// Database + Start Server
-connectDB();
+// Database + Redis + Start Server
+const startServer = async () => {
+  await connectDB();
+  await initializeRedis();
 
-const PORT = process.env.PORT || 5000;
-const NODE_ENV = process.env.NODE_ENV || "development";
+  const PORT = process.env.PORT || 5000;
+  const NODE_ENV = process.env.NODE_ENV || "development";
 
-app.listen(PORT, () => {
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`Server running on port ${PORT} [${NODE_ENV}]`);
-  console.log(`Allowed Origins: ${allowedOrigins.join(", ")}`);
-  console.log(`${'='.repeat(60)}\n`);
+  const server = app.listen(PORT, () => {
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`Server running on port ${PORT} [${NODE_ENV}]`);
+    console.log(`Allowed Origins: ${allowedOrigins.join(", ")}`);
+    console.log(`${'='.repeat(60)}\n`);
+  });
+
+  // Graceful shutdown
+  process.on("SIGTERM", async () => {
+    console.log("SIGTERM signal received: closing HTTP server");
+    server.close();
+    await disconnectRedis();
+    process.exit(0);
+  });
+
+  process.on("SIGINT", async () => {
+    console.log("SIGINT signal received: closing HTTP server");
+    server.close();
+    await disconnectRedis();
+    process.exit(0);
+  });
+};
+
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
 });
