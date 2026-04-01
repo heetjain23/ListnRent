@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import { AuthProvider } from './context/AuthContext'
 import { completeMagicLinkSignIn } from './services/firebase'
+import ErrorBoundary from './components/ui/ErrorBoundary'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import Home from './pages/Home'
@@ -12,6 +14,7 @@ import CreateListing from './pages/CreateListing'
 import EditListing from './pages/EditListing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import NotFound from './pages/NotFound'
 
 const CompleteMagicLink = () => {
   const [status, setStatus] = useState('loading') // loading, success, error
@@ -83,27 +86,37 @@ const CompleteMagicLink = () => {
 
 const App = () => {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="flex flex-col min-h-screen bg-[#FAF7F2]">
-          <Navbar />
-          <main className="grow">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/collection" element={<Collection />} />
-              <Route path="/listing/:id" element={<ListingDetail />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/create" element={<CreateListing />} />
-              <Route path="/edit/:listingId" element={<EditListing />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/complete-magic-link" element={<CompleteMagicLink />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </Router>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <Toaster
+            position="top-center"
+            richColors
+            theme="light"
+            closeButton
+            duration={4000}
+          />
+          <div className="flex flex-col min-h-screen bg-[#FAF7F2]">
+            <Navbar />
+            <main className="grow">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/collection" element={<Collection />} />
+                <Route path="/listing/:id" element={<ListingDetail />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/create" element={<CreateListing />} />
+                <Route path="/edit/:listingId" element={<EditListing />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/complete-magic-link" element={<CompleteMagicLink />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }
 

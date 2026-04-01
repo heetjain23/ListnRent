@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "sonner";
 import { useAuth } from "../hooks/useAuth";
 import { auth } from "../services/firebase";
 import Button from "../components/ui/Button";
@@ -191,10 +192,14 @@ const Checkout = () => {
             // Save delivery details to user profile
             await saveDeliveryDetailsToProfile(idToken);
             
+            // Show success toast
+            toast.success('🎉 Payment successful! Your booking is confirmed.')
+            
             // Navigate to success page or dashboard
             navigate("/dashboard", { state: { bookingData: verifyData.data.booking } });
             setLoading(false);
           } catch (err) {
+            toast.error(err.message || "Payment verification failed");
             setError(err.message || "Payment verification failed");
             setLoading(false);
           }
@@ -217,6 +222,7 @@ const Checkout = () => {
       const checkout = new window.Razorpay(options);
       checkout.open();
     } catch (err) {
+      toast.error(err.message || "Failed to open payment gateway");
       setError(err.message || "Failed to open payment gateway");
       setLoading(false);
     }
@@ -284,6 +290,7 @@ const Checkout = () => {
         openCheckout(key, orderId, bookingId, amount, idToken);
       }
     } catch (err) {
+      toast.error(err.message || "Failed to process payment");
       setError(err.message || "Failed to process payment");
       setLoading(false);
     }

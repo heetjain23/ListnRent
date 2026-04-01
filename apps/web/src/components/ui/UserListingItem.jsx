@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import Button from './Button'
 
 const UserListingItem = ({ listing, onEdit, onDelete, onToggleActive }) => {
@@ -12,8 +13,10 @@ const UserListingItem = ({ listing, onEdit, onDelete, onToggleActive }) => {
     try {
       setIsDeleting(true)
       await onDelete(listing._id)
+      toast.success('Listing deleted successfully')
       setShowDeleteConfirm(false)
     } catch (error) {
+      toast.error(error.message || 'Failed to delete listing')
     } finally {
       setIsDeleting(false)
     }
@@ -23,7 +26,9 @@ const UserListingItem = ({ listing, onEdit, onDelete, onToggleActive }) => {
     try {
       setIsTogglingActive(true)
       await onToggleActive(listing._id, listing.isActive)
+      toast.success(listing.isActive ? 'Listing deactivated' : 'Listing activated')
     } catch (error) {
+      toast.error(error.message || 'Failed to update listing status')
     } finally {
       setIsTogglingActive(false)
     }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { useAuth } from '../../hooks/useAuth'
 
 const Navbar = () => {
@@ -47,9 +48,11 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await logout()
+      toast.success('You have been logged out successfully')
       navigate('/')
       setProfileDropdownOpen(false)
     } catch (error) {
+      toast.error('Failed to logout. Please try again.')
     }
   }
 

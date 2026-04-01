@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { useAuth } from '../hooks/useAuth'
+import Loading from '../components/ui/Loading'
 import Button from '../components/ui/Button'
 import { CATEGORIES, OCCASIONS, GENDER, SIZES, CONDITIONS, MATERIALS } from '../constants'
 import { listingsApi } from '../services/api'
@@ -213,12 +215,11 @@ const EditListing = () => {
       }
 
       const res = await listingsApi.update(listingId, payload)
-      setSubmitAction('draft')
-      setSubmitted(true)
+      toast.success('Draft saved successfully!')
       // Navigate back to dashboard after short delay
-      setTimeout(() => navigate('/dashboard', { state: { activeTab: 'listings' } }), 1500)
+      setTimeout(() => navigate('/dashboard', { state: { activeTab: 'listings' } }), 500)
     } catch (err) {
-      setSubmitError(err.message || 'Failed to save draft')
+      toast.error(err.message || 'Failed to save draft')
       setUploading(false)
     } finally {
       setSubmitting(false)
@@ -232,14 +233,14 @@ const EditListing = () => {
     const errs = validate(true)
     if (Object.keys(errs).length) {
       setErrors(errs)
-      setSubmitError('Please fill in all required fields to publish')
+      toast.error('Please fill in all required fields to publish')
       return
     }
 
     // Validate images - minimum 3 required
     const remainingImages = existingImages.length + imageFiles.length
     if (remainingImages < 3) {
-      setSubmitError('Please ensure minimum 3 images - Front view, Back view, and Side view')
+      toast.error('Please ensure minimum 3 images - Front view, Back view, and Side view')
       return
     }
 
@@ -286,43 +287,19 @@ const EditListing = () => {
       }
 
       const res = await listingsApi.update(listingId, payload)
-      setSubmitAction('publish')
-      setSubmitted(true)
+      toast.success('✨ Listing published successfully!')
       // Navigate back to listing after short delay
-      setTimeout(() => navigate(`/listing/${listingId}`), 1500)
+      setTimeout(() => navigate(`/listing/${listingId}`), 500)
     } catch (err) {
-      setSubmitError(err.message || 'Failed to update listing')
+      toast.error(err.message || 'Failed to update listing')
       setUploading(false)
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-16 px-6">
-        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-3xl mb-2">
-          ✓
-        </div>
-        <h2 className="text-2xl font-black text-[#1A1A1A]" style={{ fontFamily: "'Georgia', serif" }}>
-          {submitAction === 'draft' ? 'Saved to drafts!' : 'Listing published!'}
-        </h2>
-        <p className="text-sm text-[#888] text-center max-w-sm">
-          {submitAction === 'draft' 
-            ? 'Your draft has been saved. Taking you to the dashboard…' 
-            : 'Your listing is now live. Taking you back…'}
-        </p>
-      </div>
-    )
-  }
-
   if (loading || authLoading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-16 px-6">
-        <div className="text-4xl animate-spin mb-4">⏳</div>
-        <p className="text-[#666]">Loading listing details...</p>
-      </div>
-    )
+    return <Loading message="Loading listing details..." />
   }
 
   if (!isAuthenticated) {

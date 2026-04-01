@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { useAuth } from '../hooks/useAuth'
+import Loading from '../components/ui/Loading'
 import Button from '../components/ui/Button'
 import { CATEGORIES, OCCASIONS, GENDER, SIZES, CONDITIONS, MATERIALS } from '../constants'
 import { listingsApi } from '../services/api'
@@ -136,13 +138,11 @@ const CreateListing = () => {
         isDraft: true, // Mark as draft
       }
 
-      const res = await listingsApi.create(payload)
-      setIsDraftSubmitted(true)
-      setSubmitted(true)
-      // Navigate to dashboard after short delay
-      setTimeout(() => navigate('/dashboard', { state: { activeTab: 'listings' } }), 1500)
+      await listingsApi.create(payload)
+      toast.success('Draft saved successfully! You can complete it anytime.')
+      setTimeout(() => navigate('/dashboard', { state: { activeTab: 'listings' } }), 500)
     } catch (err) {
-      setSubmitError(err.message || 'Failed to save draft')
+      toast.error(err.message || 'Failed to save draft')
       setUploading(false)
     } finally {
       setSubmitting(false)
@@ -154,12 +154,13 @@ const CreateListing = () => {
     const errs = validate()
     if (Object.keys(errs).length) {
       setErrors(errs)
+      toast.error('Please fill in all required fields')
       return
     }
 
     // Validate images - minimum 3 required
     if (imageFiles.length < 3) {
-      setSubmitError('Please upload at least 3 images (front, back, and side views)')
+      toast.error('Please upload at least 3 images (front, back, and side views)')
       return
     }
 
@@ -194,41 +195,20 @@ const CreateListing = () => {
       }
 
       const res = await listingsApi.create(payload)
-      setSubmitted(true)
+      toast.success('🎉 Listing published successfully!')
       // Navigate to the new listing after short delay
-      setTimeout(() => navigate(`/listing/${res.data.listing._id}`), 1500)
+      setTimeout(() => navigate(`/listing/${res.data.listing._id}`), 500)
     } catch (err) {
-      setSubmitError(err.message)
+      toast.error(err.message || 'Failed to publish listing')
       setUploading(false)
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-16 px-6">
-        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-3xl mb-2">
-          ✓
-        </div>
-        <h2 className="text-2xl font-black text-[#1A1A1A]" style={{ fontFamily: "'Georgia', serif" }}>
-          {isDraftSubmitted ? 'Draft saved!' : 'Listing published!'}
-        </h2>
-        <p className="text-sm text-[#888] text-center max-w-sm">
-          {isDraftSubmitted ? 'Your draft has been saved. Taking you to the dashboard…' : 'Your outfit is now live. Taking you to the listing…'}
-        </p>
-      </div>
-    )
-  }
-
   // Show loading while checking auth
   if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-16 px-6">
-        <div className="text-4xl animate-spin mb-4">⏳</div>
-        <p className="text-[#666]">Checking your authentication...</p>
-      </div>
-    )
+    return <Loading message="Checking your authentication..." />
   }
 
   // Already redirected to login if not authenticated via useEffect

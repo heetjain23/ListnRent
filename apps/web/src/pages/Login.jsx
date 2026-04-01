@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { toast } from 'sonner'
 import { useAuth } from '../hooks/useAuth'
 import AuthHeader from '../components/login/AuthHeader'
 import ErrorMessage from '../components/login/ErrorMessage'
@@ -38,8 +39,10 @@ const Login = () => {
       clearError()
       setIsLoading(true)
       await loginWithGoogle()
+      toast.success('Welcome back! Redirecting to dashboard...')
       // Redirect happens automatically via useEffect when isAuthenticated changes
     } catch (err) {
+      toast.error(err.message || 'Google login failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -53,8 +56,10 @@ const Login = () => {
       clearError()
       setIsLoading(true)
       await sendMagicLinkToEmail(email)
+      toast.success(`Magic link sent to ${email}. Check your email!`)
       setStep('email-sent')
     } catch (err) {
+      toast.error(err.message || 'Failed to send magic link. Please try again.')
     } finally {
       setIsLoading(false)
     }
