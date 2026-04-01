@@ -6,6 +6,18 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
   const hasMultiple = images?.length > 1
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
+  
+  // Magnifier state
+  const [showMagnifier, setShowMagnifier] = useState(false)
+  const [magnifierPosition, setMagnifierPosition] = useState({ x: 0, y: 0 })
+  const imageRef = useRef(null)
+  const ZOOM_LEVEL = 2.5 // Magnification level
+
+  // Zoom state for sm/md screens
+  const [imageZoom, setImageZoom] = useState(1)
+  const MAX_ZOOM = 3
+  const MIN_ZOOM = 1
+  const ZOOM_STEP = 0.5
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.changedTouches[0].clientX
@@ -26,6 +38,42 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
     } else if (isRightSwipe && activeImage > 0) {
       onImageChange(activeImage - 1)
     }
+  }
+
+  // Magnifier handlers
+  const handleMouseEnter = () => {
+    setShowMagnifier(true)
+  }
+
+  const handleMouseLeave = () => {
+    setShowMagnifier(false)
+  }
+
+  const handleMouseMove = (e) => {
+    if (!imageRef.current) return
+
+    const rect = imageRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+
+    // Calculate percentage of cursor position
+    const xPercent = (x / rect.width) * 100
+    const yPercent = (y / rect.height) * 100
+
+    setMagnifierPosition({ x: xPercent, y: yPercent })
+  }
+
+  // Zoom handlers for sm/md screens
+  const handleZoomIn = () => {
+    setImageZoom(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM))
+  }
+
+  const handleZoomOut = () => {
+    setImageZoom(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM))
+  }
+
+  const handleResetZoom = () => {
+    setImageZoom(1)
   }
 
   const activeImg = images?.[activeImage]
@@ -66,18 +114,24 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
         </div>
       )}
 
-      {/* ── Main Image with Swipe Navigation ── */}
-      <div className="flex-1 flex flex-col gap-3">
+      {/* ── Main Image Container with Swipe Navigation and Magnifier ── */}
+      <div className="flex-1 flex flex-col gap-3 relative">
+        {/* Main Image */}
         <div className="relative">
           <div
-            className="rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing w-full"
+            ref={imageRef}
+            className="rounded-2xl overflow-auto cursor-grab active:cursor-grabbing w-full relative lg:overflow-hidden"
             style={{ 
               aspectRatio: '3/4', 
               backgroundColor: '#F0EDE0',
-              maxHeight: 'calc(100vh - 120px)'
+              maxHeight: 'calc(100vh - 120px)',
+              cursor: showMagnifier ? 'url(data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="none" stroke="%23004D40" stroke-width="2"/><line x1="16" y1="10" x2="16" y2="22" stroke="%23004D40" stroke-width="2"/><line x1="10" y1="16" x2="22" y2="16" stroke="%23004D40" stroke-width="2"/></svg>) 16 16, grab' : 'grab',
             }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            onMouseMove={handleMouseMove}
           >
             {hasImages ? (
               <img
@@ -86,7 +140,12 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
                 sizes="(max-width: 768px) 500px, 800px"
                 alt={title}
                 loading="eager"
-                className="w-full h-full object-cover select-none"
+                className="w-full h-full object-cover select-none lg:w-full lg:h-full"
+                style={{
+                  transform: `scale(${imageZoom})`,
+                  transformOrigin: 'center center',
+                  transition: 'transform 0.2s ease-out',
+                }}
                 draggable={false}
               />
             ) : (
@@ -94,25 +153,82 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
                 🪭
               </div>
             )}
+
+            {/* Mobile Image Indicator Dots */}
+            {hasMultiple && (
+              <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex justify-center gap-1 md:hidden z-10">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => onImageChange(i)}
+                    className="w-2 h-2 rounded-full transition-all"
+                    style={{
+                      backgroundColor: activeImage === i ? '#004D40' : 'rgba(255,255,255,0.6)',
+                    }}
+                    aria-label={`Go to image ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Mobile Image Indicator Dots */}
-          {hasMultiple && (
-            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1 md:hidden">
-              {images.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => onImageChange(i)}
-                  className="w-2 h-2 rounded-full transition-all"
-                  style={{
-                    backgroundColor: activeImage === i ? '#004D40' : 'rgba(255,255,255,0.6)',
-                  }}
-                  aria-label={`Go to image ${i + 1}`}
-                />
-              ))}
-            </div>
-          )}
+          {/* Zoom Controls - Only on sm/md screens */}
+          <div className="lg:hidden absolute bottom-3 right-3 flex gap-2 z-10">
+            <button
+              onClick={handleZoomOut}
+              disabled={imageZoom <= MIN_ZOOM}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              title="Zoom out"
+            >
+              <span className="text-lg font-bold" style={{ color: '#004D40' }}>−</span>
+            </button>
+            <button
+              onClick={handleResetZoom}
+              disabled={imageZoom === 1}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-xs font-semibold"
+              style={{ color: '#004D40' }}
+              title="Reset zoom"
+            >
+              1x
+            </button>
+            <button
+              onClick={handleZoomIn}
+              disabled={imageZoom >= MAX_ZOOM}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              title="Zoom in"
+            >
+              <span className="text-lg font-bold" style={{ color: '#004D40' }}>+</span>
+            </button>
+          </div>
         </div>
+
+        {/* Magnifier Box - Positioned absolutely on top of title/description */}
+        {showMagnifier && hasImages && (
+          <div 
+            className="hidden lg:block absolute rounded-2xl overflow-hidden border-2"
+            style={{
+              width: '200px',
+              aspectRatio: '3/4',
+              borderColor: '#004D40',
+              backgroundColor: '#F0EDE0',
+              zIndex: 50,
+              right: '-220px',
+              top: '0',
+            }}
+          >
+            <img
+              src={optimizedActiveImage}
+              alt={`${title} - magnified`}
+              className="w-full h-full object-cover"
+              style={{
+                transform: `scale(${ZOOM_LEVEL}) translate(calc(${-magnifierPosition.x}%), calc(${-magnifierPosition.y}%))`,
+                transformOrigin: '0 0',
+                transition: 'transform 0.05s ease-out',
+              }}
+              draggable={false}
+            />
+          </div>
+        )}
 
         {/* ── Thumbnail Grid (only on mobile, shown below on sm) ── */}
         {hasMultiple && (
