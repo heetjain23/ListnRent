@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useRentedListings } from '../../hooks/useRentedListings'
+import { getOptimizedImageUrl } from '../../services/cloudinary'
 
 const MyRentalsAsOwner = () => {
   const { rentedListings, loading, error, fetchRentedListings, relistListing } = useRentedListings()
@@ -110,8 +111,9 @@ const MyRentalsAsOwner = () => {
                   <div className="w-full md:w-40 h-40 shrink-0 bg-[#F5F5F5]">
                     {listing.images?.[0] && (
                       <img
-                        src={listing.images[0]}
+                        src={getOptimizedImageUrl(listing.images[0], { width: 160, height: 160, quality: 'auto' })}
                         alt={listing.title}
+                        loading="lazy"
                         className="w-full h-full object-cover"
                       />
                     )}

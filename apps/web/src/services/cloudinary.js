@@ -2,6 +2,56 @@ const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
 const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
 
 /**
+ * Generate an optimized Cloudinary URL with transformations
+ * @param {string} imageUrl - Original image URL
+ * @param {Object} options - Transformation options
+ * @returns {string} Optimized Cloudinary URL
+ */
+export const getOptimizedImageUrl = (imageUrl, options = {}) => {
+  if (!imageUrl) return ''
+
+  const {
+    width = 500,
+    height = 667,
+    quality = 'auto',
+    format = 'auto',
+    fetch_format = 'auto',
+  } = options
+
+  // If it's already a Cloudinary URL, insert transformations
+  if (imageUrl.includes('cloudinary.com')) {
+    const parts = imageUrl.split('/upload/')
+    if (parts.length === 2) {
+      const transformation = `w_${width},h_${height},c_fill,q_${quality},f_${fetch_format}`
+      return `${parts[0]}/upload/${transformation}/${parts[1]}`
+    }
+  }
+
+  return imageUrl
+}
+
+/**
+ * Get responsive image srcset for different device sizes
+ * @param {string} imageUrl - Original image URL
+ * @returns {string} srcset string for responsive images
+ */
+export const getResponsiveImageSrcSet = (imageUrl) => {
+  if (!imageUrl) return ''
+
+  const sizes = [
+    { width: 300, dpr: 1 },
+    { width: 400, dpr: 1 },
+    { width: 500, dpr: 2 },
+    { width: 600, dpr: 1 },
+    { width: 800, dpr: 2 },
+  ]
+
+  return sizes
+    .map((size) => `${getOptimizedImageUrl(imageUrl, { width: size.width, height: Math.round(size.width * 1.33) })} ${size.width}w`)
+    .join(', ')
+}
+
+/**
  * Upload a single image to Cloudinary
  * @param {File} file - Image file to upload
  * @returns {Promise<string>} Cloudinary URL
@@ -67,4 +117,6 @@ export default {
   uploadImage,
   uploadMultipleImages,
   deleteImage,
+  getOptimizedImageUrl,
+  getResponsiveImageSrcSet,
 }

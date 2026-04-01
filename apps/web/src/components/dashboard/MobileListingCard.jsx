@@ -1,5 +1,6 @@
 import React from 'react'
 import Button from '../ui/Button'
+import { getOptimizedImageUrl } from '../../services/cloudinary'
 
 const MobileListingCard = ({
   listing,
@@ -11,14 +12,18 @@ const MobileListingCard = ({
     return isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
   }
 
+  const imageUrl = listing.images?.[0]
+  const optimizedImage = imageUrl ? getOptimizedImageUrl(imageUrl, { width: 400, height: 160, quality: 'auto' }) : null
+
   return (
     <div className="bg-white rounded-lg border border-[#E8E0D5] p-4 mb-4">
       {/* Image and Status */}
       <div className="relative mb-4">
-        {listing.images && listing.images.length > 0 ? (
+        {imageUrl ? (
           <img
-            src={listing.images[0]}
+            src={optimizedImage}
             alt={listing.title}
+            loading="lazy"
             className="w-full h-40 rounded-lg object-cover"
           />
         ) : (

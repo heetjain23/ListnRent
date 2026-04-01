@@ -1,5 +1,6 @@
 import React from 'react'
 import Button from '../ui/Button'
+import { getOptimizedImageUrl } from '../../services/cloudinary'
 
 const ListingsTable = ({
   listings,
@@ -90,8 +91,9 @@ const ListingsTable = ({
                 <div className="flex items-center gap-4">
                   {listing.images && listing.images.length > 0 ? (
                     <img
-                      src={listing.images[0]}
+                      src={getOptimizedImageUrl(listing.images[0], { width: 50, height: 50, quality: 'auto' })}
                       alt={listing.title}
+                      loading="lazy"
                       className="w-12 h-12 rounded object-cover"
                     />
                   ) : (

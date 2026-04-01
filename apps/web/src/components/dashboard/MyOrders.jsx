@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useUserBookings } from '../../hooks/useUserBookings'
+import { getOptimizedImageUrl } from '../../services/cloudinary'
 import PaymentCheckout from '../ui/PaymentCheckout'
 
 const MyOrders = () => {
@@ -106,8 +107,9 @@ const MyOrders = () => {
                   {booking.listingId?.images?.[0] && (
                     <div className="w-24 h-24 shrink-0 rounded-lg overflow-hidden bg-[#F5F5F5]">
                       <img
-                        src={booking.listingId.images[0]}
+                        src={getOptimizedImageUrl(booking.listingId.images[0], { width: 96, height: 96, quality: 'auto' })}
                         alt={booking.listingId.title}
+                        loading="lazy"
                         className="w-full h-full object-cover"
                       />
                     </div>

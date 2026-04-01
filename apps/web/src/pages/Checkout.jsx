@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../hooks/useAuth";
 import { auth } from "../services/firebase";
+import { getOptimizedImageUrl } from "../services/cloudinary";
 import Button from "../components/ui/Button";
 
 const Checkout = () => {
@@ -468,8 +469,9 @@ const Checkout = () => {
                   <div className="w-24 h-24 bg-[#F5F5F5] rounded-lg overflow-hidden">
                     {listing.images?.[0] && (
                       <img
-                        src={listing.images[0]}
+                        src={getOptimizedImageUrl(listing.images[0], { width: 96, height: 96, quality: 'auto' })}
                         alt={listing.title}
+                        loading="lazy"
                         className="w-full h-full object-cover"
                       />
                     )}

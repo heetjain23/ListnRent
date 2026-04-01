@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react'
+import { getOptimizedImageUrl } from '../../services/cloudinary'
 
 const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
   const hasImages = images?.length > 0
@@ -27,6 +28,10 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
     }
   }
 
+  const activeImg = images?.[activeImage]
+  const optimizedActiveImage = activeImg ? getOptimizedImageUrl(activeImg, { width: 800, height: 1067, quality: 'auto' }) : null
+  const optimizedActiveImageMobile = activeImg ? getOptimizedImageUrl(activeImg, { width: 500, height: 667, quality: 'auto' }) : null
+
   return (
     <div className="flex flex-col md:flex-row gap-2 md:gap-3">
 
@@ -51,8 +56,9 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
               aria-label={`View image ${i + 1}`}
             >
               <img
-                src={img}
+                src={getOptimizedImageUrl(img, { width: 100, height: 133, quality: 'auto' })}
                 alt={`${title} — view ${i + 1}`}
+                loading="lazy"
                 className="w-full h-full object-cover cursor-pointer"
               />
             </button>
@@ -75,8 +81,11 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
           >
             {hasImages ? (
               <img
-                src={images[activeImage]}
+                src={optimizedActiveImageMobile}
+                srcSet={`${optimizedActiveImageMobile} 500w, ${optimizedActiveImage} 800w`}
+                sizes="(max-width: 768px) 500px, 800px"
                 alt={title}
+                loading="eager"
                 className="w-full h-full object-cover select-none"
                 draggable={false}
               />
@@ -124,8 +133,9 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
                 aria-label={`View image ${i + 1}`}
               >
                 <img
-                  src={img}
+                  src={getOptimizedImageUrl(img, { width: 70, height: 93, quality: 'auto' })}
                   alt={`${title} — view ${i + 1}`}
+                  loading="lazy"
                   className="w-full h-full object-cover"
                 />
               </button>

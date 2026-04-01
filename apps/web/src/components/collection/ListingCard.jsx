@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { getOptimizedImageUrl } from '../../services/cloudinary'
 
 const ListingCard = ({ listing }) => {
   // Support both API shape (_id, location.area) and dummy data shape (id, location string)
@@ -11,6 +12,12 @@ const ListingCard = ({ listing }) => {
   const ownerName = listing.owner?.displayName || listing.owner?.name || 'Owner'
   const ownerRating = listing.owner?.rating || null
 
+  // Optimize image URL for different screen sizes
+  const imageUrl = listing.images?.[0]
+  const optimizedImage = imageUrl ? getOptimizedImageUrl(imageUrl, { width: 500, height: 667 }) : null
+  const optimizedImageMobile = imageUrl ? getOptimizedImageUrl(imageUrl, { width: 300, height: 400 }) : null
+  const optimizedImageTablet = imageUrl ? getOptimizedImageUrl(imageUrl, { width: 400, height: 533 }) : null
+
   return (
     <Link
       to={`/listing/${id}`}
@@ -18,10 +25,13 @@ const ListingCard = ({ listing }) => {
     >
       {/* Image */}
       <div className="relative overflow-hidden aspect-3/4">
-        {listing.images?.[0] ? (
+        {imageUrl ? (
           <img
-            src={listing.images[0]}
+            src={optimizedImage}
+            srcSet={`${optimizedImageMobile} 300w, ${optimizedImageTablet} 400w, ${optimizedImage} 500w`}
+            sizes="(max-width: 640px) 300px, (max-width: 1024px) 400px, 500px"
             alt={listing.title}
+            loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { getOptimizedImageUrl } from '../../services/cloudinary'
 import Button from './Button'
 
 const UserListingItem = ({ listing, onEdit, onDelete, onToggleActive }) => {
@@ -41,8 +42,9 @@ const UserListingItem = ({ listing, onEdit, onDelete, onToggleActive }) => {
         <div className="shrink-0">
           {listing.images && listing.images.length > 0 ? (
             <img
-              src={listing.images[0]}
+              src={getOptimizedImageUrl(listing.images[0], { width: 96, height: 96, quality: 'auto' })}
               alt={listing.title}
+              loading="lazy"
               className="w-24 h-24 object-cover rounded-lg"
             />
           ) : (
