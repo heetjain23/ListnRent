@@ -11,7 +11,7 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
   const [showMagnifier, setShowMagnifier] = useState(false)
   const [magnifierPosition, setMagnifierPosition] = useState({ x: 0, y: 0 })
   const imageRef = useRef(null)
-  const ZOOM_LEVEL = 2.5 // Magnification level
+  const ZOOM_LEVEL = 3 // Magnification level
 
   // Zoom state for sm/md screens
   const [imageZoom, setImageZoom] = useState(1)
@@ -20,12 +20,60 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
   const ZOOM_STEP = 0.5
 
   const handleTouchStart = (e) => {
-    touchStartX.current = e.changedTouches[0].clientX
+    if (e.touches.length === 2) {
+      // Pinch zoom start
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      )
+      touchStartX.current = distance
+      touchEndX.current = 0
+    } else {
+      touchStartX.current = e.changedTouches[0].clientX
+    }
   }
 
   const handleTouchEnd = (e) => {
-    touchEndX.current = e.changedTouches[0].clientX
-    handleSwipe()
+    if (touchEndX.current !== 0) {
+      // Handle pinch zoom
+      const diff = touchEndX.current - touchStartX.current
+      if (Math.abs(diff) > 10) {
+        if (diff > 0) {
+          handleZoomIn()
+        } else {
+          handleZoomOut()
+        }
+      }
+      touchEndX.current = 0
+    } else {
+      // Handle swipe
+      touchEndX.current = e.changedTouches[0].clientX
+      handleSwipe()
+    }
+  }
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2) {
+      const touch1 = e.touches[0]
+      const touch2 = e.touches[1]
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      )
+      touchEndX.current = distance
+    }
+  }
+
+  // Double tap tracking for reset zoom
+  const lastTapRef = useRef(0)
+  const handleDoubleTap = () => {
+    const now = Date.now()
+    if (now - lastTapRef.current < 300 && imageZoom > 1) {
+      handleResetZoom()
+    }
+    lastTapRef.current = now
   }
 
   const handleSwipe = () => {
@@ -129,9 +177,11 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
             }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             onMouseMove={handleMouseMove}
+            onClick={handleDoubleTap}
           >
             {hasImages ? (
               <img
@@ -140,7 +190,7 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
                 sizes="(max-width: 768px) 500px, 800px"
                 alt={title}
                 loading="eager"
-                className="w-full h-full object-cover select-none lg:w-full lg:h-full"
+                className="w-full h-full object-cover select-none"
                 style={{
                   transform: `scale(${imageZoom})`,
                   transformOrigin: 'center center',
@@ -172,33 +222,10 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
             )}
           </div>
 
-          {/* Zoom Controls - Only on sm/md screens */}
-          <div className="lg:hidden absolute bottom-3 right-3 flex gap-2 z-10">
-            <button
-              onClick={handleZoomOut}
-              disabled={imageZoom <= MIN_ZOOM}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              title="Zoom out"
-            >
-              <span className="text-lg font-bold" style={{ color: '#004D40' }}>−</span>
-            </button>
-            <button
-              onClick={handleResetZoom}
-              disabled={imageZoom === 1}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-xs font-semibold"
-              style={{ color: '#004D40' }}
-              title="Reset zoom"
-            >
-              1x
-            </button>
-            <button
-              onClick={handleZoomIn}
-              disabled={imageZoom >= MAX_ZOOM}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-              title="Zoom in"
-            >
-              <span className="text-lg font-bold" style={{ color: '#004D40' }}>+</span>
-            </button>
+          {/* Pinch Zoom Instruction - Only on sm/md screens */}
+          <div className="lg:hidden absolute top-3 left-3 flex items-center gap-2 z-10 bg-white/80 px-2 py-1 rounded-full text-xs" style={{ color: '#004D40' }}>
+            <span>📌</span>
+            <span>Pinch to zoom</span>
           </div>
         </div>
 
