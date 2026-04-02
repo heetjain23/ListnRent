@@ -71,3 +71,7 @@ apps/mobile/ios/build/
 # Misc
 # -----------------------------
 *.local
+
+# Vite cache
+.vite/
+cat .gitignore | grep vite
