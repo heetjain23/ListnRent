@@ -3,6 +3,7 @@ import React from 'react'
 const DashboardTabs = ({ activeTab, onTabChange }) => {
   const tabs = [
     { id: 'listings', label: 'My Listings' },
+    { id: 'earnings', label: 'Earnings' },
     { id: 'orders', label: 'My Orders' },
     { id: 'rentals', label: 'My Rentals (Owner)' },
     { id: 'messages', label: 'Messages' },
@@ -31,3 +32,4 @@ const DashboardTabs = ({ activeTab, onTabChange }) => {
 }
 
 export default DashboardTabs
+

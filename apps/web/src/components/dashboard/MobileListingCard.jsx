@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Button from '../ui/Button'
 import { getOptimizedImageUrl } from '../../services/cloudinary'
 
@@ -8,8 +8,19 @@ const MobileListingCard = ({
   onDelete,
   onToggleActive,
 }) => {
+  const [togglingId, setTogglingId] = useState(null)
+
   const getStatusBadgeColor = (isActive) => {
     return isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+  }
+
+  const handleToggleActive = async (listing) => {
+    try {
+      setTogglingId(listing._id)
+      await onToggleActive(listing._id, listing.isActive)
+    } finally {
+      setTogglingId(null)
+    }
   }
 
   const imageUrl = listing.images?.[0]
@@ -51,18 +62,31 @@ const MobileListingCard = ({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-3">
+          <button
+            onClick={() => onEdit(listing._id)}
+            className="flex-1 bg-[#004D40] text-white py-2 rounded-lg font-medium text-sm hover:bg-[#003830] transition-colors"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => onDelete(listing._id)}
+            className="flex-1 bg-red-100 text-red-700 py-2 rounded-lg font-medium text-sm hover:bg-red-200 transition-colors"
+          >
+            Delete
+          </button>
+        </div>
         <button
-          onClick={() => onEdit(listing._id)}
-          className="flex-1 bg-[#004D40] text-white py-2 rounded-lg font-medium text-sm hover:bg-[#003830] transition-colors"
+          onClick={() => handleToggleActive(listing)}
+          disabled={togglingId === listing._id}
+          className={`w-full py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 ${
+            listing.isActive
+              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+          }`}
         >
-          Edit
-        </button>
-        <button
-          onClick={() => onDelete(listing._id)}
-          className="flex-1 bg-red-100 text-red-700 py-2 rounded-lg font-medium text-sm hover:bg-red-200 transition-colors"
-        >
-          Delete
+          {togglingId === listing._id ? '⏳ Processing...' : listing.isActive ? 'Deactivate' : 'Activate'}
         </button>
       </div>
     </div>

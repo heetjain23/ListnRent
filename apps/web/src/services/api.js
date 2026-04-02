@@ -93,7 +93,10 @@ export const listingsApi = {
   },
 
   // GET /api/listings/:id
-  getById: (id) => api(`/api/listings/${id}`),
+  getById: (id, bypassCache = false) => {
+    const url = bypassCache ? `/api/listings/${id}?bypassCache=true` : `/api/listings/${id}`;
+    return api(url);
+  },
 
   // POST /api/listings (protected)
   create: (data) =>
@@ -148,5 +151,20 @@ export const usersApi = {
   deleteAccount: () =>
     api("/api/users/account", {
       method: "DELETE",
+    }),
+};
+
+// Payments API calls
+export const paymentsApi = {
+  // GET /api/payments/renter-bookings (protected) - Get bookings where user is the owner
+  getRenterBookings: () =>
+    api("/api/payments/renter-bookings", {
+      method: "GET",
+    }),
+
+  // GET /api/payments/my-bookings (protected) - Get bookings where user is the renter
+  getUserBookings: () =>
+    api("/api/payments/my-bookings", {
+      method: "GET",
     }),
 };

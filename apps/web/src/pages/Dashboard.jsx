@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useUserListings } from '../hooks/useUserListings'
+import { useEarnings } from '../hooks/useEarnings'
 import DashboardHeader from '../components/dashboard/DashboardHeader'
 import StatCard from '../components/dashboard/StatCard'
 import DashboardTabs from '../components/dashboard/DashboardTabs'
@@ -11,6 +12,7 @@ import PromoBanner from '../components/dashboard/PromoBanner'
 import SettingsSection from '../components/dashboard/SettingsSection'
 import MyOrders from '../components/dashboard/MyOrders'
 import MyRentalsAsOwner from '../components/dashboard/MyRentalsAsOwner'
+import MyEarnings from '../components/dashboard/MyEarnings'
 import { api } from '../services/api'
 
 const Dashboard = () => {
@@ -25,6 +27,11 @@ const Dashboard = () => {
     deleteListing,
     toggleListingActive,
   } = useUserListings(false)
+  const {
+    bookings,
+    fetchEarnings,
+    calculateTotalEarnings,
+  } = useEarnings()
 
   const [activeTab, setActiveTab] = useState('listings')
   const [listingsSubTab, setListingsSubTab] = useState('live') // 'live' or 'drafts'
@@ -34,10 +41,17 @@ const Dashboard = () => {
   const liveListings = listings.filter((l) => !l.isDraft)
   const draftListings = listings.filter((l) => l.isDraft)
 
-  // Calculate stats from listings
-  const activeListings = liveListings.filter((l) => l.isActive).length
-  const totalEarnings = liveListings.reduce((sum, l) => sum + (l.pricePerDay || 0), 0) * 30 // Rough estimate
-  const pendingRequests = Math.floor(Math.random() * 10) + 1 // Placeholder
+  // Calculate stats
+  // Active rentals = count of currently active bookings (rental period is ongoing)
+  const activeRentals = bookings.filter((b) => {
+    if (b.bookingStatus !== 'active' || b.paymentStatus === 'failed') return false
+    const now = new Date()
+    const startDate = new Date(b.startDate)
+    const endDate = new Date(b.endDate)
+    return now >= startDate && now <= endDate
+  }).length
+  const totalEarnings = calculateTotalEarnings() // Real earnings from completed bookings
+  const pendingRequests = bookings.filter((b) => b.paymentStatus !== 'completed' && b.bookingStatus !== 'cancelled').length
 
   const handleTabChange = (tab) => {
     setActiveTab(tab)
@@ -89,6 +103,13 @@ const Dashboard = () => {
     }
   }, [user, fetchUserListings])
 
+  // Fetch earnings when user is available
+  useEffect(() => {
+    if (user) {
+      fetchEarnings()
+    }
+  }, [user, fetchEarnings])
+
   const handleEditClick = (id) => {
     navigate(`/edit/${id}`)
     window.scrollTo(0, 0)
@@ -132,7 +153,7 @@ const Dashboard = () => {
             <div className="grid grid-cols-2 gap-4 md:hidden mb-6">
               <div className="bg-white rounded-lg border border-[#E8E0D5] p-4">
                 <p className="text-[#999] text-xs uppercase tracking-wide font-medium mb-2">Active Rentals</p>
-                <p className="text-2xl font-bold text-[#1A1A1A]">{activeListings}</p>
+                <p className="text-2xl font-bold text-[#1A1A1A]">{activeRentals}</p>
               </div>
               <div className="bg-white rounded-lg border border-[#E8E0D5] p-4">
                 <p className="text-[#999] text-xs uppercase tracking-wide font-medium mb-2">Pending Requests</p>
@@ -145,7 +166,7 @@ const Dashboard = () => {
               <StatCard
                 icon="📅"
                 label="Active Rentals"
-                value={activeListings}
+                value={activeRentals}
                 period="Today"
               />
               <StatCard
@@ -341,6 +362,9 @@ const Dashboard = () => {
 
         {/* My Orders Tab */}
         {activeTab === 'orders' && <MyOrders />}
+
+        {/* Earnings Tab */}
+        {activeTab === 'earnings' && <MyEarnings />}
 
         {/* My Rentals (As Owner) Tab */}
         {activeTab === 'rentals' && <MyRentalsAsOwner />}

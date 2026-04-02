@@ -1,11 +1,20 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
-const CustomCalendarPicker = ({ value, onChange, minDate }) => {
+const CustomCalendarPicker = ({ value, onChange, minDate, unavailableDates = [] }) => {
   const [currentMonth, setCurrentMonth] = useState(() => {
     if (value) return new Date(value)
     return new Date()
   })
   const [showCalendar, setShowCalendar] = useState(false)
+
+  // Debug logging for unavailable dates
+  useEffect(() => {
+    if (unavailableDates && unavailableDates.length > 0) {
+      console.log('[CustomCalendarPicker] Unavailable dates:', unavailableDates);
+    } else {
+      console.log('[CustomCalendarPicker] No unavailable dates provided');
+    }
+  }, [unavailableDates])
 
   const daysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
@@ -13,6 +22,30 @@ const CustomCalendarPicker = ({ value, onChange, minDate }) => {
 
   const firstDayOfMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay()
+  }
+
+  // Check if a date is unavailable (busy)
+  const isDateUnavailable = (day) => {
+    const checkYear = currentMonth.getFullYear()
+    const checkMonth = String(currentMonth.getMonth() + 1).padStart(2, '0')
+    const checkDay = String(day).padStart(2, '0')
+    const checkDateStr = `${checkYear}-${checkMonth}-${checkDay}`
+    const checkDate = new Date(checkDateStr)
+    checkDate.setHours(0, 0, 0, 0)
+    
+    const isBusy = unavailableDates.some((range) => {
+      const rangeStart = new Date(range.startDate)
+      const rangeEnd = new Date(range.endDate)
+      rangeStart.setHours(0, 0, 0, 0)
+      rangeEnd.setHours(0, 0, 0, 0)
+      return checkDate >= rangeStart && checkDate <= rangeEnd
+    })
+    
+    if (isBusy) {
+      console.log(`[CustomCalendarPicker] Date ${checkDateStr} is busy`);
+    }
+    
+    return isBusy
   }
 
   const isDateDisabled = (day) => {
@@ -23,7 +56,7 @@ const CustomCalendarPicker = ({ value, onChange, minDate }) => {
     const checkDateStr = `${checkYear}-${checkMonth}-${checkDay}`
     
     // Compare as strings (YYYY-MM-DD format ensures correct alphabetical comparison)
-    return checkDateStr < minDate
+    return checkDateStr < minDate || isDateUnavailable(day)
   }
 
   const isDateSelected = (day) => {
@@ -116,42 +149,69 @@ const CustomCalendarPicker = ({ value, onChange, minDate }) => {
             width: '320px',
           }}
         >
-          {/* Month/Year header with dropdowns */}
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <select
-              value={currentMonth.getMonth()}
-              onChange={(e) => {
-                const newMonth = parseInt(e.target.value)
-                setCurrentMonth(new Date(currentMonth.getFullYear(), newMonth, 1))
-              }}
-              className="px-3 py-2 rounded-lg text-sm font-semibold focus:outline-none transition-all"
-              style={{
-                backgroundColor: '#F5F2E8',
-                border: `1px solid #E8E4D4`,
-                color: '#004D40',
-              }}
+          {/* Month/Year header with navigation arrows and dropdowns */}
+          <div className="flex items-center justify-between gap-2 mb-4">
+            {/* Prev month arrow */}
+            <button
+              onClick={handlePrevMonth}
+              type="button"
+              className="p-2 rounded-lg hover:bg-gray-200 transition-all"
+              style={{ backgroundColor: '#F5F2E8' }}
             >
-              {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((m, idx) => (
-                <option key={idx} value={idx}>{m}</option>
-              ))}
-            </select>
-            <select
-              value={currentMonth.getFullYear()}
-              onChange={(e) => {
-                const newYear = parseInt(e.target.value)
-                setCurrentMonth(new Date(newYear, currentMonth.getMonth(), 1))
-              }}
-              className="px-3 py-2 rounded-lg text-sm font-semibold focus:outline-none transition-all"
-              style={{
-                backgroundColor: '#F5F2E8',
-                border: `1px solid #E8E4D4`,
-                color: '#004D40',
-              }}
+              <svg width="16" height="16" fill="none" stroke="#004D40" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Month/Year dropdowns */}
+            <div className="flex items-center gap-1 flex-1">
+              <select
+                value={currentMonth.getMonth()}
+                onChange={(e) => {
+                  const newMonth = parseInt(e.target.value)
+                  setCurrentMonth(new Date(currentMonth.getFullYear(), newMonth, 1))
+                }}
+                className="flex-1 px-2 py-1.5 rounded-lg text-xs font-semibold focus:outline-none transition-all"
+                style={{
+                  backgroundColor: '#F5F2E8',
+                  border: `1px solid #E8E4D4`,
+                  color: '#004D40',
+                }}
+              >
+                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, idx) => (
+                  <option key={idx} value={idx}>{m}</option>
+                ))}
+              </select>
+              <select
+                value={currentMonth.getFullYear()}
+                onChange={(e) => {
+                  const newYear = parseInt(e.target.value)
+                  setCurrentMonth(new Date(newYear, currentMonth.getMonth(), 1))
+                }}
+                className="px-2 py-1.5 rounded-lg text-xs font-semibold focus:outline-none transition-all"
+                style={{
+                  backgroundColor: '#F5F2E8',
+                  border: `1px solid #E8E4D4`,
+                  color: '#004D40',
+                }}
+              >
+                {[2024, 2025, 2026, 2027, 2028].map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Next month arrow */}
+            <button
+              onClick={handleNextMonth}
+              type="button"
+              className="p-2 rounded-lg hover:bg-gray-200 transition-all"
+              style={{ backgroundColor: '#F5F2E8' }}
             >
-              {[2024, 2025, 2026, 2027, 2028].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+              <svg width="16" height="16" fill="none" stroke="#004D40" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
 
           {/* Day headers */}
@@ -171,14 +231,15 @@ const CustomCalendarPicker = ({ value, onChange, minDate }) => {
           <div className="grid grid-cols-7 gap-1 mb-4">
             {days.map((day, idx) => {
               const isNull = day === null
-              const isDisabled = isNull || (day !== null && isDateDisabled(day))
+              const isDisabledByDate = isNull || (day !== null && isDateDisabled(day))
+              const isBusy = day !== null && isDateUnavailable(day)
               const isSelected = day !== null && isDateSelected(day)
               
               return (
                 <button
                   key={idx}
-                  onClick={() => day !== null && !isDisabled && handleDateClick(day)}
-                  disabled={isDisabled}
+                  onClick={() => day !== null && !isDisabledByDate && handleDateClick(day)}
+                  disabled={isDisabledByDate}
                   type="button"
                   className="p-2 text-xs font-medium rounded-lg transition-all active:scale-95 disabled:cursor-not-allowed hover:bg-opacity-80"
                   style={{
@@ -187,7 +248,9 @@ const CustomCalendarPicker = ({ value, onChange, minDate }) => {
                         ? 'transparent'
                         : isSelected
                         ? '#004D40'
-                        : isDisabled
+                        : isBusy
+                        ? '#FFE0CC'  // Light orange for busy dates
+                        : isDisabledByDate
                         ? '#F5F2E8'
                         : '#FDFCF0',
                     color:
@@ -195,27 +258,32 @@ const CustomCalendarPicker = ({ value, onChange, minDate }) => {
                         ? 'transparent'
                         : isSelected
                         ? '#FDFCF0'
-                        : isDisabled
+                        : isBusy
+                        ? '#D97736'  // Darker orange for busy date text
+                        : isDisabledByDate
                         ? '#C9C9A8'
                         : '#1A1A14',
                     border:
                       isNull
                         ? 'none'
-                        : isDisabled
+                        : isBusy
+                        ? '1px solid #FFB894'  // Orange border for busy
+                        : isDisabledByDate
                         ? '1px solid transparent'
                         : '1px solid #E8E4D4',
-                    opacity: isDisabled ? 0.5 : 1,
-                    cursor: isNull || isDisabled ? 'default' : 'pointer',
+                    opacity: isDisabledByDate && !isBusy ? 0.5 : 1,
+                    cursor: isNull || isDisabledByDate ? 'default' : 'pointer',
                     transition: 'background-color 0.2s ease',
                   }}
+                  title={isBusy ? 'Not available' : ''}
                   onMouseEnter={(e) => {
-                    if (!isNull && !isDisabled && !isSelected) {
-                      e.target.style.backgroundColor = '#F0EEE8'
+                    if (!isNull && !isDisabledByDate && !isSelected) {
+                      e.target.style.backgroundColor = isBusy ? '#FFD6B3' : '#F0EEE8'
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (!isNull && !isDisabled && !isSelected) {
-                      e.target.style.backgroundColor = '#FDFCF0'
+                    if (!isNull && !isDisabledByDate && !isSelected) {
+                      e.target.style.backgroundColor = isBusy ? '#FFE0CC' : '#FDFCF0'
                     }
                   }}
                 >
@@ -223,6 +291,25 @@ const CustomCalendarPicker = ({ value, onChange, minDate }) => {
                 </button>
               )
             })}
+          </div>
+
+          {/* Legend */}
+          <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: '#F5F2E8', border: '1px solid #E8E4D4' }}>
+            <p className="text-xs font-semibold mb-2" style={{ color: '#004D40' }}>Legend:</p>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#FFE0CC', border: '1px solid #FFB894' }} />
+                <span className="text-xs" style={{ color: '#7D6841' }}>Not Available</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#FDFCF0', border: '1px solid #E8E4D4' }} />
+                <span className="text-xs" style={{ color: '#7D6841' }}>Available</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#004D40' }} />
+                <span className="text-xs" style={{ color: '#7D6841' }}>Selected</span>
+              </div>
+            </div>
           </div>
 
           {/* Close button */}

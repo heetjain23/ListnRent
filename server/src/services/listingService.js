@@ -127,14 +127,24 @@ export const getAllListings = async (filters = {}) => {
 // ----------------------------
 // Get Single Listing by ID
 // ----------------------------
-export const getListingById = async (id) => {
+export const getListingById = async (id, bypassCache = false) => {
   const cacheKey = `listing:${id}`;
   
-  // Check cache first
-  const cachedListing = await getCache(cacheKey);
-  if (cachedListing) {
-    console.log("[ListingService] Returning cached listing:", id);
-    return cachedListing;
+  // Check cache first (unless bypassed)
+  if (!bypassCache) {
+    const cachedListing = await getCache(cacheKey);
+    if (cachedListing) {
+      console.log("[ListingService] Returning cached listing:", id);
+      return cachedListing;
+    }
+  } else {
+    console.log("[ListingService] Bypassing cache for listing:", id);
+    // Clear cache when explicitly requested
+    try {
+      await deleteCache(cacheKey);
+    } catch (err) {
+      console.error("[ListingService] Error clearing cache:", err.message);
+    }
   }
   
   const listing = await Listing.findById(id);
@@ -253,20 +263,40 @@ export const markListingAsRented = async (listingId, booking, renterInfo) => {
     const listing = await Listing.findByIdAndUpdate(
       listingId,
       {
-        isRented: true,
-        currentRenterId: booking.userId,
-        currentRentalStartDate: booking.startDate,
-        currentRentalEndDate: booking.endDate,
-        currentBookingId: booking._id,
         isActive: false,
+        $push: {
+          bookings: {
+            bookingId: booking._id,
+            userId: booking.userId,
+            startDate: booking.startDate,
+            endDate: booking.endDate,
+            renterName: renterInfo?.displayName || "N/A",
+            renterEmail: renterInfo?.email || "N/A",
+          },
+        },
       },
       { new: true }
     );
+
+    // Invalidate caches after marking as rented
+    try {
+      await deleteCache(`listing:${listingId}`);
+      const client = (await import("../config/redis.js")).getRedisClient();
+      const keys = await client.keys("listings:*");
+      if (keys.length > 0) {
+        await client.del(keys);
+        console.log("[ListingService] Invalidated listing caches after marking as rented");
+      }
+    } catch (cacheError) {
+      console.error("[ListingService] Cache invalidation error:", cacheError.message);
+    }
+
     return listing;
   } catch (error) {
     throw new Error(`Failed to mark listing as rented: ${error.message}`);
   }
 };
+
 
 // ----------------------------
 // Mark Listing as Available After Rental Period
@@ -276,16 +306,14 @@ export const markListingAsAvailable = async (listingId, booking, renterInfo) => 
     const listing = await Listing.findByIdAndUpdate(
       listingId,
       {
-        isRented: false,
-        currentRenterId: null,
-        currentRentalStartDate: null,
-        currentRentalEndDate: null,
-        currentBookingId: null,
         isActive: true,
+        $pull: {
+          bookings: { bookingId: booking._id },
+        },
         $push: {
           rentalHistory: {
             bookingId: booking._id,
-            renterId: booking.userId,
+            userId: booking.userId,
             renterEmail: renterInfo?.email || "N/A",
             renterName: renterInfo?.displayName || "N/A",
             startDate: booking.startDate,
@@ -297,23 +325,41 @@ export const markListingAsAvailable = async (listingId, booking, renterInfo) => 
       },
       { new: true }
     );
+
+    // Invalidate caches after marking as available
+    try {
+      await deleteCache(`listing:${listingId}`);
+      const client = (await import("../config/redis.js")).getRedisClient();
+      const keys = await client.keys("listings:*");
+      if (keys.length > 0) {
+        await client.del(keys);
+        console.log("[ListingService] Invalidated listing caches after marking as available");
+      }
+    } catch (cacheError) {
+      console.error("[ListingService] Cache invalidation error:", cacheError.message);
+    }
+
     return listing;
   } catch (error) {
     throw new Error(`Failed to mark listing as available: ${error.message}`);
   }
 };
 
+
 // ----------------------------
 // Get Rented Listings for Owner
+// Returns listings with active bookings
 // ----------------------------
 export const getRentedListings = async (userId) => {
   try {
+    // Find all listings owned by the user that have active bookings
     const listings = await Listing.find({
       userId,
-      isRented: true,
-    })
-      .populate("currentBookingId")
-      .sort({ currentRentalStartDate: -1 });
+      bookings: { $exists: true, $ne: [] },
+    }).sort({ createdAt: -1 });
+    
+    // Return all listings with their bookings
+    // The frontend will handle filtering by date if needed
     return listings;
   } catch (error) {
     throw new Error(`Failed to get rented listings: ${error.message}`);

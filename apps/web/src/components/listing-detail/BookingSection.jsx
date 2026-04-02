@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import ProtectedAction from '../ProtectedAction'
 import CustomCalendarPicker from './CustomCalendarPicker'
 import { TrustBadge, ShieldIcon, SparkleIcon, ReturnIcon } from './TrustBadge'
 import PricingRow from './PricingRow'
+import { useDateAvailability } from '../../hooks/useDateAvailability'
 
 const BookingSection = ({
   listing,
@@ -13,6 +14,14 @@ const BookingSection = ({
   onRentClick,
   available,
 }) => {
+  // Debug logging
+  useEffect(() => {
+    console.log('[BookingSection] Listing bookings:', listing?.bookings);
+  }, [listing?.bookings])
+
+  const { isDateRangeAvailable, getUnavailableDatesInPeriod } = useDateAvailability(
+    listing?.bookings || []
+  )
   // ── Calculate minimum date (day after tomorrow) ──────────────────────────────
   const getMinDate = () => {
     const today = new Date()
@@ -56,6 +65,17 @@ const BookingSection = ({
 
   const dates = getCalculatedDates()
 
+  // ── Check if selected dates are available ────────────────────────────────────
+  const datesAreAvailable = dates ? isDateRangeAvailable(
+    new Date(dates.TakeAway),
+    new Date(dates.returnDate)
+  ) : true
+
+  const unavailableDatesInPeriod = dates ? getUnavailableDatesInPeriod(
+    new Date(dates.TakeAway),
+    new Date(dates.returnDate)
+  ) : []
+
   // ── Derived totals ──────────────────────────────────────────────────────────
   const calculateTotal = () => {
     if (!eventDate || !durationDays) return null
@@ -76,6 +96,7 @@ const BookingSection = ({
   const ctaLabel = (() => {
     if (!available)     return 'Currently Unavailable'
     if (!total)         return 'Select Event Date to Continue'
+    if (!datesAreAvailable) return 'Dates Not Available'
     return `Reserve Now`
   })()
 
@@ -121,6 +142,7 @@ const BookingSection = ({
           value={eventDate}
           onChange={onEventDateChange}
           minDate={minDate}
+          unavailableDates={listing?.bookings || []}
         />
         <p className="text-xs mt-3" style={{ color: '#9E9E7A' }}>
           We'll prepare it a day before and collect after your event
@@ -220,14 +242,34 @@ const BookingSection = ({
         </p>
       )}
 
+      {/* Unavailable Dates Warning */}
+      {unavailableDatesInPeriod.length > 0 && (
+        <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: '#FFE8E0', border: '1px solid #FFD4C4' }}>
+          <p className="text-xs font-semibold" style={{ color: '#C8622A' }}>
+            ⚠️ These dates are already booked:
+          </p>
+          <div className="mt-2 space-y-1">
+            {unavailableDatesInPeriod.map((range, idx) => (
+              <p key={idx} className="text-xs" style={{ color: '#9E6B4A' }}>
+                {new Date(range.startDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} - {new Date(range.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                {range.renterName && ` (${range.renterName})`}
+              </p>
+            ))}
+          </div>
+          <p className="text-xs mt-2" style={{ color: '#C8622A' }}>
+            Please select different dates
+          </p>
+        </div>
+      )}
+
       {/* 7 ── Reserve Now CTA */}
       <ProtectedAction onConfirm={onRentClick} actionName="rent">
         <button
-          disabled={!available || !total}
+          disabled={!available || !total || !datesAreAvailable}
           className="w-full py-3 md:py-4 rounded-2xl font-bold text-base tracking-wide transition-all duration-200
             disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
           style={{
-            backgroundColor: available && total ? '#004D40' : '#9E9E7A',
+            backgroundColor: available && total && datesAreAvailable ? '#004D40' : '#9E9E7A',
             color: '#FDFCF0',
             fontFamily: 'Georgia, serif',
             letterSpacing: '0.04em',

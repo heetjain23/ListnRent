@@ -30,6 +30,7 @@ export const useListing = (id) => {
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -38,7 +39,8 @@ export const useListing = (id) => {
       try {
         setLoading(true);
         setError(null);
-        const res = await listingsApi.getById(id);
+        // Use bypassCache on first load to ensure fresh data (after booking, cache might be stale)
+        const res = await listingsApi.getById(id, true);
         setListing(res.data.listing);
       } catch (err) {
         setError(err.message);
@@ -48,7 +50,12 @@ export const useListing = (id) => {
     };
 
     fetchListing();
-  }, [id]);
+  }, [id, refetchTrigger]);
 
-  return { listing, loading, error };
+  // Method to manually refetch the listing with cache bypass
+  const refetch = () => {
+    setRefetchTrigger(prev => prev + 1);
+  };
+
+  return { listing, loading, error, refetch };
 };

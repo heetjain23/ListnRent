@@ -55,10 +55,20 @@ export const handleGetAllListings = async (req, res) => {
 
 export const handleGetListingById = async (req, res) => {
   const { id } = req.params;
-  const listing = await getListingById(id);
+  const { bypassCache } = req.query;
+  
+  // Allow bypassing cache with ?bypassCache=true query parameter
+  const shouldBypassCache = bypassCache === 'true' || bypassCache === '1';
+  
+  const listing = await getListingById(id, shouldBypassCache);
 
   if (!listing) {
     return errorResponse(res, "Listing not found", 404);
+  }
+
+  // Add cache control headers to prevent browser caching
+  if (shouldBypassCache) {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   }
 
   return successResponse(res, { listing });
@@ -128,24 +138,32 @@ export const handleRelistListing = async (req, res) => {
       return errorResponse(res, "Unauthorized: You can only relist your own listings", 403);
     }
 
+    // Check if there are active bookings
+    if (!listing.bookings || listing.bookings.length === 0) {
+      return errorResponse(res, "No active bookings to complete", 400);
+    }
+
+    // Get the most recent booking
+    const currentBooking = listing.bookings[listing.bookings.length - 1];
+
     // Check if rental period has ended
-    if (listing.currentRentalEndDate && new Date() < new Date(listing.currentRentalEndDate)) {
+    if (new Date() < new Date(currentBooking.endDate)) {
       return errorResponse(res, "Cannot relist: Rental period is still active", 400);
     }
 
     // Mark as available again using the current booking
     const booking = {
-      _id: listing.currentBookingId,
-      userId: listing.currentRenterId,
-      startDate: listing.currentRentalStartDate,
-      endDate: listing.currentRentalEndDate,
+      _id: currentBooking.bookingId,
+      userId: currentBooking.userId,
+      startDate: currentBooking.startDate,
+      endDate: currentBooking.endDate,
       totalAmount: 0, // Will be updated from rental history if needed
       totalDays: 0,
     };
 
     const updatedListing = await markListingAsAvailable(id, booking, {
-      email: "N/A",
-      displayName: "N/A",
+      email: currentBooking.renterEmail,
+      displayName: currentBooking.renterName,
     });
 
     return successResponse(res, { listing: updatedListing });

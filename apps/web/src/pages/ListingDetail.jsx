@@ -104,13 +104,24 @@ const ListingDetail = () => {
   const { id }       = useParams()
   const navigate     = useNavigate()
   const { user }     = useAuth()
-  const { listing, loading, error } = useListing(id)
+  const { listing, loading, error, refetch } = useListing(id)
 
   const [activeImage,    setActiveImage]    = useState(0)
   const [eventDate,      setEventDate]      = useState('')
   const [durationDays,   setDurationDays]   = useState(1)
 
-  useEffect(() => { window.scrollTo(0, 0) }, [id])
+  useEffect(() => { 
+    window.scrollTo(0, 0)
+    // Log listing data for debugging
+    if (listing) {
+      console.log('[ListingDetail] Listing loaded:', {
+        id: listing._id,
+        title: listing.title,
+        bookingsCount: listing.bookings?.length || 0,
+        bookings: listing.bookings || [],
+      })
+    }
+  }, [id, listing])
 
   if (loading)           return <LoadingSkeleton />
   if (error || !listing) return <NotFoundScreen error={error} />

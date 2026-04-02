@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Button from '../ui/Button'
 import { getOptimizedImageUrl } from '../../services/cloudinary'
 
@@ -8,8 +8,11 @@ const ListingsTable = ({
   error,
   onEdit,
   onDelete,
+  onToggleActive,
   onCreateNew,
 }) => {
+  const [togglingId, setTogglingId] = useState(null)
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Rented':
@@ -26,6 +29,15 @@ const ListingsTable = ({
   const getStatusBadgeLabel = (listing) => {
     if (!listing.isActive) return 'Inactive'
     return 'Available'
+  }
+
+  const handleToggleActive = async (listing) => {
+    try {
+      setTogglingId(listing._id)
+      await onToggleActive(listing._id, listing.isActive)
+    } finally {
+      setTogglingId(null)
+    }
   }
 
   if (loading) {
@@ -129,6 +141,18 @@ const ListingsTable = ({
                     className="text-[#004D40] hover:text-[#003830] font-medium text-sm"
                   >
                     Edit
+                  </button>
+                  <span className="text-[#DDD]">|</span>
+                  <button
+                    onClick={() => handleToggleActive(listing)}
+                    disabled={togglingId === listing._id}
+                    className={`font-medium text-sm transition-colors ${
+                      listing.isActive
+                        ? 'text-blue-600 hover:text-blue-700 disabled:opacity-50'
+                        : 'text-purple-600 hover:text-purple-700 disabled:opacity-50'
+                    }`}
+                  >
+                    {togglingId === listing._id ? '⏳' : listing.isActive ? 'Deactivate' : 'Activate'}
                   </button>
                   <span className="text-[#DDD]">|</span>
                   <button

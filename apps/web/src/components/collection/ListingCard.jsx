@@ -46,14 +46,12 @@ const ListingCard = ({ listing }) => {
           {listing.category}
         </span>
 
-        {/* Availability */}
-        {!available && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-            <span className="text-white text-sm font-semibold tracking-widest uppercase
-              bg-black/60 px-4 py-2 rounded-full">
-              Rented Out
-            </span>
-          </div>
+        {/* Partially Booked Badge */}
+        {listing.bookings && listing.bookings.length > 0 && (
+          <span className="absolute top-3 right-3 text-xs font-medium bg-yellow-50/90 backdrop-blur-sm
+            text-yellow-700 px-3 py-1 rounded-full tracking-wide">
+            📅 Some Dates Booked
+          </span>
         )}
       </div>
 

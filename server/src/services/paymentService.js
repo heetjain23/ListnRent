@@ -1,6 +1,7 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import Booking from "../models/Booking.js";
+import User from "../models/User.js";
 import { getListingById, markListingAsRented } from "./listingService.js";
 import { getCache, setCache, deleteCache, CACHE_EXPIRY } from "../utils/redis.js";
 
@@ -219,23 +220,44 @@ export const verifyPayment = async (paymentData) => {
       throw new Error("Booking not found");
     }
 
-    // Mark the listing as rented
-    await markListingAsRented(booking.listingId._id, booking, {
+    // Fetch actual renter data from User model
+    let renterInfo = {
       userId: booking.userId,
       email: `user_${booking.userId}@rentfit.com`,
       displayName: "Renter",
-    });
+    };
 
-    // Invalidate booking caches on successful payment verification
+    try {
+      const renterUser = await User.findOne({ uid: booking.userId });
+      if (renterUser) {
+        renterInfo = {
+          userId: booking.userId,
+          email: renterUser.email || renterInfo.email,
+          displayName: renterUser.displayName || renterInfo.displayName,
+        };
+        console.log("[PaymentService] Fetched renter info from DB:", renterInfo.displayName);
+      }
+    } catch (userFetchError) {
+      console.warn("[PaymentService] Could not fetch renter user data, using defaults:", userFetchError.message);
+    }
+
+    // Mark the listing as rented
+    await markListingAsRented(booking.listingId._id, booking, renterInfo);
+
+    // Invalidate booking and listing caches on successful payment verification
     try {
       await deleteCache(`booking:${booking._id}`);
+      await deleteCache(`listing:${booking.listingId._id}`);
+      
       const client = (await import("../config/redis.js")).getRedisClient();
       const bookingKeys = await client.keys("userBookings:*");
       const renterKeys = await client.keys("renterBookings:*");
-      const allKeys = [...bookingKeys, ...renterKeys];
+      const listingKeys = await client.keys("listings:*");
+      const allKeys = [...bookingKeys, ...renterKeys, ...listingKeys];
+      
       if (allKeys.length > 0) {
         await client.del(allKeys);
-        console.log("[PaymentService] Invalidated booking caches on payment verification");
+        console.log("[PaymentService] Invalidated all caches on payment verification");
       }
     } catch (cacheError) {
       console.error("[PaymentService] Cache invalidation error:", cacheError.message);
