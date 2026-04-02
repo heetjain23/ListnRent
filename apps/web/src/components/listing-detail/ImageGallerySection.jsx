@@ -5,15 +5,24 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
   const hasImages = images?.length > 0
   const hasMultiple = images?.length > 1
   
-  // Modal state for sm/md screens
+  // Modal state for sm/md screens with new zoom system
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalActiveImage, setModalActiveImage] = useState(activeImage)
   const [modalZoom, setModalZoom] = useState(1)
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
+  
   const modalImageRef = useRef(null)
-  const touchStartDistanceRef = useRef(0)
+  const containerRef = useRef(null)
+  
+  // Double tap detection
+  const lastTapRef = useRef(0)
+  const touchStartRef = useRef({ x: 0, y: 0 })
+  const panStartRef = useRef({ x: 0, y: 0 })
+  const isDraggingRef = useRef(false)
+  
   const MAX_ZOOM = 3
   const MIN_ZOOM = 1
-  const ZOOM_STEP = 0.3
+  const DOUBLE_TAP_DELAY = 300
 
   // Magnifier state (desktop only)
   const [showMagnifier, setShowMagnifier] = useState(false)
@@ -37,6 +46,7 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
   const openModal = () => {
     setModalActiveImage(activeImage)
     setModalZoom(1)
+    setPanOffset({ x: 0, y: 0 })
     setIsModalOpen(true)
     history.pushState({ modal: true }, '')
   }
@@ -46,41 +56,78 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
     history.back()
   }
 
-  const handleModalTouchStart = (e) => {
-    if (e.touches.length === 2) {
-      const touch1 = e.touches[0]
-      const touch2 = e.touches[1]
-      const distance = Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
-      )
-      touchStartDistanceRef.current = distance
+  // Double tap handler
+  const handleDoubleTap = (e) => {
+    const currentTime = new Date().getTime()
+    const tapLength = currentTime - lastTapRef.current
+
+    if (tapLength < DOUBLE_TAP_DELAY && tapLength > 0) {
+      if (modalZoom === 1) {
+        // Zoom in
+        setModalZoom(MAX_ZOOM)
+        setPanOffset({ x: 0, y: 0 })
+      } else {
+        // Zoom out
+        setModalZoom(1)
+        setPanOffset({ x: 0, y: 0 })
+      }
+      
+      lastTapRef.current = 0
+    } else {
+      lastTapRef.current = currentTime
     }
   }
 
-  const handleModalTouchMove = (e) => {
-    if (e.touches.length === 2 && touchStartDistanceRef.current > 0) {
-      const touch1 = e.touches[0]
-      const touch2 = e.touches[1]
-      const distance = Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
-      )
-      
-      const delta = distance - touchStartDistanceRef.current
-      const zoomDelta = delta * 0.01
-      
-      setModalZoom(prev => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, prev + zoomDelta)))
-    }
+  // Pan handler for single finger drag when zoomed
+  const handleTouchStart = (e) => {
+    if (e.touches.length !== 1) return
+    
+    handleDoubleTap(e)
+    
+    const touch = e.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+    panStartRef.current = { ...panOffset }
+    isDraggingRef.current = true
   }
 
-  const handleModalTouchEnd = () => {
-    touchStartDistanceRef.current = 0
+  const handleTouchMove = (e) => {
+    if (!isDraggingRef.current || e.touches.length !== 1) return
+    if (modalZoom === 1) return // Only pan when zoomed
+    
+    const touch = e.touches[0]
+    const deltaX = touch.clientX - touchStartRef.current.x
+    const deltaY = touch.clientY - touchStartRef.current.y
+    
+    // Calculate max pan boundaries
+    if (!modalImageRef.current || !containerRef.current) return
+    
+    const imageHeight = modalImageRef.current.offsetHeight
+    const imageWidth = modalImageRef.current.offsetWidth
+    const containerHeight = containerRef.current.offsetHeight
+    const containerWidth = containerRef.current.offsetWidth
+    
+    // Max pan distance
+    const maxPanX = (imageWidth * modalZoom - containerWidth) / 2
+    const maxPanY = (imageHeight * modalZoom - containerHeight) / 2
+    
+    let newX = panStartRef.current.x + deltaX
+    let newY = panStartRef.current.y + deltaY
+    
+    // Clamp pan offsets
+    newX = Math.max(-maxPanX, Math.min(maxPanX, newX))
+    newY = Math.max(-maxPanY, Math.min(maxPanY, newY))
+    
+    setPanOffset({ x: newX, y: newY })
+  }
+
+  const handleTouchEnd = () => {
+    isDraggingRef.current = false
   }
 
   const handleModalImageChange = (index) => {
     setModalActiveImage(index)
     setModalZoom(1)
+    setPanOffset({ x: 0, y: 0 })
   }
 
   // Desktop magnifier handlers
@@ -106,7 +153,6 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
     setMagnifierPosition({ x: xPercent, y: yPercent })
   }
 
-
   const activeImg = images?.[activeImage]
   const optimizedActiveImage = activeImg ? getOptimizedImageUrl(activeImg, { width: 800, height: 1067, quality: 'auto' }) : null
   const optimizedActiveImageMobile = activeImg ? getOptimizedImageUrl(activeImg, { width: 500, height: 667, quality: 'auto' }) : null
@@ -117,7 +163,7 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
 
   return (
     <>
-      {/* ── IMAGE MODAL (Mobile/Tablet Only) ── */}
+      {/* ── IMAGE MODAL (Mobile/Tablet Only) with Double-Tap Zoom & Pan ── */}
       {isModalOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-black flex flex-col">
           {/* Close Button */}
@@ -134,35 +180,36 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
             </span>
           </div>
 
-          {/* Main zoomed image */}
+          {/* Main image container with zoom and pan */}
           <div
-            className="flex-1 flex items-center justify-center overflow-hidden"
-            onTouchStart={handleModalTouchStart}
-            onTouchMove={handleModalTouchMove}
-            onTouchEnd={handleModalTouchEnd}
+            ref={containerRef}
+            className="flex-1 flex items-center justify-center overflow-hidden relative"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
             <img
               ref={modalImageRef}
               src={optimizedModalImage}
               alt={title}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain select-none"
               style={{
-                transform: `scale(${modalZoom})`,
+                transform: `scale(${modalZoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
                 transformOrigin: 'center center',
-                transition: 'transform 0.1s ease-out',
+                transition: isDraggingRef.current ? 'none' : 'transform 0.2s ease-out',
               }}
               draggable={false}
             />
           </div>
 
-          {/* Image Thumbnail Belt */}
+          {/* Image Thumbnail Grid (always visible, clickable even while zoomed) */}
           {hasMultiple && (
             <div className="bg-black/80 px-2 py-3 flex gap-2 overflow-x-auto pb-1">
               {images.map((img, i) => (
                 <button
                   key={i}
                   onClick={() => handleModalImageChange(i)}
-                  className="relative shrink-0 rounded-lg overflow-hidden transition-all duration-200"
+                  className="relative shrink-0 rounded-lg overflow-hidden transition-all duration-200 hover:opacity-100"
                   style={{
                     width: '60px',
                     height: '80px',
@@ -177,16 +224,16 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
                     src={getOptimizedImageUrl(img, { width: 60, height: 80, quality: 'auto' })}
                     alt={`Thumbnail ${i + 1}`}
                     loading="lazy"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover pointer-events-none"
                   />
                 </button>
               ))}
             </div>
           )}
 
-          {/* Zoom Instruction */}
+          {/* Zoom Instructions */}
           <div className="bg-black/80 text-white text-xs px-3 py-2 text-center">
-            📌 Use 2 fingers to zoom
+            {modalZoom === 1 ? '👆 Double tap to zoom' : '👆 Double tap to zoom out • Drag to pan'}
           </div>
         </div>
       )}
@@ -194,137 +241,137 @@ const ImageGallerySection = ({ images, activeImage, onImageChange, title }) => {
       {/* ── DESKTOP GALLERY (lg+) ── */}
       <div className="flex flex-col md:flex-row gap-2 md:gap-3">
 
-      {/* ── Thumbnail Strip (only on desktop, shown on md+) ── */}
-      {hasMultiple && (
-        <div className="hidden md:flex flex-col gap-2 w-17 shrink-0">
-          {images.map((img, i) => (
-            <button
-              key={i}
-              onClick={() => onImageChange(i)}
-              className="relative w-full overflow-hidden rounded-xl transition-all duration-200 focus:outline-none"
-              style={{
-                aspectRatio: '3/4',
-                border: activeImage === i
-                  ? '2px solid #004D40'
-                  : '2px solid transparent',
-                opacity: activeImage === i ? 1 : 0.55,
-                boxShadow: activeImage === i
-                  ? '0 0 0 1px rgba(0,77,64,0.15)'
-                  : 'none',
-              }}
-              aria-label={`View image ${i + 1}`}
-            >
-              <img
-                src={getOptimizedImageUrl(img, { width: 100, height: 133, quality: 'auto' })}
-                alt={`${title} — view ${i + 1}`}
-                loading="lazy"
-                className="w-full h-full object-cover cursor-pointer"
-              />
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ── Main Image Container ── */}
-      <div className="flex-1 flex flex-col gap-3 relative">
-        {/* Main Image */}
-        <div className="relative">
-          <div
-            ref={imageRef}
-            className="rounded-2xl overflow-hidden cursor-pointer w-full relative lg:cursor-grab lg:active:cursor-grabbing"
-            style={{ 
-              aspectRatio: '3/4', 
-              backgroundColor: '#F0EDE0',
-              maxHeight: 'calc(100vh - 120px)',
-              cursor: showMagnifier ? 'url(data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="none" stroke="%23004D40" stroke-width="2"/><line x1="16" y1="10" x2="16" y2="22" stroke="%23004D40" stroke-width="2"/><line x1="10" y1="16" x2="22" y2="16" stroke="%23004D40" stroke-width="2"/></svg>) 16 16, grab' : undefined,
-            }}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            onMouseMove={handleMouseMove}
-            onClick={openModal}
-          >
-            {hasImages ? (
-              <img
-                src={optimizedActiveImageMobile}
-                srcSet={`${optimizedActiveImageMobile} 500w, ${optimizedActiveImage} 800w`}
-                sizes="(max-width: 768px) 500px, 800px"
-                alt={title}
-                loading="eager"
-                className="w-full h-full object-cover select-none"
-                draggable={false}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-6xl select-none">
-                🪭
-              </div>
-            )}
-          </div>
-
-          {/* Click to Zoom Instruction - Only on sm/md screens */}
-          <div className="md:hidden absolute top-3 left-3 flex items-center gap-2 z-10 bg-white/80 px-2 py-1 rounded-full text-xs" style={{ color: '#004D40' }}>
-            <span>🔍</span>
-            <span>Click to zoom</span>
-          </div>
-        </div>
-
-        {/* Magnifier Box - Desktop only */}
-        {showMagnifier && hasImages && (
-          <div 
-            className="hidden lg:block absolute rounded-2xl overflow-hidden border-2"
-            style={{
-              width: '200px',
-              aspectRatio: '3/4',
-              borderColor: '#004D40',
-              backgroundColor: '#F0EDE0',
-              zIndex: 50,
-              right: '-220px',
-              top: '0',
-            }}
-          >
-            <img
-              src={optimizedActiveImage}
-              alt={`${title} - magnified`}
-              className="w-full h-full object-cover"
-              style={{
-                transform: `scale(${ZOOM_LEVEL}) translate(calc(${-magnifierPosition.x}%), calc(${-magnifierPosition.y}%))`,
-                transformOrigin: '0 0',
-                transition: 'transform 0.05s ease-out',
-              }}
-              draggable={false}
-            />
-          </div>
-        )}
-
-        {/* ── Thumbnail Grid (only on mobile, shown below on sm) ── */}
+        {/* ── Thumbnail Strip (only on desktop, shown on md+) ── */}
         {hasMultiple && (
-          <div className="md:hidden flex gap-2 overflow-x-auto pb-1">
+          <div className="hidden md:flex flex-col gap-2 w-17 shrink-0">
             {images.map((img, i) => (
               <button
                 key={i}
                 onClick={() => onImageChange(i)}
-                className="relative shrink-0 overflow-hidden rounded-lg transition-all duration-200 focus:outline-none"
+                className="relative w-full overflow-hidden rounded-xl transition-all duration-200 focus:outline-none"
                 style={{
-                  width: '70px',
-                  height: '70px',
+                  aspectRatio: '3/4',
                   border: activeImage === i
                     ? '2px solid #004D40'
                     : '2px solid transparent',
-                  opacity: activeImage === i ? 1 : 0.6,
+                  opacity: activeImage === i ? 1 : 0.55,
+                  boxShadow: activeImage === i
+                    ? '0 0 0 1px rgba(0,77,64,0.15)'
+                    : 'none',
                 }}
                 aria-label={`View image ${i + 1}`}
               >
                 <img
-                  src={getOptimizedImageUrl(img, { width: 70, height: 93, quality: 'auto' })}
+                  src={getOptimizedImageUrl(img, { width: 100, height: 133, quality: 'auto' })}
                   alt={`${title} — view ${i + 1}`}
                   loading="lazy"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover cursor-pointer"
                 />
               </button>
             ))}
           </div>
         )}
+
+        {/* ── Main Image Container ── */}
+        <div className="flex-1 flex flex-col gap-3 relative">
+          {/* Main Image */}
+          <div className="relative">
+            <div
+              ref={imageRef}
+              className="rounded-2xl overflow-hidden cursor-pointer w-full relative lg:cursor-grab lg:active:cursor-grabbing"
+              style={{ 
+                aspectRatio: '3/4', 
+                backgroundColor: '#F0EDE0',
+                maxHeight: 'calc(100vh - 120px)',
+                cursor: showMagnifier ? 'url(data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="none" stroke="%23004D40" stroke-width="2"/><line x1="16" y1="10" x2="16" y2="22" stroke="%23004D40" stroke-width="2"/><line x1="10" y1="16" x2="22" y2="16" stroke="%23004D40" stroke-width="2"/></svg>) 16 16, grab' : undefined,
+              }}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              onMouseMove={handleMouseMove}
+              onClick={openModal}
+            >
+              {hasImages ? (
+                <img
+                  src={optimizedActiveImageMobile}
+                  srcSet={`${optimizedActiveImageMobile} 500w, ${optimizedActiveImage} 800w`}
+                  sizes="(max-width: 768px) 500px, 800px"
+                  alt={title}
+                  loading="eager"
+                  className="w-full h-full object-cover select-none"
+                  draggable={false}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-6xl select-none">
+                  🪭
+                </div>
+              )}
+            </div>
+
+            {/* Click to Zoom Instruction - Only on sm/md screens */}
+            <div className="md:hidden absolute top-3 left-3 flex items-center gap-2 z-10 bg-white/80 px-2 py-1 rounded-full text-xs" style={{ color: '#004D40' }}>
+              <span>🔍</span>
+              <span>Click to zoom</span>
+            </div>
+          </div>
+
+          {/* Magnifier Box - Desktop only */}
+          {showMagnifier && hasImages && (
+            <div 
+              className="hidden lg:block absolute rounded-2xl overflow-hidden border-2"
+              style={{
+                width: '200px',
+                aspectRatio: '3/4',
+                borderColor: '#004D40',
+                backgroundColor: '#F0EDE0',
+                zIndex: 50,
+                right: '-220px',
+                top: '0',
+              }}
+            >
+              <img
+                src={optimizedActiveImage}
+                alt={`${title} - magnified`}
+                className="w-full h-full object-cover"
+                style={{
+                  transform: `scale(${ZOOM_LEVEL}) translate(calc(${-magnifierPosition.x}%), calc(${-magnifierPosition.y}%))`,
+                  transformOrigin: '0 0',
+                  transition: 'transform 0.05s ease-out',
+                }}
+                draggable={false}
+              />
+            </div>
+          )}
+
+          {/* ── Thumbnail Grid (only on mobile, shown below on sm) ── */}
+          {hasMultiple && (
+            <div className="md:hidden flex gap-2 overflow-x-auto pb-1">
+              {images.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => onImageChange(i)}
+                  className="relative shrink-0 overflow-hidden rounded-lg transition-all duration-200 focus:outline-none"
+                  style={{
+                    width: '70px',
+                    height: '70px',
+                    border: activeImage === i
+                      ? '2px solid #004D40'
+                      : '2px solid transparent',
+                    opacity: activeImage === i ? 1 : 0.6,
+                  }}
+                  aria-label={`View image ${i + 1}`}
+                >
+                  <img
+                    src={getOptimizedImageUrl(img, { width: 70, height: 93, quality: 'auto' })}
+                    alt={`${title} — view ${i + 1}`}
+                    loading="lazy"
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </>
   )
 }

@@ -112,15 +112,6 @@ const ListingDetail = () => {
 
   useEffect(() => { 
     window.scrollTo(0, 0)
-    // Log listing data for debugging
-    if (listing) {
-      console.log('[ListingDetail] Listing loaded:', {
-        id: listing._id,
-        title: listing.title,
-        bookingsCount: listing.bookings?.length || 0,
-        bookings: listing.bookings || [],
-      })
-    }
   }, [id, listing])
 
   if (loading)           return <LoadingSkeleton />

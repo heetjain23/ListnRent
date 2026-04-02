@@ -57,10 +57,11 @@ const HeroSection = () => {
             </Link>
             <Link
               to="/create"
+              onClick={() => window.scrollTo(0, 0)}
               className="inline-flex items-center justify-center gap-2 px-6 md:px-6 lg:px-7 py-2.5 md:py-2.5 lg:py-3 border-2 border-[#D4AF37]
                 text-[#00342B] text-sm font-semibold rounded-lg hover:bg-[#D4AF37]/10 transition-colors tracking-wide w-full sm:w-auto"
             >
-              How it Works
+              List an Outfit
             </Link>
           </div>
           <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-12">

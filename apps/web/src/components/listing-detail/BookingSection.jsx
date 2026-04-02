@@ -16,7 +16,6 @@ const BookingSection = ({
 }) => {
   // Debug logging
   useEffect(() => {
-    console.log('[BookingSection] Listing bookings:', listing?.bookings);
   }, [listing?.bookings])
 
   const { isDateRangeAvailable, getUnavailableDatesInPeriod } = useDateAvailability(

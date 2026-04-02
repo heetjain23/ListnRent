@@ -7,15 +7,6 @@ const CustomCalendarPicker = ({ value, onChange, minDate, unavailableDates = [] 
   })
   const [showCalendar, setShowCalendar] = useState(false)
 
-  // Debug logging for unavailable dates
-  useEffect(() => {
-    if (unavailableDates && unavailableDates.length > 0) {
-      console.log('[CustomCalendarPicker] Unavailable dates:', unavailableDates);
-    } else {
-      console.log('[CustomCalendarPicker] No unavailable dates provided');
-    }
-  }, [unavailableDates])
-
   const daysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
   }
@@ -40,10 +31,6 @@ const CustomCalendarPicker = ({ value, onChange, minDate, unavailableDates = [] 
       rangeEnd.setHours(0, 0, 0, 0)
       return checkDate >= rangeStart && checkDate <= rangeEnd
     })
-    
-    if (isBusy) {
-      console.log(`[CustomCalendarPicker] Date ${checkDateStr} is busy`);
-    }
     
     return isBusy
   }

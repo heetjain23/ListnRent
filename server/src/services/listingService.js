@@ -7,13 +7,11 @@ import { getCache, setCache, deleteCache, CACHE_EXPIRY } from "../utils/redis.js
 const enrichListingWithOwnerData = async (listing) => {
   try {
     if (listing.userId) {
-      console.log('[ListingService] Fetching owner for listing from DB:', listing.userId)
       
       // First try to get user from MongoDB
       let dbUser = await User.findOne({ uid: listing.userId });
       
       if (dbUser) {
-        console.log('[ListingService] Found user in DB:', dbUser.displayName)
         return {
           ...listing.toObject ? listing.toObject() : listing,
           owner: {
@@ -57,9 +55,6 @@ const enrichListingWithOwnerData = async (listing) => {
   return listing.toObject ? listing.toObject() : listing;
 };
 
-// ----------------------------
-// Create Listing
-// ----------------------------
 export const createListing = async (userId, data) => {
   const listing = await Listing.create({ userId, ...data });
   
@@ -90,7 +85,6 @@ export const getAllListings = async (filters = {}) => {
   // Check cache first
   const cachedListings = await getCache(cacheKey);
   if (cachedListings) {
-    console.log("[ListingService] Returning cached listings for filters:", filters);
     return cachedListings;
   }
   
@@ -134,11 +128,9 @@ export const getListingById = async (id, bypassCache = false) => {
   if (!bypassCache) {
     const cachedListing = await getCache(cacheKey);
     if (cachedListing) {
-      console.log("[ListingService] Returning cached listing:", id);
       return cachedListing;
     }
   } else {
-    console.log("[ListingService] Bypassing cache for listing:", id);
     // Clear cache when explicitly requested
     try {
       await deleteCache(cacheKey);

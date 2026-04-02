@@ -8,10 +8,8 @@ export const handleInitializeUser = async (req, res) => {
 
     const user = await userService.initializeUser(userId, email, { displayName, photoURL })
     
-    console.log('[UserController] User initialization successful:', user)
     res.status(200).json({ message: 'User initialized successfully', user })
   } catch (error) {
-    console.error('[UserController] Initialize user error:', error)
     res.status(500).json({ message: error.message || 'Failed to initialize user' })
   }
 }

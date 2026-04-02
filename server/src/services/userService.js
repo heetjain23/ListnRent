@@ -4,14 +4,11 @@ import { getCache, setCache, deleteCache, CACHE_EXPIRY } from "../utils/redis.js
 // Initialize user - ensure user exists in database (without overwriting existing data)
 export const initializeUser = async (uid, email, additionalData = {}) => {
   try {
-    console.log('[UserService] Initializing user:', { uid, email, additionalData })
-    
     // First check if user already exists
     const existingUser = await User.findOne({ uid })
     
     if (existingUser) {
       // User exists - only update email if changed, don't overwrite other fields
-      console.log('[UserService] User already exists, preserving existing data')
       const updateData = { email }
       
       // Only set displayName if it's not already set
@@ -30,11 +27,9 @@ export const initializeUser = async (uid, email, additionalData = {}) => {
         { returnDocument: 'after' }
       )
       
-      console.log('[UserService] User updated (preserved existing data):', user)
       return user
     } else {
       // New user - create with all initial data
-      console.log('[UserService] New user, creating with initial data')
       const user = await User.create({
         uid,
         email,
@@ -58,11 +53,8 @@ export const getUserById = async (uid, email = null) => {
     // Check cache first
     const cachedUser = await getCache(cacheKey);
     if (cachedUser) {
-      console.log('[UserService] Returning cached user:', uid);
       return cachedUser;
     }
-    
-    console.log('[UserService] Getting user by UID:', uid)
     
     let user = await User.findOne({ uid })
     
