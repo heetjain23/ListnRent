@@ -65,17 +65,21 @@ export const createOrder = async (bookingData) => {
 
     const rentalAmount = totalDays * pricePerDayNum;
     const totalAmount = rentalAmount + depositAmountNum;
+    
+    // Only charge 50% of rental amount upfront
+    const amountToCharge = rentalAmount / 2;
 
     console.log("[PaymentService] Amount calculation:", { 
       pricePerDayNum, 
       depositAmountNum,
-      rentalAmount, 
+      rentalAmount,
       totalAmount,
-      amountInPaise: Math.round(totalAmount * 100)
+      amountToCharge,
+      amountInPaise: Math.round(amountToCharge * 100)
     });
 
     // Validate amount (Razorpay minimum is typically 1 paise = 0.01 INR)
-    const amountInPaise = Math.round(totalAmount * 100);
+    const amountInPaise = Math.round(amountToCharge * 100);
     if (amountInPaise < 1) {
       throw new Error("Order amount is too small. Minimum is 0.01 INR");
     }
@@ -178,6 +182,26 @@ export const verifyPayment = async (paymentData) => {
 
     console.log("[PaymentService] Payment signature verified successfully");
 
+    // Calculate 50% split of rental amount
+    const rentalAmountNum = Number(rentalAmount);
+    const depositAmountNum = Number(depositAmount);
+    const paidRentalAmount = rentalAmountNum / 2;
+    const pendingRentalAmount = rentalAmountNum / 2;
+    
+    // Paid amount includes: 50% of rental ONLY
+    // Pending amount includes: 50% of rental + full deposit
+    const paidAmount = paidRentalAmount;
+    const pendingAmount = pendingRentalAmount + depositAmountNum;
+
+    console.log("[PaymentService] Payment split calculated:", {
+      rentalAmount: rentalAmountNum,
+      paidRentalAmount,
+      pendingRentalAmount,
+      depositAmount: depositAmountNum,
+      totalPaidAmount: paidAmount,
+      totalPendingAmount: pendingAmount,
+    });
+
     // Create booking ONLY after payment verification succeeds
     const booking = new Booking({
       listingId,
@@ -187,10 +211,12 @@ export const verifyPayment = async (paymentData) => {
       endDate,
       totalDays,
       pricePerDay: Number(pricePerDay),
-      rentalAmount: Number(rentalAmount),
-      depositAmount: Number(depositAmount),
+      rentalAmount: rentalAmountNum,
+      depositAmount: depositAmountNum,
       totalAmount: Number(totalAmount),
-      paymentStatus: "completed",
+      paidAmount,
+      pendingAmount,
+      paymentStatus: "partial",
       bookingStatus: "active",
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,

@@ -198,7 +198,7 @@ const Checkout = () => {
             await saveDeliveryDetailsToProfile(idToken);
             
             // Show success toast
-            toast.success('🎉 Payment successful! Your booking is confirmed.')
+            toast.success('🎉 Payment successful! 50% rental charged. Balance & deposit due at pickup.')
             
             // Navigate to success page or dashboard
             navigate("/dashboard", { state: { bookingData: verifyData.data.booking } });
@@ -461,8 +461,11 @@ const Checkout = () => {
                   size="lg"
                   className="w-full"
                 >
-                  {loading ? "Processing..." : "Confirm & Pay Securely"}
+                  {loading ? "Processing..." : `Pay ₹${(rentalAmount / 2).toLocaleString("en-IN")} Now`}
                 </Button>
+                <p className="text-xs text-[#999] text-center mt-2">
+                  Secure payment. Balance & deposit due at pickup.
+                </p>
               </div>
             </div>
           </div>
@@ -510,10 +513,53 @@ const Checkout = () => {
                 </div>
               </div>
 
+              {/* Payment Split Information */}
+              <div className="mb-6 p-4 bg-[#FFF4E6] border border-[#FFE0CC] rounded-lg">
+                <h4 className="font-semibold text-[#163B35] mb-3 flex items-center gap-2">
+                  <span>💳</span>
+                  <span>Payment Breakdown</span>
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-[#666]">
+                      <span className="font-medium">50% Rental Amount</span> (Charged Now)
+                    </span>
+                    <span className="font-semibold text-[#163B35]">
+                      ₹{(rentalAmount / 2).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#666]">
+                      <span className="font-medium">50% Rental Amount</span> (Due at Pickup)
+                    </span>
+                    <span className="font-semibold text-[#FF8C42]">
+                      ₹{(rentalAmount / 2).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#666]">
+                      <span className="font-medium">Refundable Deposit</span> (Due at Pickup)
+                    </span>
+                    <span className="font-semibold text-[#FF8C42]">
+                      ₹{depositAmount.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="border-t border-[#FFE0CC] pt-2 mt-2 flex justify-between">
+                    <span className="text-[#666] font-medium">Amount to Pay Now</span>
+                    <span className="font-bold text-lg text-[#163B35]">
+                      ₹{(rentalAmount / 2).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-[#666] mt-3 pt-3 border-t border-[#FFE0CC]">
+                  ℹ️ The remaining 50% of rental amount and the refundable deposit will be collected at the time of pickup. The deposit is fully refundable after you return the item in good condition.
+                </p>
+              </div>
+
               {/* Total */}
               <div className="mb-6 p-4 bg-[#163B35] rounded-lg">
                 <div className="flex justify-between items-center">
-                  <span className="text-white font-medium">Total Due</span>
+                  <span className="text-white font-medium">Total Amount Due</span>
                   <span className="text-xl font-bold text-[#9EC89E]">
                     ₹{totalAmount.toLocaleString("en-IN")}
                   </span>
@@ -529,8 +575,11 @@ const Checkout = () => {
                   size="lg"
                   className="w-full"
                 >
-                  {loading ? "Processing..." : "Confirm & Pay Securely"}
+                  {loading ? "Processing..." : `Pay ₹${(rentalAmount / 2).toLocaleString("en-IN")} Now`}
                 </Button>
+                <p className="text-xs text-[#999] text-center mt-2">
+                  Secure payment. Balance & deposit due at pickup.
+                </p>
               </div>
 
               {/* Trust Badges */}
