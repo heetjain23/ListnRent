@@ -358,7 +358,7 @@ const Checkout = () => {
                 <div className="space-y-5">
                   {/* User Name Display and Mobile Number */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                    <label htmlFor="fullName" className="block text-sm font-medium text-[#1A1A1A] mb-2">
                       Full Name
                     </label>
                     <div className="w-full px-4 py-3 border border-[#E8E0D5] rounded-lg bg-[#F5F5F5] text-[#1A1A1A]">
@@ -368,7 +368,7 @@ const Checkout = () => {
 
                   {/* Mobile Number */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                    <label htmlFor="mobileNumber" className="block text-sm font-medium text-[#1A1A1A] mb-2">
                       Mobile Number
                     </label>
                     <div className="flex">
@@ -376,6 +376,7 @@ const Checkout = () => {
                         +91
                       </span>
                       <input
+                        id="mobileNumber"
                         type="tel"
                         name="mobileNumber"
                         value={formData.mobileNumber}
@@ -389,10 +390,11 @@ const Checkout = () => {
 
                   {/* Delivery Address */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                    <label htmlFor="deliveryAddress" className="block text-sm font-medium text-[#1A1A1A] mb-2">
                       Delivery Address (Mumbai only)
                     </label>
                     <input
+                      id="deliveryAddress"
                       type="text"
                       name="deliveryAddress"
                       value={formData.deliveryAddress}
@@ -405,10 +407,11 @@ const Checkout = () => {
                   {/* Landmark and Pincode */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                      <label htmlFor="landmark" className="block text-sm font-medium text-[#1A1A1A] mb-2">
                         Landmark
                       </label>
                       <input
+                        id="landmark"
                         type="text"
                         name="landmark"
                         value={formData.landmark}
@@ -418,10 +421,11 @@ const Checkout = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#1A1A1A] mb-2">
+                      <label htmlFor="pincode" className="block text-sm font-medium text-[#1A1A1A] mb-2">
                         Pincode
                       </label>
                       <input
+                        id="pincode"
                         type="text"
                         name="pincode"
                         value={formData.pincode}

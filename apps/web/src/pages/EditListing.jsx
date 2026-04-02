@@ -345,7 +345,7 @@ const EditListing = () => {
               <FormSection title="The Essentials">
                 <div className="space-y-5">
                   {/* Title */}
-                  <Field label="Title of the Piece" error={errors.title} required>
+                  <Field label="Title of the Piece" error={errors.title} required htmlFor="title">
                     <input name="title" value={form.title} onChange={handleChange}
                       placeholder="e.g. Vintage Emerald Banarasi Saree with Zari Work"
                       className={inputClass(errors.title)} />
@@ -353,14 +353,14 @@ const EditListing = () => {
 
                   {/* Category + Material */}
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="Category" error={errors.category} required>
+                    <Field label="Category" error={errors.category} required htmlFor="category">
                       <select name="category" value={form.category} onChange={handleChange}
                         className={inputClass(errors.category)}>
                         <option value="">Select…</option>
                         {OUTFIT_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </Field>
-                    <Field label="Material" error={errors.material} required>
+                    <Field label="Material" error={errors.material} required htmlFor="material">
                       <select name="material" value={form.material} onChange={handleChange}
                         className={inputClass(errors.material)}>
                         <option value="">Select…</option>
@@ -372,7 +372,7 @@ const EditListing = () => {
 
                   {/* Custom Material Input - Shown when Other is selected */}
                   {form.material === 'Other' && (
-                    <Field label="Specify Material" error={errors.customMaterial} required>
+                    <Field label="Specify Material" error={errors.customMaterial} required htmlFor="customMaterial">
                       <input name="customMaterial" value={form.customMaterial} onChange={handleChange}
                         placeholder="e.g. Handloom, Jute, Tencel, etc."
                         className={inputClass(errors.customMaterial)} />
@@ -381,14 +381,14 @@ const EditListing = () => {
 
                   {/* Size + Condition */}
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="Size" error={errors.size} required>
+                    <Field label="Size" error={errors.size} required htmlFor="size">
                       <select name="size" value={form.size} onChange={handleChange}
                         className={inputClass(errors.size)}>
                         <option value="">Select…</option>
                         {OUTFIT_SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </Field>
-                    <Field label="Condition" error={errors.condition} required>
+                    <Field label="Condition" error={errors.condition} required htmlFor="condition">
                       <select name="condition" value={form.condition} onChange={handleChange}
                         className={inputClass(errors.condition)}>
                         <option value="">Select…</option>
@@ -399,14 +399,14 @@ const EditListing = () => {
 
                   {/* Best For + Area */}
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="Best For" error={errors.occasion} required>
+                    <Field label="Best For" error={errors.occasion} required htmlFor="occasion">
                       <select name="occasion" value={form.occasion} onChange={handleChange}
                         className={inputClass(errors.occasion)}>
                         <option value="">Select…</option>
                         {OUTFIT_OCCASIONS.map((o) => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </Field>
-                    <Field label="Your Area" error={errors.area} required>
+                    <Field label="Your Area" error={errors.area} required htmlFor="area">
                       <input name="area" value={form.area} onChange={handleChange}
                         placeholder="e.g. Andheri West"
                         className={inputClass(errors.area)} />
@@ -419,7 +419,7 @@ const EditListing = () => {
               <FormSection title="Curated Context">
                 <div className="space-y-5">
                   {/* Gender */}
-                  <Field label="Gender" error={errors.gender} required>
+                  <Field label="Gender" error={errors.gender} required htmlFor="gender">
                     <select name="gender" value={form.gender} onChange={handleChange}
                       className={inputClass(errors.gender)}>
                       <option value="">Select…</option>
@@ -428,7 +428,7 @@ const EditListing = () => {
                   </Field>
 
                   {/* Description */}
-                  <Field label="Description" error={errors.description} required>
+                  <Field label="Description" error={errors.description} required htmlFor="description">
                     <textarea name="description" value={form.description} onChange={handleChange}
                       rows={5} placeholder="Fabric, embroidery, occasion suitability, what's included…"
                       className={`${inputClass(errors.description)} resize-none`} />
@@ -442,7 +442,7 @@ const EditListing = () => {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     {/* Price per Day */}
-                    <Field label="Price per Day" error={errors.pricePerDay} required>
+                    <Field label="Price per Day" error={errors.pricePerDay} required htmlFor="pricePerDay">
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#1A1A1A]">₹</span>
                         <input name="pricePerDay" type="number" value={form.pricePerDay}
@@ -459,10 +459,10 @@ const EditListing = () => {
                     </Field>
 
                     {/* Security Deposit */}
-                    <Field label="Security Deposit" required>
+                    <Field label="Security Deposit" required htmlFor="securityDeposit">
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#1A1A1A]">₹</span>
-                        <input 
+                        <input id="securityDeposit" 
                           disabled 
                           type="number" 
                           value={form.pricePerDay ? Number(form.pricePerDay) * 2 : ''} 
@@ -679,12 +679,16 @@ const FormSection = ({ title, children }) => (
   </div>
 )
 
-const Field = ({ label, children, error, required }) => (
+const Field = ({ label, children, error, required, htmlFor }) => (
   <div>
-    <label className="block text-sm font-semibold text-[#1A1A1A] mb-2">
+    <label htmlFor={htmlFor} className="block text-sm font-semibold text-[#1A1A1A] mb-2">
       {label} {required && <span className="text-[#C8622A]">*</span>}
     </label>
-    {children}
+    {React.Children.map(children, (child) =>
+      child && typeof child === 'object' && child.type
+        ? React.cloneElement(child, { id: htmlFor, ...(child.props || {}) })
+        : child
+    )}
     {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
   </div>
 )
