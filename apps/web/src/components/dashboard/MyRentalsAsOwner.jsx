@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { useRentedListings } from '../../hooks/useRentedListings'
 import { getOptimizedImageUrl } from '../../services/cloudinary'
+import RentalDetailsModal from './RentalDetailsModal'
 
 const MyRentalsAsOwner = () => {
   const { rentedListings, loading, error, fetchRentedListings } = useRentedListings()
+  const [selectedRental, setSelectedRental] = useState(null)
 
   useEffect(() => {
     fetchRentedListings()
@@ -60,6 +62,17 @@ const MyRentalsAsOwner = () => {
             bookingId: booking.bookingId,
             isCompleted,
             daysRemaining,
+            paidAmount: booking.paidAmount,
+            pendingAmount: booking.pendingAmount,
+            paymentDetails: booking.paymentDetails || {
+              rentalAmount: booking.rentalAmount,
+              depositAmount: booking.depositAmount,
+              totalAmount: booking.totalAmount,
+              paidAmount: booking.paidAmount,
+              pendingAmount: booking.pendingAmount,
+              paymentStatus: booking.paymentStatus,
+            },
+            deliveryDetails: booking.deliveryDetails || {},
           })
         })
       }
@@ -112,9 +125,10 @@ const MyRentalsAsOwner = () => {
       ) : (
         <div className="grid gap-4">
           {rentals.map((rental) => (
-            <div 
-              key={rental._id} 
-              className="bg-white rounded-lg border border-[#E8E0D5] overflow-hidden hover:shadow-md transition-shadow"
+            <div
+              key={rental._id}
+              onClick={() => setSelectedRental(rental)}
+              className="bg-white rounded-lg border border-[#E8E0D5] overflow-hidden hover:shadow-md hover:cursor-pointer transition-all hover:border-[#C8622A]"
             >
               <div className="flex flex-col md:flex-row">
                 {/* Image Section */}
@@ -199,6 +213,13 @@ const MyRentalsAsOwner = () => {
           ))}
         </div>
       )}
+
+      {/* Rental Details Modal */}
+      <RentalDetailsModal
+        rental={selectedRental}
+        isOpen={!!selectedRental}
+        onClose={() => setSelectedRental(null)}
+      />
     </div>
   )
 }

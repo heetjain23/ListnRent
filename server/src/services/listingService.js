@@ -1,5 +1,6 @@
 import Listing from "../models/Listing.js";
 import User from "../models/User.js";
+import Booking from "../models/Booking.js";
 import admin from "../config/firebase-admin.js";
 
 // Helper function to fetch owner data from MongoDB
@@ -265,9 +266,43 @@ export const getRentedListings = async (userId) => {
       bookings: { $exists: true, $ne: [] },
     }).sort({ createdAt: -1 });
     
-    // Return all listings with their bookings
-    // The frontend will handle filtering by date if needed
-    return listings;
+    // Populate booking details with payment information from Booking collection
+    const enrichedListings = await Promise.all(
+      listings.map(async (listing) => {
+        const listingObj = listing.toObject();
+        
+        // Fetch full booking details for each booking reference
+        const enrichedBookings = await Promise.all(
+          listingObj.bookings.map(async (booking) => {
+            if (!booking.bookingId) {
+              return booking;
+            }
+            
+            const bookingDetails = await Booking.findById(booking.bookingId);
+            
+            if (bookingDetails) {
+              return {
+                ...booking,
+                rentalAmount: bookingDetails.rentalAmount,
+                depositAmount: bookingDetails.depositAmount,
+                totalAmount: bookingDetails.totalAmount,
+                paidAmount: bookingDetails.paidAmount,
+                pendingAmount: bookingDetails.pendingAmount,
+                paymentStatus: bookingDetails.paymentStatus,
+              };
+            }
+            return booking;
+          })
+        );
+        
+        return {
+          ...listingObj,
+          bookings: enrichedBookings,
+        };
+      })
+    );
+    
+    return enrichedListings;
   } catch (error) {
     throw new Error(`Failed to get rented listings: ${error.message}`);
   }

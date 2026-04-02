@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react'
 import { useUserBookings } from '../../hooks/useUserBookings'
 import { getOptimizedImageUrl } from '../../services/cloudinary'
 import PaymentCheckout from '../ui/PaymentCheckout'
+import OrderDetailsModal from './OrderDetailsModal'
 
 const MyOrders = () => {
   const { bookings, loading, error, fetchUserBookings } = useUserBookings()
   const [retryingBookingId, setRetryingBookingId] = useState(null)
+  const [selectedOrder, setSelectedOrder] = useState(null)
 
   useEffect(() => {
     fetchUserBookings()
@@ -100,7 +102,11 @@ const MyOrders = () => {
       ) : (
         <div className="grid gap-4">
           {bookings.map((booking) => (
-            <div key={booking._id} className="bg-white rounded-lg border border-[#E8E0D5] p-6 hover:shadow-md transition-shadow">
+            <div
+              key={booking._id}
+              onClick={() => setSelectedOrder(booking)}
+              className="bg-white rounded-lg border border-[#E8E0D5] p-6 hover:shadow-md hover:cursor-pointer transition-all hover:border-[#C8622A]"
+            >
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 {/* Left: Image and Details */}
                 <div className="flex gap-4 flex-1">
@@ -174,6 +180,13 @@ const MyOrders = () => {
           ))}
         </div>
       )}
+
+      {/* Order Details Modal */}
+      <OrderDetailsModal
+        booking={selectedOrder}
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+      />
 
       {/* Payment Checkout Modal for Retry */}
       {retryingBookingId && (
