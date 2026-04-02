@@ -263,7 +263,7 @@ export const markListingAsRented = async (listingId, booking, renterInfo) => {
     const listing = await Listing.findByIdAndUpdate(
       listingId,
       {
-        isActive: false,
+        // Keep isActive: true - listing should remain visible for booking other dates
         $push: {
           bookings: {
             bookingId: booking._id,
@@ -306,7 +306,7 @@ export const markListingAsAvailable = async (listingId, booking, renterInfo) => 
     const listing = await Listing.findByIdAndUpdate(
       listingId,
       {
-        isActive: true,
+        // Don't force isActive status - let owner manage it separately
         $pull: {
           bookings: { bookingId: booking._id },
         },
