@@ -8,7 +8,6 @@ dotenv.config();
 import "./src/config/firebase-admin.js";
 
 import { connectDB } from "./src/config/db.js";
-import { initializeRedis, disconnectRedis } from "./src/config/redis.js";
 import listingRoutes from "./src/routes/listingRoutes.js";
 import paymentRoutes from "./src/routes/paymentRoutes.js";
 import newsletterRoutes from "./src/routes/newsletterRoutes.js";
@@ -56,10 +55,9 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: "Internal server error" });
 });
 
-// Database + Redis + Start Server
+// Database + Start Server
 const startServer = async () => {
   await connectDB();
-  await initializeRedis();
 
   const PORT = process.env.PORT || 5000;
   const NODE_ENV = process.env.NODE_ENV || "development";
@@ -75,14 +73,12 @@ const startServer = async () => {
   process.on("SIGTERM", async () => {
     console.log("SIGTERM signal received: closing HTTP server");
     server.close();
-    await disconnectRedis();
     process.exit(0);
   });
 
   process.on("SIGINT", async () => {
     console.log("SIGINT signal received: closing HTTP server");
     server.close();
-    await disconnectRedis();
     process.exit(0);
   });
 };

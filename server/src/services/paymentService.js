@@ -3,7 +3,6 @@ import crypto from "crypto";
 import Booking from "../models/Booking.js";
 import User from "../models/User.js";
 import { getListingById, markListingAsRented } from "./listingService.js";
-import { getCache, setCache, deleteCache, CACHE_EXPIRY } from "../utils/redis.js";
 
 // Initialize Razorpay with error checking
 let razorpay;
@@ -32,6 +31,7 @@ export const createOrder = async (bookingData) => {
       renterId,
       startDate,
       endDate,
+      durationDays,
       pricePerDay,
       depositAmount,
       existingBookingId,
@@ -46,15 +46,13 @@ export const createOrder = async (bookingData) => {
     }
     console.log("[PaymentService] Listing found:", listing.title);
 
-    // Calculate days and amounts
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    // Use actual duration days instead of calculating from dates
+    const totalDays = durationDays || 1;
 
-    console.log("[PaymentService] Rental calculation:", { start, end, totalDays });
+    console.log("[PaymentService] Rental calculation:", { totalDays, durationDays });
 
     if (totalDays <= 0) {
-      throw new Error("Invalid dates: end date must be after start date");
+      throw new Error("Invalid duration: duration must be greater than 0");
     }
 
     // Ensure numeric values
@@ -134,50 +132,9 @@ export const createOrder = async (bookingData) => {
       throw new Error(`Razorpay failed: ${errorMessage}`);
     }
 
-    // Create or update booking in database with pending status
-    let booking;
-    
-    if (existingBookingId) {
-      // Update existing booking (retry scenario)
-      console.log("[PaymentService] Updating existing booking:", existingBookingId);
-      booking = await Booking.findByIdAndUpdate(
-        existingBookingId,
-        {
-          paymentStatus: "pending",
-          razorpayOrderId: razorpayOrder.id,
-        },
-        { new: true }
-      );
-      
-      if (!booking) {
-        throw new Error("Existing booking not found");
-      }
-      console.log("[PaymentService] Booking updated:", booking._id);
-    } else {
-      // Create new booking
-      booking = new Booking({
-        listingId,
-        userId,
-        renterId,
-        startDate,
-        endDate,
-        totalDays,
-        pricePerDay: pricePerDayNum,
-        rentalAmount,
-        depositAmount: depositAmountNum,
-        totalAmount,
-        paymentStatus: "pending",
-        razorpayOrderId: razorpayOrder.id,
-      });
-
-      console.log("[PaymentService] Saving booking to database");
-      await booking.save();
-      console.log("[PaymentService] Booking saved:", booking._id);
-    }
-
+    // Return only Razorpay order details, NO booking created yet
     return {
       orderId: razorpayOrder.id,
-      bookingId: booking._id,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
       key: process.env.RAZORPAY_KEY_ID,
@@ -190,8 +147,23 @@ export const createOrder = async (bookingData) => {
 
 export const verifyPayment = async (paymentData) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
-      paymentData;
+    const { 
+      razorpay_order_id, 
+      razorpay_payment_id, 
+      razorpay_signature,
+      listingId,
+      userId,
+      renterId,
+      startDate,
+      endDate,
+      totalDays,
+      pricePerDay,
+      depositAmount,
+      rentalAmount,
+      totalAmount,
+    } = paymentData;
+
+    console.log("[PaymentService] verifyPayment called with order:", razorpay_order_id);
 
     // Verify signature
     const body = razorpay_order_id + "|" + razorpay_payment_id;
@@ -204,21 +176,33 @@ export const verifyPayment = async (paymentData) => {
       throw new Error("Payment signature verification failed");
     }
 
-    // Update booking with payment details
-    const booking = await Booking.findOneAndUpdate(
-      { razorpayOrderId: razorpay_order_id },
-      {
-        paymentStatus: "completed",
-        razorpayPaymentId: razorpay_payment_id,
-        razorpaySignature: razorpay_signature,
-        bookingStatus: "active",
-      },
-      { new: true }
-    ).populate("listingId");
+    console.log("[PaymentService] Payment signature verified successfully");
 
-    if (!booking) {
-      throw new Error("Booking not found");
-    }
+    // Create booking ONLY after payment verification succeeds
+    const booking = new Booking({
+      listingId,
+      userId,
+      renterId,
+      startDate,
+      endDate,
+      totalDays,
+      pricePerDay: Number(pricePerDay),
+      rentalAmount: Number(rentalAmount),
+      depositAmount: Number(depositAmount),
+      totalAmount: Number(totalAmount),
+      paymentStatus: "completed",
+      bookingStatus: "active",
+      razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
+      razorpaySignature: razorpay_signature,
+    });
+
+    console.log("[PaymentService] Creating booking after payment verification");
+    await booking.save();
+    console.log("[PaymentService] Booking created successfully:", booking._id);
+
+    // Populate listing details
+    await booking.populate("listingId");
 
     // Fetch actual renter data from User model
     let renterInfo = {
@@ -244,49 +228,19 @@ export const verifyPayment = async (paymentData) => {
     // Mark the listing as rented
     await markListingAsRented(booking.listingId._id, booking, renterInfo);
 
-    // Invalidate booking and listing caches on successful payment verification
-    try {
-      await deleteCache(`booking:${booking._id}`);
-      await deleteCache(`listing:${booking.listingId._id}`);
-      
-      const client = (await import("../config/redis.js")).getRedisClient();
-      const bookingKeys = await client.keys("userBookings:*");
-      const renterKeys = await client.keys("renterBookings:*");
-      const listingKeys = await client.keys("listings:*");
-      const allKeys = [...bookingKeys, ...renterKeys, ...listingKeys];
-      
-      if (allKeys.length > 0) {
-        await client.del(allKeys);
-        console.log("[PaymentService] Invalidated all caches on payment verification");
-      }
-    } catch (cacheError) {
-      console.error("[PaymentService] Cache invalidation error:", cacheError.message);
-    }
-
     return booking;
   } catch (error) {
+    console.error("[PaymentService] verifyPayment error:", error);
     throw new Error(`Payment verification failed: ${error.message}`);
   }
 };
 
 export const getBooking = async (bookingId) => {
   try {
-    const cacheKey = `booking:${bookingId}`;
-    
-    // Check cache first
-    const cachedBooking = await getCache(cacheKey);
-    if (cachedBooking) {
-      console.log("[PaymentService] Returning cached booking:", bookingId);
-      return cachedBooking;
-    }
-    
     const booking = await Booking.findById(bookingId).populate("listingId");
     if (!booking) {
       throw new Error("Booking not found");
     }
-    
-    // Cache for 1 hour
-    await setCache(cacheKey, booking, CACHE_EXPIRY.LONG);
     
     return booking;
   } catch (error) {
@@ -296,19 +250,7 @@ export const getBooking = async (bookingId) => {
 
 export const getUserBookings = async (userId) => {
   try {
-    const cacheKey = `userBookings:${userId}`;
-    
-    // Check cache first
-    const cachedBookings = await getCache(cacheKey);
-    if (cachedBookings) {
-      console.log("[PaymentService] Returning cached user bookings:", userId);
-      return cachedBookings;
-    }
-    
     const bookings = await Booking.find({ userId }).populate("listingId").sort({ createdAt: -1 });
-    
-    // Cache for 30 minutes
-    await setCache(cacheKey, bookings, CACHE_EXPIRY.MEDIUM);
     
     return bookings;
   } catch (error) {
@@ -318,19 +260,7 @@ export const getUserBookings = async (userId) => {
 
 export const getRenterBookings = async (renterId) => {
   try {
-    const cacheKey = `renterBookings:${renterId}`;
-    
-    // Check cache first
-    const cachedBookings = await getCache(cacheKey);
-    if (cachedBookings) {
-      console.log("[PaymentService] Returning cached renter bookings:", renterId);
-      return cachedBookings;
-    }
-    
     const bookings = await Booking.find({ renterId }).populate("listingId").sort({ createdAt: -1 });
-    
-    // Cache for 30 minutes
-    await setCache(cacheKey, bookings, CACHE_EXPIRY.MEDIUM);
     
     return bookings;
   } catch (error) {
@@ -356,21 +286,6 @@ export const markPaymentFailed = async (bookingId, userId) => {
     // Verify that the booking belongs to the user
     if (booking.userId !== userId) {
       throw new Error("Unauthorized: Booking does not belong to this user");
-    }
-
-    // Invalidate caches on payment failure
-    try {
-      await deleteCache(`booking:${bookingId}`);
-      const client = (await import("../config/redis.js")).getRedisClient();
-      const bookingKeys = await client.keys("userBookings:*");
-      const renterKeys = await client.keys("renterBookings:*");
-      const allKeys = [...bookingKeys, ...renterKeys];
-      if (allKeys.length > 0) {
-        await client.del(allKeys);
-        console.log("[PaymentService] Invalidated booking caches on payment failure");
-      }
-    } catch (cacheError) {
-      console.error("[PaymentService] Cache invalidation error:", cacheError.message);
     }
 
     console.log("[PaymentService] Marked booking as failed:", bookingId);

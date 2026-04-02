@@ -11,7 +11,7 @@ import { successResponse, errorResponse } from "../utils/helper.js";
 export const handleCreateOrder = async (req, res) => {
   try {
     const userId = req.user.uid;
-    const { listingId, renterId, startDate, endDate, pricePerDay, depositAmount, existingBookingId } = req.body;
+    const { listingId, renterId, startDate, endDate, durationDays, pricePerDay, depositAmount, existingBookingId } = req.body;
 
     console.log("[Payment Controller] Creating order with data:", {
       userId,
@@ -19,6 +19,7 @@ export const handleCreateOrder = async (req, res) => {
       renterId,
       startDate,
       endDate,
+      durationDays,
       pricePerDay,
       depositAmount,
       existingBookingId,
@@ -39,6 +40,7 @@ export const handleCreateOrder = async (req, res) => {
       renterId,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
+      durationDays: durationDays || 1,
       pricePerDay: Number(pricePerDay),
       depositAmount: Number(depositAmount),
       existingBookingId,
@@ -57,20 +59,54 @@ export const handleCreateOrder = async (req, res) => {
 
 export const handleVerifyPayment = async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const userId = req.user.uid;
+    const { 
+      razorpay_order_id, 
+      razorpay_payment_id, 
+      razorpay_signature,
+      listingId,
+      renterId,
+      startDate,
+      endDate,
+      totalDays,
+      pricePerDay,
+      depositAmount,
+    } = req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return errorResponse(res, "Missing payment verification data", 400);
     }
 
+    if (!listingId || !renterId || !startDate || !endDate || !totalDays || !pricePerDay || !depositAmount) {
+      return errorResponse(res, "Missing booking data for verification", 400);
+    }
+
+    // Calculate amounts
+    const pricePerDayNum = Number(pricePerDay);
+    const depositAmountNum = Number(depositAmount);
+    const totalDaysNum = Number(totalDays);
+    const rentalAmount = totalDaysNum * pricePerDayNum;
+    const totalAmount = rentalAmount + depositAmountNum;
+
     const booking = await verifyPayment({
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
+      listingId,
+      userId,
+      renterId,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      totalDays: totalDaysNum,
+      pricePerDay: pricePerDayNum,
+      depositAmount: depositAmountNum,
+      rentalAmount,
+      totalAmount,
     });
 
     return successResponse(res, { booking }, 200);
   } catch (error) {
+    console.error("[Payment Controller] Verify payment error:", error);
     return errorResponse(res, error.message || "Payment verification failed", 400);
   }
 };

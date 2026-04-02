@@ -7,7 +7,7 @@ import { getOptimizedImageUrl } from "../services/cloudinary";
 import Button from "../components/ui/Button";
 
 const Checkout = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
   const location = useLocation();
   const { user } = useAuth();
 
@@ -55,13 +55,13 @@ const Checkout = () => {
       });
 
       if (response.ok) {
-        const userData = await response.json();
-        if (userData.deliveryDetails) {
+        const data = await response.json();
+        if (data.user?.deliveryDetails) {
           setFormData({
-            mobileNumber: userData.deliveryDetails.mobileNumber || "",
-            deliveryAddress: userData.deliveryDetails.deliveryAddress || "",
-            landmark: userData.deliveryDetails.landmark || "",
-            pincode: userData.deliveryDetails.pincode || "",
+            mobileNumber: data.user.deliveryDetails.mobileNumber || "",
+            deliveryAddress: data.user.deliveryDetails.deliveryAddress || "",
+            landmark: data.user.deliveryDetails.landmark || "",
+            pincode: data.user.deliveryDetails.pincode || "",
           });
         }
       }
@@ -76,16 +76,13 @@ const Checkout = () => {
     return null;
   }
 
-  const { listing, renterId, startDate, endDate } = bookingData;
+  const { listing, renterId, startDate, endDate, durationDays } = bookingData;
 
-  // Calculate days and amount
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+  // Calculate days and amount using durationDays (actual rental duration)
+  const totalDays = durationDays || 1;
   const rentalAmount = totalDays * listing.pricePerDay;
   const depositAmount = listing.deposit;
-  const serviceCharge = Math.round(rentalAmount * 0.1); // 10% service charge
-  const totalAmount = rentalAmount + depositAmount + serviceCharge;
+  const totalAmount = rentalAmount + depositAmount;
 
   // Format date for display
   const formatDate = (date) => {
@@ -157,7 +154,7 @@ const Checkout = () => {
     return window.location.origin;
   };
 
-  const openCheckout = async (key, orderId, bookingId, amount, idToken) => {
+  const openCheckout = async (key, orderId, amount, idToken) => {
     try {
       const options = {
         key,
@@ -179,6 +176,13 @@ const Checkout = () => {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
+                listingId: listing._id,
+                renterId,
+                startDate,
+                endDate,
+                totalDays,
+                pricePerDay: listing.pricePerDay,
+                depositAmount: listing.deposit,
               }),
               credentials: "include",
             });
@@ -257,6 +261,7 @@ const Checkout = () => {
           renterId,
           startDate,
           endDate,
+          durationDays: durationDays || 1,
           pricePerDay: listing.pricePerDay,
           depositAmount: listing.deposit,
           deliveryDetails: formData,
@@ -270,7 +275,7 @@ const Checkout = () => {
       }
 
       const orderData = await orderResponse.json();
-      const { orderId, bookingId, amount, key } = orderData.data;
+      const { orderId, amount, key } = orderData.data;
 
       // Step 2: Load Razorpay script if not already loaded
       if (!window.Razorpay) {
@@ -285,10 +290,10 @@ const Checkout = () => {
         };
 
         script.onload = () => {
-          openCheckout(key, orderId, bookingId, amount, idToken);
+          openCheckout(key, orderId, amount, idToken);
         };
       } else {
-        openCheckout(key, orderId, bookingId, amount, idToken);
+        openCheckout(key, orderId, amount, idToken);
       }
     } catch (err) {
       toast.error(err.message || "Failed to process payment");
@@ -501,12 +506,6 @@ const Checkout = () => {
                   <span className="text-[#666]">Refundable Deposit</span>
                   <span className="font-semibold text-[#1A1A1A]">
                     ₹{depositAmount.toLocaleString("en-IN")}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#666]">Service & Cleaning Fee</span>
-                  <span className="font-semibold text-[#1A1A1A]">
-                    ₹{serviceCharge.toLocaleString("en-IN")}
                   </span>
                 </div>
               </div>

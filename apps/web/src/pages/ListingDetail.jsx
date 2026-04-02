@@ -129,6 +129,7 @@ const ListingDetail = () => {
         renterId: listing.userId,
         startDate,
         endDate,
+        durationDays,
       },
     })
   }
