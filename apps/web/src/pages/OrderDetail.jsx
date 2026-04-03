@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
 import { auth } from "../services/firebase";
 import { getOptimizedImageUrl } from "../services/cloudinary";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const OrderDetail = () => {
   const { bookingId } = useParams();
@@ -135,6 +137,242 @@ const OrderDetail = () => {
       style: "currency",
       currency: "INR",
     }).format(amount);
+  };
+
+  const formatCurrencyForPDF = (amount) => {
+    const formatted = new Intl.NumberFormat("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+    return `Rs. ${formatted}`;
+  };
+
+  const generateInvoicePDF = () => {
+    const doc = new jsPDF("p", "mm", "a4");
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - 2 * margin;
+    let yPosition = margin;
+
+    // Company Header
+    doc.setFillColor(0, 52, 43); // #00342B
+    doc.rect(0, 0, pageWidth, 40, "F");
+    doc.setTextColor(244, 215, 124); // #F4D77C
+    doc.setFontSize(24);
+    doc.setFont(undefined, "bold");
+    doc.text("RentFit", margin, yPosition + 12);
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont(undefined, "normal");
+    doc.text("Premium Fashion Rental", margin, yPosition + 18);
+    doc.text("www.rentfit.com | support@rentfit.com", margin, yPosition + 23);
+    yPosition += 35;
+
+    // Invoice Title and Details
+    doc.setTextColor(0, 52, 43);
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+    doc.text("INVOICE", margin, yPosition);
+
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    yPosition += 8;
+    doc.text(`Invoice Number: ${booking._id?.slice(-8).toUpperCase() || "N/A"}`, margin, yPosition);
+    yPosition += 5;
+    doc.text(`Invoice Date: ${formatDate(new Date())}`, margin, yPosition);
+    yPosition += 10;
+
+    // Bill To Section
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(0, 52, 43);
+    doc.text("BILL TO:", margin, yPosition);
+    yPosition += 5;
+
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    const user = booking.userId || {};
+    const lines = [
+      user.name || "Customer",
+      booking.deliveryDetails?.deliveryAddress || "Address N/A",
+      `${booking.deliveryDetails?.landmark || ""} ${booking.deliveryDetails?.pincode || ""}`.trim(),
+      `Phone: ${booking.deliveryDetails?.mobileNumber || "N/A"}`,
+    ];
+
+    lines.forEach((line) => {
+      if (line) {
+        doc.text(line, margin, yPosition);
+        yPosition += 4;
+      }
+    });
+
+    yPosition += 5;
+
+    // Rental Details
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(200, 98, 42); // #C8622A
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 6;
+
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.text("RENTAL DETAILS", margin, yPosition);
+    yPosition += 6;
+
+    doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    doc.text(`Outfit: ${booking.listingId?.title || "Outfit Bundle"}`, margin, yPosition);
+    yPosition += 4;
+    doc.text(
+      `Category: ${booking.listingId?.category || "N/A"}`,
+      margin,
+      yPosition
+    );
+    yPosition += 4;
+    if (booking.listingId?.size) {
+      doc.text(`Size: ${booking.listingId.size}`, margin, yPosition);
+      yPosition += 4;
+    }
+    doc.text(
+      `Rental Period: ${booking.totalDays} days`,
+      margin,
+      yPosition
+    );
+    yPosition += 4;
+    doc.text(
+      `From: ${formatDate(booking.startDate)} To: ${formatDate(booking.endDate)}`,
+      margin,
+      yPosition
+    );
+    yPosition += 8;
+
+    // Payment Breakdown Table Header
+    doc.setLineWidth(0.3);
+    doc.setDrawColor(232, 224, 213); // #E8E0D5
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 5;
+
+    const descCol = margin;
+    const amountCol = pageWidth - margin - 30;
+
+    doc.setFontSize(10);
+    doc.setFont(undefined, "bold");
+    doc.text("PAYMENT BREAKDOWN", margin, yPosition);
+    yPosition += 6;
+
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 5;
+
+    doc.setFontSize(9);
+    doc.setFont(undefined, "bold");
+    doc.text("Description", descCol, yPosition);
+    doc.text("Amount", amountCol, yPosition);
+    yPosition += 5;
+
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 5;
+
+    // Table Rows - Payment breakdown items
+    doc.setFont(undefined, "normal");
+    doc.setFontSize(9);
+
+    // Rental Fee Row
+    doc.text("Rental Fee", descCol, yPosition);
+    doc.text(formatCurrencyForPDF(booking.rentalAmount), amountCol, yPosition, { align: "left" });
+    yPosition += 5;
+
+    // Security Deposit Row
+    doc.text("Security Deposit", descCol, yPosition);
+    doc.text(formatCurrencyForPDF(booking.depositAmount), amountCol, yPosition, { align: "left" });
+    yPosition += 5;
+
+    // Delivery Charge Row (if applicable)
+    if (booking.deliveryCharge) {
+      doc.text("Delivery Charge", descCol, yPosition);
+      doc.text(
+        booking.deliveryCharge === 0 ? "Free" : formatCurrencyForPDF(booking.deliveryCharge),
+        amountCol,
+        yPosition,
+        { align: "left" }
+      );
+      yPosition += 5;
+    }
+
+    yPosition += 3;
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 5;
+
+    // Total Row
+    doc.setFontSize(11);
+    doc.setFont(undefined, "bold");
+    doc.text("TOTAL AMOUNT:", descCol, yPosition);
+    doc.text(formatCurrencyForPDF(booking.totalAmount), amountCol, yPosition, { align: "left" });
+    yPosition += 6;
+
+    yPosition += 5;
+
+    // Terms and Conditions
+    doc.setTextColor(0, 52, 43);
+    doc.setFontSize(9);
+    doc.setFont(undefined, "bold");
+    doc.text("TERMS & CONDITIONS:", margin, yPosition);
+    yPosition += 4;
+
+    doc.setFont(undefined, "normal");
+    doc.setFontSize(8);
+    const terms = [
+      "• Rental includes professional dry cleaning and maintenance.",
+      "• Please return the outfit in the same condition as received.",
+      "• Security deposit will be refunded within 5-7 business days after inspection.",
+      "• Late return charges apply if the outfit is returned after the due date.",
+      "• Contact support for any damage or issues with the outfit.",
+      "• All terms are subject to RentFit's rental policy.",
+    ];
+
+    terms.forEach((term) => {
+      const splitText = doc.splitTextToSize(term, contentWidth - 5);
+      splitText.forEach((line) => {
+        if (yPosition > pageHeight - 25) {
+          doc.addPage();
+          yPosition = margin;
+        }
+        doc.text(line, margin + 2, yPosition);
+        yPosition += 3;
+      });
+    });
+
+    yPosition += 5;
+
+    // Footer
+    doc.setLineWidth(0.3);
+    doc.setDrawColor(200, 98, 42);
+    doc.line(margin, pageHeight - 25, pageWidth - margin, pageHeight - 25);
+
+    doc.setTextColor(0, 52, 43);
+    doc.setFontSize(8);
+    doc.setFont(undefined, "normal");
+    doc.text(
+      "Thank you for choosing RentFit! Enjoy your rental experience.",
+      pageWidth / 2,
+      pageHeight - 18,
+      { align: "center" }
+    );
+    doc.text(
+      "For support, contact: support@rentfit.com | +91-XXXXXXXXXX",
+      pageWidth / 2,
+      pageHeight - 12,
+      { align: "center" }
+    );
+    doc.text(
+      `Generated on: ${new Date().toLocaleString("en-IN")}`,
+      pageWidth / 2,
+      pageHeight - 6,
+      { align: "center" }
+    );
+
+    // Download PDF
+    doc.save(`RentFit-Invoice-${booking._id}.pdf`);
   };
 
   if (loading) {
@@ -361,9 +599,21 @@ const OrderDetail = () => {
                   transition={{ delay: 0.15 }}
                   className="border-t border-white/20 pt-4 mt-4 flex justify-between"
                 >
-                  <span className="font-bold">Total Paid</span>
+                  <span className="font-bold">Total </span>
                   <span className="text-2xl font-bold text-[#F4D77C]">
                     {formatCurrency(booking.totalAmount)}
+                  </span>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="border-t border-white/20 pt-4 mt-4 flex justify-between"
+                >
+                  <span className="font-bold">Paid Amount</span>
+                  <span className="text-lg font-bold text-green-400">
+                    {formatCurrency(booking.paidAmount || 0)}
                   </span>
                 </motion.div>
               </motion.div>
@@ -375,6 +625,7 @@ const OrderDetail = () => {
                 transition={{ delay: 0.4 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={generateInvoicePDF}
                 className="w-full mt-6 bg-[#F4D77C] hover:bg-[#E8D169] text-[#00342B] font-bold py-3 rounded-lg transition-colors"
               >
                 ↓ Download Invoice
