@@ -194,18 +194,18 @@ const OrderDetail = () => {
           transition={{ delay: 0.1, duration: 0.4 }}
           className="mb-8"
         >
-          <button
-            onClick={() => navigate("/dashboard?tab=orders")}
-            className="text-[#C8622A] hover:text-[#1A1A1A] font-semibold mb-4 transition-colors flex items-center gap-2"
-          >
-            ← Back to Orders
-          </button>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-row items-center justify-between gap-4 mb-6">
+            <button
+              onClick={() => navigate("/dashboard?tab=orders")}
+              className="text-[#C8622A] hover:text-[#1A1A1A] font-semibold transition-colors flex items-center gap-2 w-fit text-sm md:text-base"
+            >
+              ← Back to Orders
+            </button>
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.3, duration: 0.4 }}
-              className={`px-6 py-3 rounded-full w-fit font-bold text-lg ${statusInfo.bgColor} ${statusInfo.textColor}`}
+              className={`px-3 md:px-6 py-2 md:py-3 rounded-full w-fit font-bold text-sm md:text-lg ${statusInfo.bgColor} ${statusInfo.textColor}`}
             >
               {statusInfo.label}
             </motion.div>
