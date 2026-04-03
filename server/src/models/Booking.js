@@ -73,6 +73,12 @@ const bookingSchema = new mongoose.Schema(
       enum: ["active", "completed", "cancelled"],
       default: "active",
     },
+    deliveryDetails: {
+      mobileNumber: String,
+      deliveryAddress: String,
+      landmark: String,
+      pincode: String,
+    },
     notes: String,
   },
   { timestamps: true }
