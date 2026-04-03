@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useUserBookings } from '../../hooks/useUserBookings'
 import { getOptimizedImageUrl } from '../../services/cloudinary'
 import PaymentCheckout from '../ui/PaymentCheckout'
 
 const MyOrders = () => {
+  const navigate = useNavigate()
   const { bookings, loading, error, fetchUserBookings } = useUserBookings()
   const [retryingBookingId, setRetryingBookingId] = useState(null)
 
@@ -156,6 +158,12 @@ const MyOrders = () => {
                       Pay Now ₹{formatCurrency(booking.totalAmount)}
                     </button>
                   )}
+                  <button
+                    onClick={() => navigate(`/order/${booking._id}`, { state: { booking } })}
+                    className="mt-2 px-4 py-2 border-2 border-[#C8622A] text-[#C8622A] text-sm font-semibold rounded-lg hover:bg-[#FFE8E0] transition-all"
+                  >
+                    View Details
+                  </button>
                 </div>
               </div>
 

@@ -166,6 +166,9 @@ const Checkout = () => {
         image: listing.images?.[0] || null,
         handler: async (response) => {
           try {
+            console.log("[Checkout] Payment handler called with response:", response);
+            console.log("[Checkout] Sending delivery details:", formData);
+            
             const verifyResponse = await fetch(`${getApiBaseUrl()}/api/payments/verify-payment`, {
               method: "POST",
               headers: {
@@ -183,6 +186,7 @@ const Checkout = () => {
                 totalDays,
                 pricePerDay: listing.pricePerDay,
                 depositAmount: listing.deposit,
+                deliveryDetails: formData,
               }),
               credentials: "include",
             });

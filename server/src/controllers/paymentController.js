@@ -71,7 +71,10 @@ export const handleVerifyPayment = async (req, res) => {
       totalDays,
       pricePerDay,
       depositAmount,
+      deliveryDetails,
     } = req.body;
+
+    console.log("[PaymentController] Received deliveryDetails:", deliveryDetails);
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return errorResponse(res, "Missing payment verification data", 400);
@@ -98,6 +101,7 @@ export const handleVerifyPayment = async (req, res) => {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       totalDays: totalDaysNum,
+      deliveryDetails,
       pricePerDay: pricePerDayNum,
       depositAmount: depositAmountNum,
       rentalAmount,

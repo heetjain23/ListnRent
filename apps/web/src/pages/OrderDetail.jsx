@@ -1,0 +1,541 @@
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { motion } from "motion/react";
+import { auth } from "../services/firebase";
+import { getOptimizedImageUrl } from "../services/cloudinary";
+
+const OrderDetail = () => {
+  const { bookingId } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [booking, setBooking] = useState(location.state?.booking || null);
+  const [loading, setLoading] = useState(!booking);
+  const [error, setError] = useState(null);
+
+  const getApiBaseUrl = () => {
+    const env = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL;
+    if (env) return env.endsWith("/") ? env.slice(0, -1) : env;
+    if (
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
+    ) {
+      return "http://localhost:5000";
+    }
+    return window.location.origin;
+  };
+
+  const fetchBooking = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error("User not authenticated");
+      }
+
+      const idToken = await currentUser.getIdToken();
+
+      console.log("[OrderDetail] Fetching booking:", bookingId);
+      const response = await fetch(
+        `${getApiBaseUrl()}/api/payments/booking/${bookingId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          credentials: "include",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch booking details");
+      }
+
+      const data = await response.json();
+      console.log("[OrderDetail] Booking fetched:", data.data);
+      console.log("[OrderDetail] DeliveryDetails:", data.data?.deliveryDetails);
+      setBooking(data.data);
+    } catch (err) {
+      console.error("[OrderDetail] Error fetching booking:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+
+    // If we don't have booking data and have a bookingId, fetch it
+    if (!location.state?.booking && bookingId) {
+      console.log("[OrderDetail] No booking in state, fetching from API...");
+      fetchBooking();
+    }
+  }, [bookingId, location.state?.booking]);
+
+  const getStatusBadgeInfo = (status) => {
+    switch (status) {
+      case "completed":
+        return {
+          label: "✓ COMPLETED",
+          bgColor: "bg-green-100",
+          textColor: "text-green-800",
+          icon: "✓",
+        };
+      case "active":
+        return {
+          label: "→ IN TRANSIT",
+          bgColor: "bg-blue-100",
+          textColor: "text-blue-800",
+          icon: "→",
+        };
+      case "cancelled":
+        return {
+          label: "✗ CANCELLED",
+          bgColor: "bg-red-100",
+          textColor: "text-red-800",
+          icon: "✗",
+        };
+      case "pending":
+        return {
+          label: "⏱ PENDING",
+          bgColor: "bg-yellow-100",
+          textColor: "text-yellow-800",
+          icon: "⏱",
+        };
+      case "failed":
+        return {
+          label: "✗ PAYMENT FAILED",
+          bgColor: "bg-red-100",
+          textColor: "text-red-800",
+          icon: "✗",
+        };
+      default:
+        return {
+          label: status?.toUpperCase(),
+          bgColor: "bg-gray-100",
+          textColor: "text-gray-800",
+          icon: "•",
+        };
+    }
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+    }).format(amount);
+  };
+
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="min-h-screen bg-[#FAF7F2] flex items-center justify-center"
+      >
+        <div className="text-center">
+          <div className="text-4xl animate-spin mb-4">⏳</div>
+          <p className="text-[#666]">Loading order details...</p>
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="min-h-screen bg-[#FAF7F2] flex items-center justify-center px-4"
+      >
+        <div className="text-center">
+          <div className="text-5xl mb-4">⚠️</div>
+          <p className="text-[#666] mb-2">Order details not found</p>
+          {error && <p className="text-red-600 text-sm mb-6">Error: {error}</p>}
+          <button
+            onClick={() => navigate("/dashboard?tab=orders")}
+            className="px-6 py-2 bg-[#C8622A] text-white rounded-lg hover:bg-opacity-90 transition-all"
+          >
+            Back to Orders
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  const statusInfo = getStatusBadgeInfo(booking.bookingStatus);
+  const deliveryDeadline = booking.endDate
+    ? formatDate(booking.endDate)
+    : "TBA";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeInOut" }}
+      className="min-h-screen bg-[#FAF7F2] py-8 md:py-16 px-4 md:px-8 pt-16 md:pt-20"
+    >
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="mb-8"
+        >
+          <button
+            onClick={() => navigate("/dashboard?tab=orders")}
+            className="text-[#C8622A] hover:text-[#1A1A1A] font-semibold mb-4 transition-colors flex items-center gap-2"
+          >
+            ← Back to Orders
+          </button>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className={`px-6 py-3 rounded-full w-fit font-bold text-lg ${statusInfo.bgColor} ${statusInfo.textColor}`}
+            >
+              {statusInfo.label}
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Main Content - Desktop: Grid, Mobile: Stacked */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Left Column: Outfit Details */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            className="lg:col-span-1"
+          >
+            <div className="bg-white rounded-xl border border-[#E8E0D5] p-6 shadow-sm hover:shadow-md transition-shadow">
+              <h2 className="text-xl font-bold text-[#1A1A1A] mb-4">
+                Outfit Details
+              </h2>
+
+              {/* Outfit Image */}
+              {booking.listingId?.images?.[0] && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3, duration: 0.4 }}
+                  className="mb-6 rounded-lg overflow-hidden bg-[#F5F5F5] aspect-square"
+                >
+                  <img
+                    src={getOptimizedImageUrl(booking.listingId.images[0], {
+                      width: 400,
+                      height: 400,
+                      quality: "auto",
+                    })}
+                    alt={booking.listingId.title}
+                    className="w-full h-full object-cover"
+                  />
+                </motion.div>
+              )}
+
+              {/* Outfit Info */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+                className="space-y-3"
+              >
+                <div>
+                  <h3 className="text-lg font-semibold text-[#1A1A1A]">
+                    {booking.listingId?.title || "Outfit Bundle"}
+                  </h3>
+                  {booking.listingId?.category && (
+                    <p className="text-sm text-[#666] mt-1">
+                      {booking.listingId.category}
+                    </p>
+                  )}
+                </div>
+
+                {/* Details */}
+                <div className="pt-4 border-t border-[#E8E0D5] space-y-3">
+                  {booking.listingId?.size && (
+                    <div className="flex justify-between">
+                      <span className="text-[#666]">Size</span>
+                      <span className="font-semibold text-[#1A1A1A]">
+                        {booking.listingId.size}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-[#666]">Rental Period</span>
+                    <span className="font-semibold text-[#1A1A1A]">
+                      {booking.totalDays} days
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#666]">Date</span>
+                    <span className="font-semibold text-[#1A1A1A] text-right text-sm">
+                      {formatDate(booking.startDate)} to{" "}
+                      {formatDate(booking.endDate)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* View Styling Guide Button */}
+                {booking.listingId?.stylingGuide && (
+                  <button className="w-full mt-4 py-2 px-4 border border-[#C8622A] text-[#C8622A] hover:bg-[#FFE8E0] transition-colors rounded-lg font-semibold text-sm">
+                    View Styling Guide →
+                  </button>
+                )}
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Right Column: Payment Summary and Delivery */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            className="lg:col-span-2 space-y-6"
+          >
+            {/* Payment Summary */}
+            <div className="bg-[#00342B] text-white rounded-xl p-6 shadow-md">
+              <h2 className="text-xl font-bold mb-6">Payment Summary</h2>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{
+                  delay: 0.35,
+                  staggerChildren: 0.1,
+                  duration: 0.4,
+                }}
+                className="space-y-4"
+              >
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex justify-between text-white/90"
+                >
+                  <span>Rental Fee</span>
+                  <span>{formatCurrency(booking.rentalAmount)}</span>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.05 }}
+                  className="flex justify-between text-white/90"
+                >
+                  <span>Security Deposit</span>
+                  <span>{formatCurrency(booking.depositAmount)}</span>
+                </motion.div>
+
+                {booking.deliveryCharge && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="flex justify-between text-white/90"
+                  >
+                    <span>Delivery</span>
+                    <span>
+                      {booking.deliveryCharge === 0
+                        ? "Free"
+                        : formatCurrency(booking.deliveryCharge)}
+                    </span>
+                  </motion.div>
+                )}
+
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.15 }}
+                  className="border-t border-white/20 pt-4 mt-4 flex justify-between"
+                >
+                  <span className="font-bold">Total Paid</span>
+                  <span className="text-2xl font-bold text-[#F4D77C]">
+                    {formatCurrency(booking.totalAmount)}
+                  </span>
+                </motion.div>
+              </motion.div>
+
+              {/* Download Invoice Button */}
+              <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full mt-6 bg-[#F4D77C] hover:bg-[#E8D169] text-[#00342B] font-bold py-3 rounded-lg transition-colors"
+              >
+                ↓ Download Invoice
+              </motion.button>
+            </div>
+
+            {/* Delivery Address */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="bg-white rounded-xl border border-[#E8E0D5] p-6 shadow-sm"
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <span className="text-2xl">📍</span>
+                <h2 className="text-xl font-bold text-[#1A1A1A]">
+                  Delivery Address
+                </h2>
+              </div>
+
+              {booking.deliveryDetails &&
+              Object.keys(booking.deliveryDetails).length > 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.35 }}
+                  className="space-y-2"
+                >
+                  <div className="space-y-1 text-[#666]">
+                    {booking.deliveryDetails?.deliveryAddress && (
+                      <p className="font-semibold text-[#1A1A1A]">
+                        {booking.deliveryDetails.deliveryAddress}
+                      </p>
+                    )}
+                    {booking.deliveryDetails?.landmark && (
+                      <p className="text-sm">
+                        📌 Landmark: {booking.deliveryDetails.landmark}
+                      </p>
+                    )}
+                    {booking.deliveryDetails?.pincode && (
+                      <p className="font-semibold text-[#1A1A1A]">
+                        📬 {booking.deliveryDetails.pincode}
+                      </p>
+                    )}
+                    {booking.deliveryDetails?.mobileNumber && (
+                      <p className="pt-2 font-semibold">
+                        📱 {booking.deliveryDetails.mobileNumber}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Delivery Info Note */}
+                  {booking.bookingStatus === "active" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100"
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className="text-xl">🚚</span>
+                        <div>
+                          <p className="text-sm font-semibold text-blue-900">
+                            Delivery executive will contact you 30 minutes
+                            before arrival
+                          </p>
+                          <p className="text-xs text-blue-700 mt-1">
+                            Make sure someone is available to receive the
+                            package
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </motion.div>
+              ) : (
+                <div>
+                  <p className="text-[#666] mb-4">
+                    No delivery details available
+                  </p>
+                  {/* Debug Panel */}
+                  <details className="bg-gray-100 p-4 rounded-lg cursor-pointer text-xs">
+                    <summary className="text-[#666] font-semibold mb-2">
+                      Debug Info
+                    </summary>
+                    <div className="space-y-2 font-mono text-[#333]">
+                      <p>
+                        DeliveryDetails:{" "}
+                        {booking.deliveryDetails
+                          ? JSON.stringify(booking.deliveryDetails)
+                          : "null"}
+                      </p>
+                      <p>
+                        DeliveryDetails keys:{" "}
+                        {booking.deliveryDetails
+                          ? Object.keys(booking.deliveryDetails).join(", ")
+                          : "none"}
+                      </p>
+                      <p>Booking ID: {booking._id}</p>
+                      <p>Booking Status: {booking.bookingStatus}</p>
+                    </div>
+                  </details>
+                </div>
+              )}
+            </motion.div>
+
+            {/* Additional Info */}
+            {booking.bookingStatus === "active" && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, duration: 0.4 }}
+                className="bg-linear-to-r from-[#F4D77C] to-[#E8D169] rounded-xl p-6"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">ℹ️</span>
+                  <div>
+                    <h3 className="font-bold text-[#00342B] mb-2">
+                      Everything You Need to Know
+                    </h3>
+                    <ul className="text-sm text-[#00342B] space-y-2">
+                      <li>
+                        • Your rental includes dry cleaning and maintenance
+                      </li>
+                      <li>• Return the outfit in the same condition</li>
+                      <li>• Late return charges apply</li>
+                      <li>• Contact support for any issues with the outfit</li>
+                    </ul>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        </div>
+
+        {/* Action Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.4 }}
+          className="flex flex-col sm:flex-row gap-4 mt-8"
+        >
+          {booking.bookingStatus === "active" && (
+            <>
+              <button className="flex-1 px-6 py-3 bg-[#C8622A] text-white font-bold rounded-lg hover:bg-opacity-90 transition-all">
+                Need Help?
+              </button>
+              <button className="flex-1 px-6 py-3 border-2 border-[#C8622A] text-[#C8622A] font-bold rounded-lg hover:bg-[#FFE8E0] transition-all">
+                Schedule Return Pickup
+              </button>
+            </>
+          )}
+          {booking.bookingStatus === "completed" && (
+            <button className="flex-1 px-6 py-3 border-2 border-[#C8622A] text-[#C8622A] font-bold rounded-lg hover:bg-[#FFE8E0] transition-all">
+              Write a Review
+            </button>
+          )}
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+};
+
+export default OrderDetail;

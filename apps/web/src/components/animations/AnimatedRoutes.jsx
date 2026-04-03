@@ -5,6 +5,7 @@ import PageTransition from './PageTransition'
 import Home from '../../pages/Home'
 import Collection from '../../pages/Collection'
 import ListingDetail from '../../pages/ListingDetail.jsx'
+import OrderDetail from '../../pages/OrderDetail.jsx'
 import Checkout from '../../pages/Checkout'
 import CreateListing from '../../pages/CreateListing'
 import EditListing from '../../pages/EditListing'
@@ -22,6 +23,7 @@ const AnimatedRoutes = ({ CompleteMagicLinkComponent }) => {
           <Route path="/" element={<Home />} />
           <Route path="/collection" element={<Collection />} />
           <Route path="/listing/:id" element={<ListingDetail />} />
+          <Route path="/order/:bookingId" element={<OrderDetail />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/create" element={<CreateListing />} />
           <Route path="/edit/:listingId" element={<EditListing />} />

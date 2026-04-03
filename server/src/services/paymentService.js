@@ -165,7 +165,10 @@ export const verifyPayment = async (paymentData) => {
       depositAmount,
       rentalAmount,
       totalAmount,
+      deliveryDetails,
     } = paymentData;
+
+    console.log("[PaymentService] verifyPayment - Received deliveryDetails:", deliveryDetails);
 
     console.log("[PaymentService] verifyPayment called with order:", razorpay_order_id);
 
@@ -221,11 +224,14 @@ export const verifyPayment = async (paymentData) => {
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
       razorpaySignature: razorpay_signature,
+      deliveryDetails: deliveryDetails || {},
     });
 
     console.log("[PaymentService] Creating booking after payment verification");
+    console.log("[PaymentService] Booking deliveryDetails before save:", booking.deliveryDetails);
     await booking.save();
     console.log("[PaymentService] Booking created successfully:", booking._id);
+    console.log("[PaymentService] Booking deliveryDetails after save:", booking.deliveryDetails);
 
     // Populate listing details
     await booking.populate("listingId");
@@ -263,13 +269,19 @@ export const verifyPayment = async (paymentData) => {
 
 export const getBooking = async (bookingId) => {
   try {
+    console.log("[PaymentService] getBooking called for:", bookingId);
     const booking = await Booking.findById(bookingId).populate("listingId");
     if (!booking) {
       throw new Error("Booking not found");
     }
     
+    console.log("[PaymentService] Booking found:", booking._id);
+    console.log("[PaymentService] Booking deliveryDetails:", booking.deliveryDetails);
+    console.log("[PaymentService] Booking object keys:", Object.keys(booking.toObject()));
+    
     return booking;
   } catch (error) {
+    console.error("[PaymentService] getBooking error:", error);
     throw new Error(`Failed to get booking: ${error.message}`);
   }
 };
