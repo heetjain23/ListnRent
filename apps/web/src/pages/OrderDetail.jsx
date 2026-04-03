@@ -89,8 +89,8 @@ const OrderDetail = () => {
       case "active":
         return {
           label: "→ IN TRANSIT",
-          bgColor: "bg-blue-100",
-          textColor: "text-blue-800",
+          bgColor: "bg-[#E5BF37]",
+          textColor: "text-[#00342B]",
           icon: "→",
         };
       case "cancelled":
@@ -158,7 +158,7 @@ const OrderDetail = () => {
     // Company Header
     doc.setFillColor(0, 52, 43); // #00342B
     doc.rect(0, 0, pageWidth, 40, "F");
-    doc.setTextColor(244, 215, 124); // #F4D77C
+    doc.setTextColor(244, 215, 124); // #E5BF37
     doc.setFontSize(24);
     doc.setFont(undefined, "bold");
     doc.text("RentFit", margin, yPosition + 12);
@@ -413,9 +413,6 @@ const OrderDetail = () => {
   }
 
   const statusInfo = getStatusBadgeInfo(booking.bookingStatus);
-  const deliveryDeadline = booking.endDate
-    ? formatDate(booking.endDate)
-    : "TBA";
 
   return (
     <motion.div
@@ -600,7 +597,7 @@ const OrderDetail = () => {
                   className="border-t border-white/20 pt-4 mt-4 flex justify-between"
                 >
                   <span className="font-bold">Total </span>
-                  <span className="text-2xl font-bold text-[#F4D77C]">
+                  <span className="text-2xl font-bold text-[#E5BF37]">
                     {formatCurrency(booking.totalAmount)}
                   </span>
                 </motion.div>
@@ -626,7 +623,7 @@ const OrderDetail = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={generateInvoicePDF}
-                className="w-full mt-6 bg-[#F4D77C] hover:bg-[#E8D169] text-[#00342B] font-bold py-3 rounded-lg transition-colors"
+                className="w-full mt-6 bg-[#E5BF37] hover:bg-[#E8D169] text-[#00342B] font-bold py-3 rounded-lg transition-colors"
               >
                 ↓ Download Invoice
               </motion.button>
@@ -738,7 +735,7 @@ const OrderDetail = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35, duration: 0.4 }}
-                className="bg-linear-to-r from-[#F4D77C] to-[#E8D169] rounded-xl p-6"
+                className="bg-linear-to-r from-[#E5BF37] to-[#E8D169] rounded-xl p-6"
               >
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">ℹ️</span>
