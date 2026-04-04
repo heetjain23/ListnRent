@@ -34,6 +34,8 @@ export const createOrder = async (bookingData) => {
       durationDays,
       pricePerDay,
       depositAmount,
+      cleaningFee,
+      deliveryFee,
       existingBookingId,
     } = bookingData;
 
@@ -58,13 +60,16 @@ export const createOrder = async (bookingData) => {
     // Ensure numeric values
     const pricePerDayNum = Number(pricePerDay);
     const depositAmountNum = Number(depositAmount);
+    const cleaningFeeNum = Number(cleaningFee) || 0;
+    const deliveryFeeNum = Number(deliveryFee) || 0;
     
     if (isNaN(pricePerDayNum) || isNaN(depositAmountNum)) {
       throw new Error("Invalid price or deposit amount - must be numbers");
     }
 
     const rentalAmount = totalDays * pricePerDayNum;
-    const totalAmount = rentalAmount + depositAmountNum;
+    const feesTotal = cleaningFeeNum + deliveryFeeNum;
+    const totalAmount = rentalAmount + depositAmountNum + feesTotal;
     
     // Only charge 50% of rental amount upfront
     const amountToCharge = rentalAmount / 2;
@@ -72,6 +77,8 @@ export const createOrder = async (bookingData) => {
     console.log("[PaymentService] Amount calculation:", { 
       pricePerDayNum, 
       depositAmountNum,
+      cleaningFeeNum,
+      deliveryFeeNum,
       rentalAmount,
       totalAmount,
       amountToCharge,
@@ -163,6 +170,8 @@ export const verifyPayment = async (paymentData) => {
       totalDays,
       pricePerDay,
       depositAmount,
+      cleaningFee,
+      deliveryFee,
       rentalAmount,
       totalAmount,
       deliveryDetails,
@@ -188,19 +197,23 @@ export const verifyPayment = async (paymentData) => {
     // Calculate 50% split of rental amount
     const rentalAmountNum = Number(rentalAmount);
     const depositAmountNum = Number(depositAmount);
+    const cleaningFeeNum = Number(cleaningFee) || 0;
+    const deliveryFeeNum = Number(deliveryFee) || 0;
     const paidRentalAmount = rentalAmountNum / 2;
     const pendingRentalAmount = rentalAmountNum / 2;
     
     // Paid amount includes: 50% of rental ONLY
-    // Pending amount includes: 50% of rental + full deposit
+    // Pending amount includes: 50% of rental + full deposit + all fees
     const paidAmount = paidRentalAmount;
-    const pendingAmount = pendingRentalAmount + depositAmountNum;
+    const pendingAmount = pendingRentalAmount + depositAmountNum + cleaningFeeNum + deliveryFeeNum;
 
     console.log("[PaymentService] Payment split calculated:", {
       rentalAmount: rentalAmountNum,
       paidRentalAmount,
       pendingRentalAmount,
       depositAmount: depositAmountNum,
+      cleaningFee: cleaningFeeNum,
+      deliveryFee: deliveryFeeNum,
       totalPaidAmount: paidAmount,
       totalPendingAmount: pendingAmount,
     });
@@ -216,6 +229,8 @@ export const verifyPayment = async (paymentData) => {
       pricePerDay: Number(pricePerDay),
       rentalAmount: rentalAmountNum,
       depositAmount: depositAmountNum,
+      cleaningFee: cleaningFeeNum,
+      deliveryFee: deliveryFeeNum,
       totalAmount: Number(totalAmount),
       paidAmount,
       pendingAmount,

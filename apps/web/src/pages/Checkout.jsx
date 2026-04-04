@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useAuth } from "../hooks/useAuth";
 import { auth } from "../services/firebase";
 import { getOptimizedImageUrl } from "../services/cloudinary";
+import { BILLING_FEES } from "../constants";
 import Button from "../components/ui/Button";
 
 const Checkout = () => {
@@ -82,7 +83,10 @@ const Checkout = () => {
   const totalDays = durationDays || 1;
   const rentalAmount = totalDays * listing.pricePerDay;
   const depositAmount = listing.deposit;
-  const totalAmount = rentalAmount + depositAmount;
+  const cleaningFee = BILLING_FEES.CLEANING_FEE;
+  const deliveryFee = BILLING_FEES.DELIVERY_FEE;
+  const feesTotal = cleaningFee + deliveryFee;
+  const totalAmount = rentalAmount + depositAmount + feesTotal;
 
   // Format date for display
   const formatDate = (date) => {
@@ -186,6 +190,8 @@ const Checkout = () => {
                 totalDays,
                 pricePerDay: listing.pricePerDay,
                 depositAmount: listing.deposit,
+                cleaningFee,
+                deliveryFee,
                 deliveryDetails: formData,
               }),
               credentials: "include",
@@ -268,6 +274,8 @@ const Checkout = () => {
           durationDays: durationDays || 1,
           pricePerDay: listing.pricePerDay,
           depositAmount: listing.deposit,
+          cleaningFee,
+          deliveryFee,
           deliveryDetails: formData,
         }),
         credentials: "include",
@@ -515,6 +523,18 @@ const Checkout = () => {
                     ₹{depositAmount.toLocaleString("en-IN")}
                   </span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#666]">Cleaning Fee</span>
+                  <span className="font-semibold text-[#1A1A1A]">
+                    {cleaningFee === 0 ? "Free" : `₹${cleaningFee.toLocaleString("en-IN")}`}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#666]">Delivery Fee</span>
+                  <span className="font-semibold text-[#1A1A1A]">
+                    {deliveryFee === 0 ? "Free" : `₹${deliveryFee.toLocaleString("en-IN")}`}
+                  </span>
+                </div>
               </div>
 
               {/* Payment Split Information */}
@@ -548,6 +568,14 @@ const Checkout = () => {
                       ₹{depositAmount.toLocaleString("en-IN")}
                     </span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#666]">
+                      <span className="font-medium">Cleaning Fee & Delivery Fee</span> (Due at Pickup)
+                    </span>
+                    <span className="font-semibold text-[#FF8C42]">
+                      ₹{feesTotal.toLocaleString("en-IN")}
+                    </span>
+                  </div>
                   <div className="border-t border-[#FFE0CC] pt-2 mt-2 flex justify-between">
                     <span className="text-[#666] font-medium">Amount to Pay Now</span>
                     <span className="font-bold text-lg text-[#163B35]">
@@ -556,7 +584,7 @@ const Checkout = () => {
                   </div>
                 </div>
                 <p className="text-xs text-[#666] mt-3 pt-3 border-t border-[#FFE0CC]">
-                  ℹ️ The remaining 50% of rental amount and the refundable deposit will be collected at the time of pickup. The deposit is fully refundable after you return the item in good condition.
+                  ℹ️ The remaining 50% of rental amount, refundable deposit, and applicable fees will be collected at the time of pickup. The deposit is fully refundable after you return the item in good condition.
                 </p>
               </div>
 

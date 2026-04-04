@@ -1,3 +1,9 @@
+// Billing Fees
+export const BILLING_FEES = {
+  CLEANING_FEE: 0, // Dynamic cleaning fee (in INR)
+  DELIVERY_FEE: 0,  // Dynamic delivery fee (in INR)
+};
+
 export const CATEGORIES = [
   'All',
   'DESIGNER SUIT/ TUXEDO',

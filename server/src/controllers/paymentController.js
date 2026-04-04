@@ -11,7 +11,7 @@ import { successResponse, errorResponse } from "../utils/helper.js";
 export const handleCreateOrder = async (req, res) => {
   try {
     const userId = req.user.uid;
-    const { listingId, renterId, startDate, endDate, durationDays, pricePerDay, depositAmount, existingBookingId } = req.body;
+    const { listingId, renterId, startDate, endDate, durationDays, pricePerDay, depositAmount, cleaningFee, deliveryFee, existingBookingId } = req.body;
 
     console.log("[Payment Controller] Creating order with data:", {
       userId,
@@ -22,6 +22,8 @@ export const handleCreateOrder = async (req, res) => {
       durationDays,
       pricePerDay,
       depositAmount,
+      cleaningFee,
+      deliveryFee,
       existingBookingId,
     });
 
@@ -43,6 +45,8 @@ export const handleCreateOrder = async (req, res) => {
       durationDays: durationDays || 1,
       pricePerDay: Number(pricePerDay),
       depositAmount: Number(depositAmount),
+      cleaningFee: Number(cleaningFee) || 0,
+      deliveryFee: Number(deliveryFee) || 0,
       existingBookingId,
     };
 
@@ -71,6 +75,8 @@ export const handleVerifyPayment = async (req, res) => {
       totalDays,
       pricePerDay,
       depositAmount,
+      cleaningFee,
+      deliveryFee,
       deliveryDetails,
     } = req.body;
 
@@ -87,9 +93,12 @@ export const handleVerifyPayment = async (req, res) => {
     // Calculate amounts
     const pricePerDayNum = Number(pricePerDay);
     const depositAmountNum = Number(depositAmount);
+    const cleaningFeeNum = Number(cleaningFee) || 0;
+    const deliveryFeeNum = Number(deliveryFee) || 0;
     const totalDaysNum = Number(totalDays);
     const rentalAmount = totalDaysNum * pricePerDayNum;
-    const totalAmount = rentalAmount + depositAmountNum;
+    const feesTotal = cleaningFeeNum + deliveryFeeNum;
+    const totalAmount = rentalAmount + depositAmountNum + feesTotal;
 
     const booking = await verifyPayment({
       razorpay_order_id,
@@ -104,6 +113,8 @@ export const handleVerifyPayment = async (req, res) => {
       deliveryDetails,
       pricePerDay: pricePerDayNum,
       depositAmount: depositAmountNum,
+      cleaningFee: cleaningFeeNum,
+      deliveryFee: deliveryFeeNum,
       rentalAmount,
       totalAmount,
     });

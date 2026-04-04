@@ -39,6 +39,14 @@ const bookingSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    cleaningFee: {
+      type: Number,
+      default: 0,
+    },
+    deliveryFee: {
+      type: Number,
+      default: 0,
+    },
     totalAmount: {
       type: Number,
       required: true,
