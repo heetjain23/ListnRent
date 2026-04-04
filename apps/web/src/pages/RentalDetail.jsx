@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { IoArrowBack } from 'react-icons/io5'
-import { FiPhone, FiMessageSquare } from 'react-icons/fi'
+import { FiMessageSquare } from 'react-icons/fi'
 import { MdExpandMore, MdExpandLess } from 'react-icons/md'
 import { auth } from '../services/firebase'
 import { getOptimizedImageUrl } from '../services/cloudinary'
@@ -111,9 +111,8 @@ const RentalDetail = () => {
 
   const calculateTotalDays = () => {
     if (!rental) return 0
-    const start = new Date(rental.rentalStartDate)
-    const end = new Date(rental.rentalEndDate)
-    return Math.ceil((end - start) / (1000 * 60 * 60 * 24))
+    // Use the actual stored total days from booking instead of recalculating from dates
+    return rental.totalDaysBooked || 1
   }
 
   const getRentalStatus = () => {
@@ -236,24 +235,6 @@ const RentalDetail = () => {
   const status = getRentalStatus()
   const totalDays = calculateTotalDays()
   const timelineEvents = getTimelineEvents()
-
-  // Debug payment data
-  console.log('[RentalDetail] Rental payment data:', {
-    from_rental: {
-      rentalAmount: rental?.rentalAmount,
-      depositAmount: rental?.depositAmount,
-      bookingFee: rental?.bookingFee,
-      totalAmount: rental?.totalAmount,
-      pendingAmount: rental?.pendingAmount,
-    },
-    from_rentalDetails: {
-      rentalAmount: rentalDetails?.rentalAmount,
-      depositAmount: rentalDetails?.depositAmount,
-      bookingFee: rentalDetails?.bookingFee,
-      totalAmount: rentalDetails?.totalAmount,
-      pendingAmount: rentalDetails?.pendingAmount,
-    },
-  })
 
   if (loading) {
     return (

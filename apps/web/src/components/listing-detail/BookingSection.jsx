@@ -14,7 +14,6 @@ const BookingSection = ({
   onRentClick,
   available,
 }) => {
-  // Debug logging
   useEffect(() => {
   }, [listing?.bookings])
 

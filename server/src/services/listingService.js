@@ -191,6 +191,7 @@ export const markListingAsRented = async (listingId, booking, renterInfo) => {
             userId: booking.userId,
             startDate: booking.startDate,
             endDate: booking.endDate,
+            totalDays: booking.totalDays || 1,
             renterName: renterInfo?.displayName || "N/A",
             renterEmail: renterInfo?.email || "N/A",
             rentalAmount: booking.rentalAmount || 0,

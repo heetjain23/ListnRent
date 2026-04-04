@@ -56,6 +56,7 @@ const MyRentalsAsOwner = () => {
             listingImage: listing.images?.[0],
             rentalStartDate: booking.startDate,
             rentalEndDate: booking.endDate,
+            totalDaysBooked: booking.totalDays || 1,
             renterName: booking.renterName || 'Renter',
             renterEmail: booking.renterEmail,
             userId: booking.userId,
