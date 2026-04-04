@@ -24,19 +24,37 @@ export const useEarnings = () => {
     return booking.rentalAmount || (booking.totalDays * booking.pricePerDay) || 0
   }
 
-  // Calculate total earnings from completed bookings
+  // Calculate total earnings from all active bookings (partial or completed)
+  // Includes full rental amount even if only 50% has been paid
+  // Excludes cancelled and failed bookings, and does NOT include deposits
   const calculateTotalEarnings = useCallback(() => {
     const total = bookings
-      .filter((b) => b.paymentStatus === 'completed' && b.bookingStatus !== 'cancelled')
+      .filter((b) => (b.paymentStatus === 'completed' || b.paymentStatus === 'partial') && b.bookingStatus !== 'cancelled')
       .reduce((sum, b) => sum + getEarningsFromBooking(b), 0)
     return total
   }, [bookings])
 
-  // Calculate pending earnings from non-completed payments
+  // Calculate pending earnings - the remaining rental amount to be collected
+  // For 'pending' status: 100% of rental is pending (nothing paid yet)
+  // For 'partial' status: 50% of rental is pending (50% paid at booking, 50% pending at pickup)
+  // For 'completed' status: 0% is pending (fully collected)
   const calculatePendingEarnings = useCallback(() => {
     return bookings
-      .filter((b) => b.paymentStatus !== 'completed' && b.paymentStatus !== 'failed' && b.bookingStatus !== 'cancelled')
-      .reduce((sum, b) => sum + getEarningsFromBooking(b), 0)
+      .filter((b) => b.bookingStatus !== 'cancelled')
+      .reduce((sum, b) => {
+        const rentalAmount = getEarningsFromBooking(b)
+        if (b.paymentStatus === 'pending') {
+          // 100% still pending (no payment made yet)
+          return sum + rentalAmount
+        } else if (b.paymentStatus === 'partial') {
+          // 50% still pending (50% paid upfront)
+          return sum + rentalAmount / 2
+        } else if (b.paymentStatus === 'completed') {
+          // 0% pending (fully collected)
+          return sum + 0
+        }
+        return sum
+      }, 0)
   }, [bookings])
 
   // Get bookings by status

@@ -12,7 +12,7 @@ const MyEarnings = () => {
     getBookingsByPaymentStatus,
   } = useEarnings()
 
-  const [filterStatus, setFilterStatus] = useState('all') // all, completed, pending
+  const [filterStatus, setFilterStatus] = useState('all') // all, completed, partial, pending
 
   useEffect(() => {
     fetchEarnings()
@@ -21,6 +21,7 @@ const MyEarnings = () => {
   const totalEarnings = calculateTotalEarnings()
   const pendingEarnings = calculatePendingEarnings()
   const completedBookings = getBookingsByPaymentStatus('completed')
+  const partialBookings = getBookingsByPaymentStatus('partial')
   const pendingBookings = getBookingsByPaymentStatus('pending')
   const activeBookings = bookings.filter((b) => b.bookingStatus === 'active' && b.paymentStatus !== 'failed')
 
@@ -30,9 +31,11 @@ const MyEarnings = () => {
       ? bookings.filter((b) => b.bookingStatus !== 'cancelled')
       : filterStatus === 'completed'
         ? completedBookings.filter((b) => b.bookingStatus !== 'cancelled')
-        : filterStatus === 'pending'
-          ? pendingBookings.filter((b) => b.bookingStatus !== 'cancelled')
-          : activeBookings
+        : filterStatus === 'partial'
+          ? partialBookings.filter((b) => b.bookingStatus !== 'cancelled')
+          : filterStatus === 'pending'
+            ? pendingBookings.filter((b) => b.bookingStatus !== 'cancelled')
+            : bookings.filter((b) => b.bookingStatus !== 'cancelled')
 
   const getEarningsAmount = (booking) => {
     // Use rentalAmount if available, otherwise calculate from totalDays * pricePerDay
@@ -59,10 +62,11 @@ const MyEarnings = () => {
 
   const getPaymentStatusBadge = (status) => {
     const statusConfig = {
-      completed: { bg: 'bg-green-50', text: 'text-green-700', label: 'Paid' },
+      completed: { bg: 'bg-green-50', text: 'text-green-700', label: 'Fully Paid' },
+      partial: { bg: 'bg-blue-50', text: 'text-blue-700', label: '50% Paid' },
       pending: { bg: 'bg-yellow-50', text: 'text-yellow-700', label: 'Pending' },
       failed: { bg: 'bg-red-50', text: 'text-red-700', label: 'Failed' },
-      refunded: { bg: 'bg-blue-50', text: 'text-blue-700', label: 'Refunded' },
+      refunded: { bg: 'bg-purple-50', text: 'text-purple-700', label: 'Refunded' },
     }
     const config = statusConfig[status] || statusConfig.pending
     return (
@@ -134,19 +138,19 @@ const MyEarnings = () => {
             </div>
             <div className="text-4xl">💰</div>
           </div>
-          <p className="text-[#AAA] text-sm mt-4">From {completedBookings.length} completed rental(s)</p>
+          <p className="text-[#AAA] text-sm mt-4">From {completedBookings.length + partialBookings.length} rental(s)</p>
         </div>
 
         {/* Pending Earnings */}
         <div className="bg-linear-to-br from-[#F59E0B] to-[#D97706] text-white rounded-lg p-6">
           <div className="flex items-start justify-between mb-2">
             <div>
-              <p className="text-[#FFF] text-xs uppercase tracking-wide font-medium mb-1 opacity-80">Pending Payment</p>
+              <p className="text-[#FFF] text-xs uppercase tracking-wide font-medium mb-1 opacity-80">Amount to Collect</p>
               <h3 className="text-4xl font-bold">{formatCurrency(pendingEarnings)}</h3>
             </div>
             <div className="text-4xl">⏱️</div>
           </div>
-          <p className="text-[#FFF] text-sm mt-4 opacity-80">From {pendingBookings.length} pending rental(s)</p>
+          <p className="text-[#FFF] text-sm mt-4 opacity-80">Remaining rental amount pending</p>
         </div>
       </div>
 
@@ -154,7 +158,8 @@ const MyEarnings = () => {
       <div className="border-b border-[#E8E0D5] flex gap-4">
         {[
           { id: 'all', label: `All Rentals (${bookings.filter((b) => b.bookingStatus !== 'cancelled').length})` },
-          { id: 'completed', label: `Paid (${completedBookings.filter((b) => b.bookingStatus !== 'cancelled').length})` },
+          { id: 'completed', label: `Fully Paid (${completedBookings.filter((b) => b.bookingStatus !== 'cancelled').length})` },
+          { id: 'partial', label: `In Progress (${partialBookings.filter((b) => b.bookingStatus !== 'cancelled').length})` },
           { id: 'pending', label: `Pending (${pendingBookings.filter((b) => b.bookingStatus !== 'cancelled').length})` },
         ].map((tab) => (
           <button
@@ -262,7 +267,6 @@ const MyEarnings = () => {
                   <div className="text-right">
                     <p className="text-xs font-medium text-[#666] uppercase tracking-wide mb-1">Amount</p>
                       <p className="font-bold text-lg text-[#004D40]">{formatCurrency(getEarningsAmount(booking))}</p>
-                    <p className="text-sm font-medium text-[#1A1A1A]">{formatCurrency(booking.depositAmount)}</p>
                   </div>
                 </div>
 
@@ -285,12 +289,12 @@ const MyEarnings = () => {
             <p className="text-3xl font-bold text-[#1A1A1A]">{activeBookings.length}</p>
           </div>
           <div>
-            <p className="text-[#999] text-xs uppercase tracking-wide font-medium mb-2">Paid</p>
+            <p className="text-[#999] text-xs uppercase tracking-wide font-medium mb-2">Fully Collected</p>
             <p className="text-3xl font-bold text-green-600">{completedBookings.filter((b) => b.bookingStatus !== 'cancelled').length}</p>
           </div>
           <div>
-            <p className="text-[#999] text-xs uppercase tracking-wide font-medium mb-2">Awaiting Payment</p>
-            <p className="text-3xl font-bold text-yellow-600">{pendingBookings.filter((b) => b.bookingStatus !== 'cancelled').length}</p>
+            <p className="text-[#999] text-xs uppercase tracking-wide font-medium mb-2">To Collect Later</p>
+            <p className="text-3xl font-bold text-yellow-600">{(partialBookings.filter((b) => b.bookingStatus !== 'cancelled').length + pendingBookings.filter((b) => b.bookingStatus !== 'cancelled').length)}</p>
           </div>
         </div>
       </div>

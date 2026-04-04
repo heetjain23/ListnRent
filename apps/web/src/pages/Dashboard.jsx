@@ -13,6 +13,7 @@ import SettingsSection from '../components/dashboard/SettingsSection'
 import MyOrders from '../components/dashboard/MyOrders'
 import MyRentalsAsOwner from '../components/dashboard/MyRentalsAsOwner'
 import MyEarnings from '../components/dashboard/MyEarnings'
+import { FaClipboardList } from "react-icons/fa6";
 import { api } from '../services/api'
 
 const Dashboard = () => {
@@ -42,16 +43,9 @@ const Dashboard = () => {
   const draftListings = listings.filter((l) => l.isDraft)
 
   // Calculate stats
-  // Active rentals = count of currently active bookings (rental period is ongoing)
-  const activeRentals = bookings.filter((b) => {
-    if (b.bookingStatus !== 'active' || b.paymentStatus === 'failed') return false
-    const now = new Date()
-    const startDate = new Date(b.startDate)
-    const endDate = new Date(b.endDate)
-    return now >= startDate && now <= endDate
-  }).length
+  // Total listings = count of all live listings
+  const totalListings = liveListings.length
   const totalEarnings = calculateTotalEarnings() // Real earnings from completed bookings
-  const pendingRequests = bookings.filter((b) => b.paymentStatus !== 'completed' && b.bookingStatus !== 'cancelled').length
 
   const handleTabChange = (tab) => {
     setActiveTab(tab)
@@ -152,22 +146,22 @@ const Dashboard = () => {
             {/* Mobile: Secondary stats */}
             <div className="grid grid-cols-2 gap-4 md:hidden mb-6">
               <div className="bg-white rounded-lg border border-[#E8E0D5] p-4">
-                <p className="text-[#999] text-xs uppercase tracking-wide font-medium mb-2">Active Rentals</p>
-                <p className="text-2xl font-bold text-[#1A1A1A]">{activeRentals}</p>
+                <p className="text-[#999] text-xs uppercase tracking-wide font-medium mb-2">Total Listings</p>
+                <p className="text-2xl font-bold text-[#1A1A1A]">{totalListings}</p>
               </div>
               <div className="bg-white rounded-lg border border-[#E8E0D5] p-4">
-                <p className="text-[#999] text-xs uppercase tracking-wide font-medium mb-2">Pending Requests</p>
-                <p className="text-2xl font-bold text-[#1A1A1A]">{String(pendingRequests).padStart(2, '0')}</p>
+                <p className="text-[#999] text-xs uppercase tracking-wide font-medium mb-2">Messages</p>
+                <p className="text-sm font-bold text-[#999]">Coming Soon</p>
               </div>
             </div>
 
             {/* Desktop: Full stat cards */}
             <div className="hidden md:grid grid-cols-3 gap-6 mb-12">
               <StatCard
-                icon="📅"
-                label="Active Rentals"
-                value={activeRentals}
-                period="Today"
+                icon={<FaClipboardList size={34}/>}
+                label="Total Listings"
+                value={totalListings}
+                period="Live"
               />
               <StatCard
                 icon="💰"
@@ -176,9 +170,9 @@ const Dashboard = () => {
                 period="This Month"
               />
               <StatCard
-                icon="🔔"
-                label="Pending Requests"
-                value={String(pendingRequests).padStart(2, '0')}
+                icon="💬"
+                label="Messages"
+                value="Coming Soon"
               />
             </div>
           </div>
