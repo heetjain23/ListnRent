@@ -67,7 +67,7 @@ const Navbar = () => {
         <Link to="/" onClick={handleClickLogo} className="flex items-center gap-2 group">
           <span className="text-2xl font-black tracking-tight text-[#1A1A1A]"
             style={{ fontFamily: "'Georgia', serif" }}>
-            Rent<span className="text-[#00342B]">Fit</span>
+            Listn<span className="text-[#00342B]">Rent</span>
           </span>
           <span className="text-xs text-[#888] font-medium tracking-widest uppercase mt-1 hidden sm:block">
             Ethnic Wear

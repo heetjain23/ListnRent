@@ -14,7 +14,7 @@ const Footer = () => {
             <div className="flex items-center gap-2">
               <span className="text-2xl font-black tracking-tight"
                 style={{ fontFamily: "'Georgia', serif" }}>
-                Rent<span className="text-yellow-50">Fit</span>
+                Listn<span className="text-yellow-50">Rent</span>
               </span>
             </div>
 
