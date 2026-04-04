@@ -1,6 +1,6 @@
-# RentFit Backend 🖥️
+# ListnRent Backend 🖥️
 
-Backend API for RentFit platform.
+Backend API for ListnRent platform.
 
 ---
 

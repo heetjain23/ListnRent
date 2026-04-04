@@ -239,7 +239,7 @@ export const verifyPayment = async (paymentData) => {
     // Fetch actual renter data from User model
     let renterInfo = {
       userId: booking.userId,
-      email: `user_${booking.userId}@rentfit.com`,
+      email: `user_${booking.userId}@listnrent.com`,
       displayName: "Renter",
     };
 

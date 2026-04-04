@@ -2,11 +2,10 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Booking from '../src/models/Booking.js';
 import User from '../src/models/User.js';
-import Listing from '../src/models/Listing.js';
 
 dotenv.config();
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/rentfit';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/listnrent';
 
 async function migrateDeliveryDetails() {
   try {

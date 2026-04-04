@@ -1,4 +1,4 @@
-# RentFit — Progress Tracker
+# ListnRent — Progress Tracker
 
 ---
 
@@ -169,7 +169,7 @@
 
 ## 📋 Firebase Setup Details
 
-**Firebase Project:** rentfit-123
+**Firebase Project:** listnrent-123
 - Auth Methods Enabled: Google OAuth 2.0, Email Link Authentication
 - Magic Link Domain: localhost:5173 (update for production)
 

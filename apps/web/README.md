@@ -1,6 +1,6 @@
-# RentFit Web App 🌐
+# ListnRent Web App 🌐
 
-Frontend web application for RentFit.
+Frontend web application for ListnRent.
 
 ---
 
@@ -54,9 +54,9 @@ Designed for scalability with mobile app
 # 📱 4. MOBILE README (`apps/mobile/README.md`)
 
 ```md
-# RentFit Mobile App 📱
+# ListnRent Mobile App 📱
 
-Mobile application for RentFit (iOS + Android).
+Mobile application for ListnRent (iOS + Android).
 
 ---
 

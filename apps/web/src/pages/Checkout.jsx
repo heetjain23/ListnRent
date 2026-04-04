@@ -161,7 +161,7 @@ const Checkout = () => {
         amount,
         currency: "INR",
         order_id: orderId,
-        name: "RentFit",
+        name: "ListnRent",
         description: `Rent: ${listing.title}`,
         image: listing.images?.[0] || null,
         handler: async (response) => {
@@ -606,7 +606,7 @@ const Checkout = () => {
 
               {/* Terms */}
               <p className="text-xs text-[#999] text-center mt-4">
-                By clicking you agree to RentFit's Rental Agreement and Cancellation Policy
+                By clicking you agree to ListnRent's Rental Agreement and Cancellation Policy
               </p>
             </div>
           </div>

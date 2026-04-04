@@ -78,7 +78,7 @@ const NewsletterSection = () => {
                 <div>
                   <h3 className="text-xl font-bold text-white mb-3">Verified Heritage</h3>
                   <p className="text-gray-200">
-                    Every piece on RentFit undergoes a rigorous authentication and quality check. We ensure your luxury experience is flawless.
+                    Every piece on ListnRent undergoes a rigorous authentication and quality check. We ensure your luxury experience is flawless.
                   </p>
                 </div>
               </div>

@@ -1,11 +1,11 @@
 📄 PRODUCT REQUIREMENTS DOCUMENT (PRD)
 🏷️ Product Name (Working)
 
-RentFit (temporary — can be changed later)
+ListnRent (temporary — can be changed later)
 
 🧭 1. Product Overview
 
-RentFit is a peer-to-peer rental platform for ethnic wear, enabling users to:
+ListnRent is a peer-to-peer rental platform for ethnic wear, enabling users to:
 
 List unused outfits (kurta, lehenga, saree, etc.)
 Rent outfits for short-term use

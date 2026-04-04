@@ -1,12 +1,12 @@
-# RentFit 👗
+# ListnRent 👗
 
-RentFit is a peer-to-peer ethnic wear rental platform where users can list and rent outfits for short-term use.
+ListnRent is a peer-to-peer ethnic wear rental platform where users can list and rent outfits for short-term use.
 
 ---
 
 ## 🚀 Overview
 
-Ethnic wear is expensive and often worn only once. RentFit solves this by allowing users to:
+Ethnic wear is expensive and often worn only once. ListnRent solves this by allowing users to:
 
 - List unused outfits
 - Rent outfits for events like weddings, festivals, and parties
@@ -15,7 +15,7 @@ Ethnic wear is expensive and often worn only once. RentFit solves this by allowi
 
 ## 🏗️ Project Structure
 
-rentfit/
+listnrent/
 ├── apps/
 │ ├── web/ # React Web App
 │ └── mobile/ # React Native App (future)

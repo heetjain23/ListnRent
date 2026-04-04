@@ -1,3 +1,3 @@
 export const API_BASE_URL = "http://localhost:5000";
 
-export const APP_NAME = "RentFit";
+export const APP_NAME = "ListnRent";

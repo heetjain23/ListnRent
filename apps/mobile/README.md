@@ -1,4 +1,4 @@
-# RentFit Mobile App 📱
+# ListnRent Mobile App 📱
 
 ## 🚧 Status
 This mobile application is **planned for future development**.
@@ -9,7 +9,7 @@ This document serves as a **guideline for developers and AI tools** to build the
 
 ## 🎯 Objective
 
-Build a **cross-platform mobile application (iOS + Android)** for RentFit that:
+Build a **cross-platform mobile application (iOS + Android)** for ListnRent that:
 
 - Reuses the existing backend (Node.js + Express + MongoDB)
 - Maintains consistent UI/UX with the web app

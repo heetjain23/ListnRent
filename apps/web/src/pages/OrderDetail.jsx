@@ -161,12 +161,12 @@ const OrderDetail = () => {
     doc.setTextColor(244, 215, 124); // #E5BF37
     doc.setFontSize(24);
     doc.setFont(undefined, "bold");
-    doc.text("RentFit", margin, yPosition + 12);
+    doc.text("ListnRent", margin, yPosition + 12);
     doc.setFontSize(9);
     doc.setTextColor(255, 255, 255);
     doc.setFont(undefined, "normal");
     doc.text("Premium Fashion Rental", margin, yPosition + 18);
-    doc.text("www.rentfit.com | support@rentfit.com", margin, yPosition + 23);
+    doc.text("www.listnrent.com | support@listnrent.com", margin, yPosition + 23);
     yPosition += 35;
 
     // Invoice Title and Details
@@ -327,7 +327,7 @@ const OrderDetail = () => {
       "• Security deposit will be refunded within 5-7 business days after inspection.",
       "• Late return charges apply if the outfit is returned after the due date.",
       "• Contact support for any damage or issues with the outfit.",
-      "• All terms are subject to RentFit's rental policy.",
+      "• All terms are subject to ListnRent's rental policy.",
     ];
 
     terms.forEach((term) => {
@@ -353,13 +353,13 @@ const OrderDetail = () => {
     doc.setFontSize(8);
     doc.setFont(undefined, "normal");
     doc.text(
-      "Thank you for choosing RentFit! Enjoy your rental experience.",
+      "Thank you for choosing ListnRent! Enjoy your rental experience.",
       pageWidth / 2,
       pageHeight - 18,
       { align: "center" }
     );
     doc.text(
-      "For support, contact: support@rentfit.com | +91-XXXXXXXXXX",
+      "For support, contact: support@listnrent.com | +91-XXXXXXXXXX",
       pageWidth / 2,
       pageHeight - 12,
       { align: "center" }
@@ -372,7 +372,7 @@ const OrderDetail = () => {
     );
 
     // Download PDF
-    doc.save(`RentFit-Invoice-${booking._id}.pdf`);
+    doc.save(`ListnRent-Invoice-${booking._id}.pdf`);
   };
 
   if (loading) {

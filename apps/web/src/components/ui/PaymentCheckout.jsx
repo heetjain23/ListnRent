@@ -66,7 +66,7 @@ const PaymentCheckout = ({ listing, renterId, startDate, endDate, onSuccess, onC
         amount,
         currency: "INR",
         order_id: orderId,
-        name: "RentFit",
+        name: "ListnRent",
         description: `Rent: ${listing.title}`,
         image: listing.images?.[0] || null,
         handler: async (response) => {

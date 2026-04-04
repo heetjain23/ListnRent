@@ -118,7 +118,7 @@ const Footer = () => {
       <div className="border-t border-white/10">
         <div className="max-w-6xl mx-auto px-6 py-6 text-center">
           <p className="text-sm text-gray-300">
-            © 2026 RentFit Mumbai. The Curated Heritage.
+            © 2026 ListnRent Mumbai. The Curated Heritage.
           </p>
         </div>
       </div>
