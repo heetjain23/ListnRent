@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useRentedListings } from '../../hooks/useRentedListings'
 import { getOptimizedImageUrl } from '../../services/cloudinary'
 
 const MyRentalsAsOwner = () => {
+  const navigate = useNavigate()
   const { rentedListings, loading, error, fetchRentedListings } = useRentedListings()
 
   useEffect(() => {
@@ -60,6 +62,11 @@ const MyRentalsAsOwner = () => {
             bookingId: booking.bookingId,
             isCompleted,
             daysRemaining,
+            rentalAmount: booking.rentalAmount || 0,
+            depositAmount: booking.depositAmount || 0,
+            bookingFee: booking.bookingFee || 0,
+            totalAmount: booking.totalAmount || (booking.rentalAmount || 0) + (booking.depositAmount || 0) + (booking.bookingFee || 0),
+            pendingAmount: booking.pendingAmount || 0,
           })
         })
       }
@@ -190,6 +197,13 @@ const MyRentalsAsOwner = () => {
                             </p>
                           </div>
                         )}
+
+                        <button
+                          onClick={() => navigate(`/rental/${rental._id}`, { state: { rental } })}
+                          className="w-full mt-2 px-4 py-2 bg-[#004D40] text-white rounded-lg font-medium hover:bg-[#00342B] transition-colors text-sm"
+                        >
+                          View Details
+                        </button>
                       </div>
                     </div>
                   </div>

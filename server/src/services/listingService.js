@@ -193,6 +193,11 @@ export const markListingAsRented = async (listingId, booking, renterInfo) => {
             endDate: booking.endDate,
             renterName: renterInfo?.displayName || "N/A",
             renterEmail: renterInfo?.email || "N/A",
+            rentalAmount: booking.rentalAmount || 0,
+            depositAmount: booking.depositAmount || 0,
+            bookingFee: booking.bookingFee || 0,
+            totalAmount: booking.totalAmount || 0,
+            pendingAmount: booking.pendingAmount || 0,
           },
         },
       },
@@ -265,32 +270,50 @@ export const getRentedListings = async (userId) => {
       userId,
       bookings: { $exists: true, $ne: [] },
     }).sort({ createdAt: -1 });
+
+    console.log(`[getRentedListings] Found ${listings.length} listings with bookings for user ${userId}`);
     
     // Populate booking details with payment information from Booking collection
     const enrichedListings = await Promise.all(
       listings.map(async (listing) => {
         const listingObj = listing.toObject();
         
+        console.log(`[getRentedListings] Listing: ${listing.title}, bookings count: ${listingObj.bookings.length}`);
+        
         // Fetch full booking details for each booking reference
         const enrichedBookings = await Promise.all(
           listingObj.bookings.map(async (booking) => {
             if (!booking.bookingId) {
+              console.log(`[getRentedListings] Warning: No bookingId in booking`);
               return booking;
             }
+            
+            console.log(`[getRentedListings] Fetching booking details for: ${booking.bookingId}`);
             
             const bookingDetails = await Booking.findById(booking.bookingId);
             
             if (bookingDetails) {
+              console.log(`[getRentedListings] Found booking details:`, {
+                rentalAmount: bookingDetails.rentalAmount,
+                depositAmount: bookingDetails.depositAmount,
+                bookingFee: bookingDetails.bookingFee,
+                totalAmount: bookingDetails.totalAmount,
+              });
+
               return {
                 ...booking,
                 rentalAmount: bookingDetails.rentalAmount,
                 depositAmount: bookingDetails.depositAmount,
+                bookingFee: bookingDetails.bookingFee || 0,
+                cleaningFee: bookingDetails.cleaningFee || 0,
+                deliveryFee: bookingDetails.deliveryFee || 0,
                 totalAmount: bookingDetails.totalAmount,
                 paidAmount: bookingDetails.paidAmount,
                 pendingAmount: bookingDetails.pendingAmount,
                 paymentStatus: bookingDetails.paymentStatus,
               };
             }
+            console.log(`[getRentedListings] Warning: No booking found for ID: ${booking.bookingId}`);
             return booking;
           })
         );
@@ -304,6 +327,7 @@ export const getRentedListings = async (userId) => {
     
     return enrichedListings;
   } catch (error) {
+    console.error('[getRentedListings] Error:', error);
     throw new Error(`Failed to get rented listings: ${error.message}`);
   }
 };

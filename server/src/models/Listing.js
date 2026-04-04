@@ -96,6 +96,26 @@ const listingSchema = new mongoose.Schema(
         },
         renterName: String,
         renterEmail: String,
+        rentalAmount: {
+          type: Number,
+          default: 0,
+        },
+        depositAmount: {
+          type: Number,
+          default: 0,
+        },
+        bookingFee: {
+          type: Number,
+          default: 0,
+        },
+        totalAmount: {
+          type: Number,
+          default: 0,
+        },
+        pendingAmount: {
+          type: Number,
+          default: 0,
+        },
         createdAt: {
           type: Date,
           default: Date.now,
