@@ -20,7 +20,8 @@ export const useRentedListings = () => {
         throw new Error('User not authenticated')
       }
 
-      const token = await currentUser.getIdToken()
+      // Get fresh token from Firebase
+      const token = await currentUser.getIdToken(true)
       const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'
       const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
       const response = await fetch(`${baseUrl}/api/listings/user/rented-listings`, {
@@ -33,13 +34,15 @@ export const useRentedListings = () => {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to fetch rented listings')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `Failed to fetch rented listings (${response.status})`)
       }
 
       const data = await response.json()
       setRentedListings(data.data.listings || [])
     } catch (err) {
       setError(err.message)
+      console.error('[useRentedListings] Error:', err)
     } finally {
       setLoading(false)
     }
@@ -57,7 +60,8 @@ export const useRentedListings = () => {
         throw new Error('User not authenticated')
       }
 
-      const token = await currentUser.getIdToken()
+      // Get fresh token from Firebase
+      const token = await currentUser.getIdToken(true)
       const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'
       const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
       const response = await fetch(`${baseUrl}/api/listings/relist/${listingId}`, {
@@ -80,6 +84,7 @@ export const useRentedListings = () => {
       return data.data.listing
     } catch (err) {
       setError(err.message)
+      console.error('[useRentedListings] Relist error:', err)
       throw err
     } finally {
       setLoading(false)

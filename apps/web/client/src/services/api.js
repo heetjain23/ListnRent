@@ -17,37 +17,36 @@ const API_BASE_URL = (() => {
   return window.location.origin;
 })();
 
-export const api = async (endpoint, options = {}) => {
-  let token = localStorage.getItem("auth_token");
+// Get a fresh, valid token from Firebase
+const getValidToken = async () => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    console.warn("[API] No authenticated user");
+    return null;
+  }
 
-  // If no token in localStorage, try to get from Firebase
-  if (!token) {
-    try {
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        token = await currentUser.getIdToken();
-        // Store the fresh token for future requests
-        localStorage.setItem('auth_token', token);
-      }
-    } catch (err) {
-      console.error("Failed to get token from Firebase:", err);
-    }
-  } else {
-    // Token exists in localStorage, but refresh it to ensure it's valid
-    // (Firebase tokens expire after 1 hour)
-    try {
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        const freshToken = await currentUser.getIdToken(true); // Force refresh
-        if (freshToken) {
-          token = freshToken;
-          localStorage.setItem('auth_token', token);
-        }
-      }
-    } catch (err) {
-      // If refresh fails, use the existing token and let the request fail if it's invalid
-      console.warn("Failed to refresh token:", err);
-    }
+  try {
+    // Always get a fresh token to ensure it's valid
+    const token = await currentUser.getIdToken(true);
+    return token;
+  } catch (err) {
+    console.error("[API] Failed to get token from Firebase:", err);
+    // Clear invalid token from localStorage
+    localStorage.removeItem('auth_token');
+    throw new Error('Failed to authenticate. Please log in again.');
+  }
+};
+
+export const api = async (endpoint, options = {}) => {
+  let token = null;
+
+  // Try to get a fresh token from Firebase
+  try {
+    token = await getValidToken();
+  } catch (err) {
+    // If we can't get a fresh token, the request will fail with 401 anyway
+    console.error(err.message);
+    throw err;
   }
 
   const headers = {

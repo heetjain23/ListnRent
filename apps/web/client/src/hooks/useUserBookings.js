@@ -22,7 +22,8 @@ export const useUserBookings = () => {
         throw new Error('User not authenticated')
       }
 
-      const token = await currentUser.getIdToken()
+      // Get fresh token from Firebase
+      const token = await currentUser.getIdToken(true)
       const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'
       const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
       const response = await fetch(`${baseUrl}/api/payments/my-bookings`, {
@@ -35,13 +36,15 @@ export const useUserBookings = () => {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to fetch bookings')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `Failed to fetch bookings (${response.status})`)
       }
 
       const data = await response.json()
       setBookings(data.data.bookings || [])
     } catch (err) {
       setError(err.message)
+      console.error('[useUserBookings] Error:', err)
     } finally {
       setLoading(false)
     }
@@ -60,7 +63,8 @@ export const useUserBookings = () => {
         throw new Error('User not authenticated')
       }
 
-      const token = await currentUser.getIdToken()
+      // Get fresh token from Firebase
+      const token = await currentUser.getIdToken(true)
       const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'
       const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl
       const response = await fetch(`${baseUrl}/api/payments/renter-bookings`, {
@@ -73,13 +77,15 @@ export const useUserBookings = () => {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to fetch renter bookings')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `Failed to fetch renter bookings (${response.status})`)
       }
 
       const data = await response.json()
       setRenterBookings(data.data.bookings || [])
     } catch (err) {
       setError(err.message)
+      console.error('[useUserBookings] Renter bookings error:', err)
     } finally {
       setLoading(false)
     }

@@ -16,13 +16,12 @@ export const AuthProvider = ({ children }) => {
     // Subscribe to Firebase auth state changes
     const unsubscribe = subscribeToAuthChanges(async (authUser) => {
       if (authUser) {
-        // Store the Firebase token immediately
-        if (authUser.token) {
-          localStorage.setItem('auth_token', authUser.token)
-        }
+        // Don't store the token here - let the api() function handle fresh token retrieval
+        // This ensures we always have a valid, non-expired token for API calls
 
         try {
           // Initialize user in database if they just logged in
+          // The api() function will get a fresh token automatically
           await usersApi.init({
             displayName: authUser.displayName,
             photoURL: authUser.photoURL,
