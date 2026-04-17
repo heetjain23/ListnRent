@@ -1,7 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import HeroBig from "../../assets/HeroBig.png";
-import HeroSml from "../../assets/HeroSml.png";
+import { CLOUDINARY_IMAGES } from "../../constants/imageConstants";
 
 const HeroSection = () => {
   return (
@@ -10,14 +9,14 @@ const HeroSection = () => {
       <div className="md:hidden mb-8 relative flex justify-center">
         <div className="relative w-full max-w-xs">
           <img
-            src={HeroBig}
+            src={CLOUDINARY_IMAGES.HERO_BIG}
             alt="Premium Ethnic Wear"
             className="w-full h-auto object-cover"
           />
           {/* Small Image - Overlay Bottom Left */}
           <div className="absolute bottom-2 -left-3">
             <img
-              src={HeroSml}
+              src={CLOUDINARY_IMAGES.HERO_SML}
               alt="Jewelry Detail"
               className="w-24 h-24 object-cover"
               onError={(e) => {
@@ -88,11 +87,11 @@ const HeroSection = () => {
         {/* Desktop Image - Hidden on Mobile, Shown on MD and up */}
         <div className="relative hidden md:block py-4 md:py-6 lg:py-8">
           <div className="aspect-auto relative ml-auto w-fit">
-            <img src={HeroBig} alt="Premium Ethnic Wear" className="h-80 md:h-96 lg:h-150" />
+            <img src={CLOUDINARY_IMAGES.HERO_BIG} alt="Premium Ethnic Wear" className="h-80 md:h-96 lg:h-150" />
             {/* Second Image - Overlay Bottom Left */}
             <div className="absolute bottom-2 md:bottom-2 lg:bottom-3 -left-3 lg:-left-5">
               <img
-                src={HeroSml}
+                src={CLOUDINARY_IMAGES.HERO_SML}
                 alt="Jewelry Detail"
                 className="h-32 md:h-36 lg:h-50"
                 onError={(e) => {

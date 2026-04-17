@@ -1,55 +1,57 @@
-import React, { useState, useRef } from 'react'
-import ListingCard from '../collection/ListingCard'
+import React, { useState, useRef } from "react";
+import ListingCard from "../collection/ListingCard";
 
 const TrendingNowSection = ({ listings, loading }) => {
-  const [carouselIndex, setCarouselIndex] = useState(0)
-  const [touchStart, setTouchStart] = useState(0)
-  const [touchEnd, setTouchEnd] = useState(0)
-  const carouselRef = useRef(null)
-  
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const carouselRef = useRef(null);
+
   // Show only first 4 listings for trending section
-  const trendingListings = listings.slice(0, 4)
+  const trendingListings = listings.slice(0, 4);
 
   const handlePrev = () => {
-    setCarouselIndex((prev) => Math.max(0, prev - 1))
-  }
+    setCarouselIndex((prev) => Math.max(0, prev - 1));
+  };
 
   const handleNext = () => {
-    setCarouselIndex((prev) =>
-      Math.min(trendingListings.length - 1, prev + 1)
-    )
-  }
+    setCarouselIndex((prev) => Math.min(trendingListings.length - 1, prev + 1));
+  };
 
   const handleTouchStart = (e) => {
-    setTouchStart(e.targetTouches[0].clientX)
-  }
+    setTouchStart(e.targetTouches[0].clientX);
+  };
 
   const handleTouchEnd = (e) => {
-    setTouchEnd(e.changedTouches[0].clientX)
-    handleSwipe()
-  }
+    setTouchEnd(e.changedTouches[0].clientX);
+    handleSwipe();
+  };
 
   const handleSwipe = () => {
-    if (!touchStart || !touchEnd) return
-    
-    const distance = touchStart - touchEnd
-    const isLeftSwipe = distance > 50
-    const isRightSwipe = distance < -50
+    if (!touchStart || !touchEnd) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
 
     if (isLeftSwipe && carouselIndex < trendingListings.length - 1) {
-      setCarouselIndex((prev) => Math.min(trendingListings.length - 1, prev + 1))
+      setCarouselIndex((prev) =>
+        Math.min(trendingListings.length - 1, prev + 1),
+      );
     }
     if (isRightSwipe && carouselIndex > 0) {
-      setCarouselIndex((prev) => Math.max(0, prev - 1))
+      setCarouselIndex((prev) => Math.max(0, prev - 1));
     }
-  }
+  };
 
   if (loading) {
     return (
       <section className="py-16 px-6 bg-[#FDFAF7]">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-[#1A1A1A] mb-4 text-center"
-            style={{ fontFamily: "'Georgia', serif" }}>
+          <h2
+            className="text-3xl md:text-4xl font-bold text-[#1A1A1A] mb-4 text-center"
+            style={{ fontFamily: "'Georgia', serif" }}
+          >
             Trending Now
           </h2>
           <p className="text-center text-[#666] mb-12 max-w-2xl mx-auto">
@@ -57,29 +59,34 @@ const TrendingNowSection = ({ listings, loading }) => {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white rounded-xl aspect-3/4 animate-pulse" />
+              <div
+                key={i}
+                className="bg-white rounded-xl aspect-3/4 animate-pulse"
+              />
             ))}
           </div>
         </div>
       </section>
-    )
+    );
   }
 
   if (!trendingListings.length) {
-    return null
+    return null;
   }
 
   return (
     <section className="py-16 px-6 bg-[#FDFAF7]">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-12">
+        <div className="flex items-center justify-between mb-2">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#00342B]"
-              style={{ fontFamily: "'Georgia', serif" }}>
+            <h2
+              className="text-3xl md:text-4xl font-bold text-[#00342B]"
+              style={{ fontFamily: "'Georgia', serif" }}
+            >
               Trending Now
             </h2>
           </div>
-          
+
           {/* Navigation Arrows - Mobile Only */}
           <div className="md:hidden flex gap-2">
             <button
@@ -107,13 +114,13 @@ const TrendingNowSection = ({ listings, loading }) => {
 
         {/* Mobile Carousel */}
         <div className="md:hidden mb-8 overflow-hidden">
-          <div 
+          <div
             ref={carouselRef}
             className="flex gap-4"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
-            {trendingListings.map((listing, index) => (
+            {trendingListings.map((listing) => (
               <div
                 key={listing._id}
                 className="shrink-0 w-full transition-transform duration-300"
@@ -135,7 +142,7 @@ const TrendingNowSection = ({ listings, loading }) => {
         </div>
       </div>
     </section>
-  )
-}
+  );
+};
 
-export default TrendingNowSection
+export default TrendingNowSection;

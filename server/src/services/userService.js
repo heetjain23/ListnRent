@@ -1,13 +1,15 @@
 import User from '../models/User.js'
+import Listing from '../models/Listing.js'
+import Booking from '../models/Booking.js'
 
 // Initialize user - ensure user exists in database (without overwriting existing data)
 export const initializeUser = async (uid, email, additionalData = {}) => {
   try {
-    // First check if user already exists
-    const existingUser = await User.findOne({ uid })
+    // First check if user exists by uid
+    let existingUser = await User.findOne({ uid })
     
     if (existingUser) {
-      // User exists - only update email if changed, don't overwrite other fields
+      // User exists by uid - only update email if changed, don't overwrite other fields
       const updateData = { email }
       
       // Only set displayName if it's not already set
@@ -28,15 +30,56 @@ export const initializeUser = async (uid, email, additionalData = {}) => {
       
       return user
     } else {
-      // New user - create with all initial data
-      const user = await User.create({
-        uid,
-        email,
-        ...additionalData,
-      })
+      // Check if user exists by email (user may have a different uid from re-auth)
+      existingUser = await User.findOne({ email })
       
-      console.log('[UserService] New user created:', user)
-      return user
+      if (existingUser) {
+        // User exists by email but with different uid - migrate all listings and bookings
+        const oldUid = existingUser.uid
+        const updateData = { uid }
+        
+        // Set displayName if provided and not already set
+        if (!existingUser.displayName && additionalData.displayName) {
+          updateData.displayName = additionalData.displayName
+        }
+        
+        // Set photoURL if provided and not already set
+        if (!existingUser.photoURL && additionalData.photoURL) {
+          updateData.photoURL = additionalData.photoURL
+        }
+        
+        // Migrate all listings from old uid to new uid
+        await Listing.updateMany(
+          { userId: oldUid },
+          { userId: uid }
+        )
+        
+        // Migrate all bookings from old uid to new uid
+        await Booking.updateMany(
+          { userId: oldUid },
+          { userId: uid }
+        )
+        
+        const user = await User.findOneAndUpdate(
+          { email },
+          updateData,
+          { returnDocument: 'after' }
+        )
+        
+        console.log('[UserService] Updated user uid from', oldUid, 'to', uid)
+        console.log('[UserService] Migrated listings and bookings to new uid')
+        return user
+      } else {
+        // New user - create with all initial data
+        const user = await User.create({
+          uid,
+          email,
+          ...additionalData,
+        })
+        
+        console.log('[UserService] New user created:', user)
+        return user
+      }
     }
   } catch (error) {
     console.error('[UserService] Error initializing user:', error)
@@ -56,9 +99,7 @@ export const getUserById = async (uid, email = null) => {
         uid,
         email,
       })
-      console.log('[UserService] New user created:', user)
     } else {
-      console.log('[UserService] User found:', user)
     }
     
     return user

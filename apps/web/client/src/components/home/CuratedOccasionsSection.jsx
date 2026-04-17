@@ -1,8 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import Wedding from '../../assets/Wedding.png'
-import Festivals from '../../assets/Festivals.png'
-import Parties from '../../assets/Parties.png'
+import { CLOUDINARY_IMAGES } from '../../constants/imageConstants'
 
 const CuratedOccasionsSection = () => {
   const occasionsData = [
@@ -11,7 +9,7 @@ const CuratedOccasionsSection = () => {
       title: 'Weddings',
       subtitle: 'Glamorous for the big day',
       icon: '💍',
-      bgImage: Wedding,
+      bgImage: CLOUDINARY_IMAGES.WEDDING,
       link: '/collection?occasion=Wedding',
     },
     {
@@ -19,7 +17,7 @@ const CuratedOccasionsSection = () => {
       title: 'Parties',
       subtitle: 'Chic looks & cocktail wear',
       icon: '🎉',
-      bgImage: Parties,
+      bgImage: CLOUDINARY_IMAGES.PARTIES,
       link: '/collection?occasion=Parties',
     },
     {
@@ -27,7 +25,7 @@ const CuratedOccasionsSection = () => {
       title: 'Festivals',
       subtitle: 'Vibrant looks you need',
       icon: '✨',
-      bgImage: Festivals,
+      bgImage: CLOUDINARY_IMAGES.FESTIVALS,
       link: '/collection?occasion=Festivals',
     },
   ]
