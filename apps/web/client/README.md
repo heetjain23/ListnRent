@@ -93,3 +93,4 @@ Mobile application for ListnRent (iOS + Android).
 - Will use same backend APIs as web
 - Designed after MVP validation
 
+ just checking
