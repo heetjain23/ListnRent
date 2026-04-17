@@ -26,8 +26,27 @@ export const api = async (endpoint, options = {}) => {
       const currentUser = auth.currentUser;
       if (currentUser) {
         token = await currentUser.getIdToken();
+        // Store the fresh token for future requests
+        localStorage.setItem('auth_token', token);
       }
     } catch (err) {
+      console.error("Failed to get token from Firebase:", err);
+    }
+  } else {
+    // Token exists in localStorage, but refresh it to ensure it's valid
+    // (Firebase tokens expire after 1 hour)
+    try {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const freshToken = await currentUser.getIdToken(true); // Force refresh
+        if (freshToken) {
+          token = freshToken;
+          localStorage.setItem('auth_token', token);
+        }
+      }
+    } catch (err) {
+      // If refresh fails, use the existing token and let the request fail if it's invalid
+      console.warn("Failed to refresh token:", err);
     }
   }
 

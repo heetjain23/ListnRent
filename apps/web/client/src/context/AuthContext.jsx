@@ -16,6 +16,11 @@ export const AuthProvider = ({ children }) => {
     // Subscribe to Firebase auth state changes
     const unsubscribe = subscribeToAuthChanges(async (authUser) => {
       if (authUser) {
+        // Store the Firebase token immediately
+        if (authUser.token) {
+          localStorage.setItem('auth_token', authUser.token)
+        }
+
         try {
           // Initialize user in database if they just logged in
           await usersApi.init({
