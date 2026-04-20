@@ -38,6 +38,17 @@ export const AuthProvider = ({ children }) => {
     let sessionRestoreTimeout;
 
     const initializeAuth = async () => {
+      // First, try to restore user from localStorage (for page refresh persistence)
+      const storedUser = localStorage.getItem("auth_user");
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+        } catch (err) {
+          localStorage.removeItem("auth_user");
+        }
+      }
+
       // Check if redirected from admin panel with token in URL
       const searchParams = new URLSearchParams(window.location.search);
       const redirectedToken = searchParams.get("token");
@@ -205,9 +216,13 @@ export const AuthProvider = ({ children }) => {
             );
           }
         } else {
-          setUser(null);
-          localStorage.removeItem("auth_user");
-          localStorage.removeItem("auth_token");
+          // Only clear user if there's no stored token (not a redirected user)
+          const storedToken = localStorage.getItem("auth_token");
+          if (!storedToken) {
+            setUser(null);
+            localStorage.removeItem("auth_user");
+          }
+          // If there IS a stored token, keep the user from localStorage (redirected user)
         }
 
         setLoading(false);

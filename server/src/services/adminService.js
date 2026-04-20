@@ -56,3 +56,67 @@ export const isAdminActive = async (email) => {
   const admin = await Admin.findOne({ email })
   return admin && admin.status === 'active'
 }
+
+// Add delivery partner
+export const addDeliveryPartner = async (email) => {
+  const existing = await Admin.findOne({ email })
+  if (existing) {
+    throw new Error('Email already registered')
+  }
+
+  const deliveryPartner = await Admin.create({
+    email,
+    role: 'delivery_partner',
+    status: 'active',
+  })
+
+  return deliveryPartner
+}
+
+// Get all delivery partners
+export const getAllDeliveryPartners = async () => {
+  return await Admin.find({ role: 'delivery_partner' })
+}
+
+// Remove delivery partner
+export const removeDeliveryPartner = async (email) => {
+  const result = await Admin.findOneAndDelete({ email, role: 'delivery_partner' })
+  if (!result) {
+    throw new Error('Delivery partner not found')
+  }
+  return result
+}
+
+// Add new admin
+export const addNewAdmin = async (email) => {
+  const existing = await Admin.findOne({ email })
+  if (existing) {
+    throw new Error('Email already registered')
+  }
+
+  const admin = await Admin.create({
+    email,
+    role: 'admin',
+    status: 'active',
+  })
+
+  return admin
+}
+
+// Get all admins
+export const getAllAdmins = async () => {
+  return await Admin.find({ role: 'admin' })
+}
+
+// Update admin status
+export const updateAdminStatus = async (email, status) => {
+  const admin = await Admin.findOneAndUpdate(
+    { email },
+    { $set: { status } },
+    { new: true, runValidators: true }
+  )
+  if (!admin) {
+    throw new Error('Admin not found')
+  }
+  return admin
+}

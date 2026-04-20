@@ -36,4 +36,109 @@ export const adminApi = {
 
     return response.json()
   },
+
+  // Delivery Partner Methods
+  addDeliveryPartner: async (email) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to add delivery partner')
+    }
+
+    return data
+  },
+
+  getDeliveryPartners: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to get delivery partners')
+    }
+
+    return response.json()
+  },
+
+  removeDeliveryPartner: async (email) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners/${email}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to remove delivery partner')
+    }
+
+    return data
+  },
+
+  // Admin Methods
+  addAdmin: async (email) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/add-admin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to add admin')
+    }
+
+    return data
+  },
+
+  getAdmins: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/admins`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to get admins')
+    }
+
+    return response.json()
+  },
+
+  updateAdminStatus: async (email, status) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/admin-status/${email}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update admin status')
+    }
+
+    return data
+  },
 }
