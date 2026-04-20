@@ -5,21 +5,24 @@ export const handleInitializeAdmin = async (req, res) => {
   try {
     const { email, displayName, photoURL } = req.body
 
-    // Check if admin exists
+    // Check if admin/delivery partner exists
     const existingAdmin = await adminService.getAdminByEmail(email)
     if (!existingAdmin) {
+      // User not registered - redirect to client app
       return res.status(403).json({
         success: false,
-        message: 'You are not authorized as an admin. Please contact support.',
+        message: 'User not found in system.',
+        shouldRedirectToClient: true,
       })
     }
 
-    // Check if admin is active
+    // Check if user is active
     const isActive = await adminService.isAdminActive(email)
     if (!isActive) {
       return res.status(403).json({
         success: false,
-        message: 'Your admin account is inactive. Please contact support.',
+        message: 'Your account is inactive. Please contact support.',
+        shouldRedirectToClient: false,
       })
     }
 
@@ -31,7 +34,8 @@ export const handleInitializeAdmin = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Admin initialized',
+      message: 'User initialized',
+      shouldRedirectToClient: false,
       admin: {
         email: admin.email,
         displayName: admin.displayName,
@@ -45,6 +49,7 @@ export const handleInitializeAdmin = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to initialize admin',
+      shouldRedirectToClient: false,
     })
   }
 }

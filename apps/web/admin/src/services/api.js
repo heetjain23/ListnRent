@@ -1,5 +1,5 @@
 // Admin API Service
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 export const adminApi = {
   // Initialize admin
@@ -12,12 +12,11 @@ export const adminApi = {
       body: JSON.stringify(data),
     })
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to initialize admin')
-    }
+    const responseData = await response.json()
 
-    return response.json()
+    // Always return the response, even for non-2xx status
+    // The AdminAuthContext will handle the shouldRedirectToClient flag
+    return responseData
   },
 
   // Get admin profile

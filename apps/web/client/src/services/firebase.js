@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app'
+import { initializeApp } from "firebase/app";
 import {
   getAuth,
   GoogleAuthProvider,
@@ -8,7 +8,9 @@ import {
   isSignInWithEmailLink,
   signOut,
   onAuthStateChanged,
-} from 'firebase/auth'
+  setPersistence,
+  browserLocalPersistence,
+} from "firebase/auth";
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -19,20 +21,27 @@ const firebaseConfig = {
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
-}
+};
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig)
+const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase Auth
-export const auth = getAuth(app)
+export const auth = getAuth(app);
+
+// Set persistence to LOCAL (survives browser restarts)
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {})
+  .catch((error) => {
+    console.error("[Firebase] Failed to set persistence:", error);
+  });
 
 // Initialize providers
-export const googleProvider = new GoogleAuthProvider()
+export const googleProvider = new GoogleAuthProvider();
 
 // Configure Google provider for popup
-googleProvider.addScope('profile')
-googleProvider.addScope('email')
+googleProvider.addScope("profile");
+googleProvider.addScope("email");
 
 /**
  * Sign in with Google using popup
@@ -40,18 +49,18 @@ googleProvider.addScope('email')
  */
 export const signInWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider)
+    const result = await signInWithPopup(auth, googleProvider);
     return {
       uid: result.user.uid,
       email: result.user.email,
       displayName: result.user.displayName,
       photoURL: result.user.photoURL,
-      provider: 'google',
-    }
+      provider: "google",
+    };
   } catch (error) {
-    throw new Error(error.message)
+    throw new Error(error.message);
   }
-}
+};
 
 /**
  * Send magic link to email
@@ -63,16 +72,16 @@ export const sendMagicLink = async (email) => {
   const actionCodeSettings = {
     url: `${window.location.origin}/complete-magic-link`,
     handleCodeInApp: true,
-  }
+  };
 
   try {
-    await sendSignInLinkToEmail(auth, email, actionCodeSettings)
+    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
     // Save email for later verification
-    window.localStorage.setItem('emailForSignIn', email)
+    window.localStorage.setItem("emailForSignIn", email);
   } catch (error) {
-    throw new Error(error.message)
+    throw new Error(error.message);
   }
-}
+};
 
 /**
  * Complete magic link sign in
@@ -82,21 +91,25 @@ export const sendMagicLink = async (email) => {
 export const completeMagicLinkSignIn = async (email) => {
   try {
     if (isSignInWithEmailLink(auth, window.location.href)) {
-      const result = await signInWithEmailLink(auth, email, window.location.href)
-      window.localStorage.removeItem('emailForSignIn')
+      const result = await signInWithEmailLink(
+        auth,
+        email,
+        window.location.href,
+      );
+      window.localStorage.removeItem("emailForSignIn");
       return {
         uid: result.user.uid,
         email: result.user.email,
         displayName: result.user.displayName || email,
-        provider: 'email-link',
-      }
+        provider: "email-link",
+      };
     } else {
-      throw new Error('Invalid magic link or link expired')
+      throw new Error("Invalid magic link or link expired");
     }
   } catch (error) {
-    throw new Error(error.message)
+    throw new Error(error.message);
   }
-}
+};
 
 /**
  * Sign out current user
@@ -104,11 +117,11 @@ export const completeMagicLinkSignIn = async (email) => {
  */
 export const firebaseSignOut = async () => {
   try {
-    await signOut(auth)
+    await signOut(auth);
   } catch (error) {
-    throw new Error(error.message)
+    throw new Error(error.message);
   }
-}
+};
 
 /**
  * Subscribe to auth state changes
@@ -118,18 +131,18 @@ export const firebaseSignOut = async () => {
 export const subscribeToAuthChanges = (callback) => {
   return onAuthStateChanged(auth, async (user) => {
     if (user) {
-      const token = await user.getIdToken()
+      const token = await user.getIdToken();
       callback({
         uid: user.uid,
         email: user.email,
         displayName: user.displayName,
         photoURL: user.photoURL,
         token,
-      })
+      });
     } else {
-      callback(null)
+      callback(null);
     }
-  })
-}
+  });
+};
 
-export default app
+export default app;

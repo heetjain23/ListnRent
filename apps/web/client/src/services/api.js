@@ -3,38 +3,57 @@ import { auth } from "./firebase.js";
 // Get API URL from environment variables
 const API_BASE_URL = (() => {
   const env = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL;
-  
+
   if (env) {
     return env.endsWith("/") ? env.slice(0, -1) : env;
   }
-  
+
   // Development fallback
-  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+  if (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+  ) {
     return "http://localhost:5000";
   }
-  
+
   // Production: use same origin
   return window.location.origin;
 })();
 
-// Get a fresh, valid token from Firebase
+// Get a fresh, valid token from Firebase or stored token
+// Falls back to stored token for users redirected from admin panel
 const getValidToken = async () => {
-  const currentUser = auth.currentUser;
-  if (!currentUser) {
-    console.warn("[API] No authenticated user");
-    return null;
+  const maxAttempts = 4; // 4 attempts with 500ms delay = 2 seconds total
+  let attempt = 0;
+
+  // First, try to get token from Firebase auth
+  while (attempt < maxAttempts) {
+    const currentUser = auth.currentUser;
+
+    if (currentUser) {
+      try {
+        // Always get a fresh token to ensure it's valid
+        const token = await currentUser.getIdToken(true);
+        return token;
+      } catch (err) {
+        break; // Break and try stored token
+      }
+    }
+
+    attempt++;
+    // Wait before retrying (gives Firebase time to restore session)
+    if (attempt < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
   }
 
-  try {
-    // Always get a fresh token to ensure it's valid
-    const token = await currentUser.getIdToken(true);
-    return token;
-  } catch (err) {
-    console.error("[API] Failed to get token from Firebase:", err);
-    // Clear invalid token from localStorage
-    localStorage.removeItem('auth_token');
-    throw new Error('Failed to authenticate. Please log in again.');
+  // Fallback: Check for stored token (used for token redirect from admin panel)
+  const storedToken = localStorage.getItem("auth_token");
+  if (storedToken) {
+    return storedToken;
   }
+
+  return null;
 };
 
 export const api = async (endpoint, options = {}) => {
@@ -45,7 +64,6 @@ export const api = async (endpoint, options = {}) => {
     token = await getValidToken();
   } catch (err) {
     // If we can't get a fresh token, the request will fail with 401 anyway
-    console.error(err.message);
     throw err;
   }
 
@@ -54,6 +72,7 @@ export const api = async (endpoint, options = {}) => {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
+
 
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
@@ -83,28 +102,28 @@ export const listingsApi = {
   // GET /api/listings?category=&occasion=&gender=&city=
   getAll: (filters = {}) => {
     const params = new URLSearchParams();
-    
+
     // Handle multiple categories
     if (filters.category && Array.isArray(filters.category)) {
       filters.category.forEach((cat) => params.append("category", cat));
     } else if (filters.category) {
       params.append("category", filters.category);
     }
-    
+
     // Handle multiple occasions
     if (filters.occasion && Array.isArray(filters.occasion)) {
       filters.occasion.forEach((occ) => params.append("occasion", occ));
     } else if (filters.occasion) {
       params.append("occasion", filters.occasion);
     }
-    
+
     // Handle multiple genders
     if (filters.gender && Array.isArray(filters.gender)) {
       filters.gender.forEach((gen) => params.append("gender", gen));
     } else if (filters.gender) {
       params.append("gender", filters.gender);
     }
-    
+
     if (filters.city) params.append("city", filters.city);
     const query = params.toString() ? `?${params.toString()}` : "";
     return api(`/api/listings${query}`);
@@ -112,7 +131,9 @@ export const listingsApi = {
 
   // GET /api/listings/:id
   getById: (id, bypassCache = false) => {
-    const url = bypassCache ? `/api/listings/${id}?bypassCache=true` : `/api/listings/${id}`;
+    const url = bypassCache
+      ? `/api/listings/${id}?bypassCache=true`
+      : `/api/listings/${id}`;
     return api(url);
   },
 

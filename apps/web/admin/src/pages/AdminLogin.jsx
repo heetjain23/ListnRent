@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 const AdminLogin = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { loginWithGoogle, sendMagicLinkToEmail, loadingAction, error, clearError, isAuthenticated } = useAdminAuth()
+  const { loginWithGoogle, sendMagicLinkToEmail, loadingAction, error, clearError, isAuthenticated, shouldRedirectToClient } = useAdminAuth()
 
   const [email, setEmail] = useState('')
   const [step, setStep] = useState('initial')
@@ -19,6 +19,14 @@ const AdminLogin = () => {
       navigate(from)
     }
   }, [isAuthenticated, navigate, location])
+
+  // Show redirect message if user should be redirected to client app
+  useEffect(() => {
+    if (shouldRedirectToClient) {
+      setStep('redirecting')
+      toast.loading('Redirecting to ListnRent application...')
+    }
+  }, [shouldRedirectToClient])
 
   // Check if we're completing a magic link
   useEffect(() => {
@@ -34,8 +42,8 @@ const AdminLogin = () => {
       clearError()
       setIsLoading(true)
       await loginWithGoogle()
-      toast.success('Welcome! Redirecting to dashboard...')
-      // Redirect happens automatically via useEffect when isAuthenticated changes
+      toast.success('Welcome! Processing your request...')
+      // Redirect happens automatically via useEffect when isAuthenticated or shouldRedirectToClient changes
     } catch (err) {
       toast.error(err.message || 'Google login failed. Please try again.')
     } finally {
@@ -76,6 +84,34 @@ const AdminLogin = () => {
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
+        {/* Redirecting Step */}
+        {step === 'redirecting' && (
+          <div className="space-y-6">
+            <div className="p-8 bg-blue-50 border border-blue-200 rounded-lg text-center">
+              <div className="text-5xl mb-4">🔄</div>
+              <p className="text-lg text-blue-900 mb-2 font-semibold">
+                Transferring to ListnRent
+              </p>
+              <p className="text-sm text-blue-800 mb-6">
+                Preparing your account...
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin">⏳</div>
+                  <span className="text-sm text-blue-700">Generating secure token</span>
+                </div>
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <div className="animate-pulse">✓</div>
+                  <span className="text-sm text-blue-700">Redirecting in a moment...</span>
+                </div>
+              </div>
+              <p className="text-xs text-blue-600 mt-4">
+                You'll be automatically logged in when we transfer you
+              </p>
+            </div>
           </div>
         )}
 
@@ -127,7 +163,7 @@ const AdminLogin = () => {
             {/* Info Box */}
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-xs text-blue-700">
-                <strong>Admin Login:</strong> A secure magic link will be sent to your email. Only authorized admins and delivery partners can access this panel.
+                <strong>Admin Panel:</strong> Authorized admins and delivery partners can sign in here. Unregistered users will be redirected to the main application.
               </p>
             </div>
           </div>
@@ -159,7 +195,7 @@ const AdminLogin = () => {
 
         {/* Footer */}
         <p className="text-center text-xs text-slate-600 mt-8">
-          Only authorized admins and delivery partners can access this panel
+          Authorized admins and delivery partners only
         </p>
       </div>
     </div>
