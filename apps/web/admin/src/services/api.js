@@ -4,7 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
 export const adminApi = {
   // Initialize admin
   init: async (data) => {
-    const response = await fetch(`${API_BASE_URL}/admin/init`, {
+    const response = await fetch(`${API_BASE_URL}/api/admin/init`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -22,7 +22,7 @@ export const adminApi = {
 
   // Get admin profile
   getProfile: async (email) => {
-    const response = await fetch(`${API_BASE_URL}/admin/profile`, {
+    const response = await fetch(`${API_BASE_URL}/api/admin/profile`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
