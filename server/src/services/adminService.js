@@ -29,15 +29,6 @@ export const getAdminByEmail = async (email) => {
   return await Admin.findOne({ email })
 }
 
-// Get admin profile
-export const getAdminProfile = async (email) => {
-  const admin = await Admin.findOne({ email })
-  if (!admin) {
-    throw new Error('Admin not found')
-  }
-  return admin
-}
-
 // Update admin profile
 export const updateAdminProfile = async (email, updates) => {
   const admin = await Admin.findOneAndUpdate(
@@ -57,36 +48,6 @@ export const isAdminActive = async (email) => {
   return admin && admin.status === 'active'
 }
 
-// Add delivery partner
-export const addDeliveryPartner = async (email) => {
-  const existing = await Admin.findOne({ email })
-  if (existing) {
-    throw new Error('Email already registered')
-  }
-
-  const deliveryPartner = await Admin.create({
-    email,
-    role: 'delivery_partner',
-    status: 'active',
-  })
-
-  return deliveryPartner
-}
-
-// Get all delivery partners
-export const getAllDeliveryPartners = async () => {
-  return await Admin.find({ role: 'delivery_partner' })
-}
-
-// Remove delivery partner
-export const removeDeliveryPartner = async (email) => {
-  const result = await Admin.findOneAndDelete({ email, role: 'delivery_partner' })
-  if (!result) {
-    throw new Error('Delivery partner not found')
-  }
-  return result
-}
-
 // Add new admin
 export const addNewAdmin = async (email) => {
   const existing = await Admin.findOne({ email })
@@ -103,63 +64,108 @@ export const addNewAdmin = async (email) => {
   return admin
 }
 
-// Get all admins
-export const getAllAdmins = async () => {
-  return await Admin.find({ role: 'admin' })
+// Get all users with their booking and listing counts
+export const getAllUsersWithCounts = async () => {
+  // Import models at the top of the function to avoid circular dependencies
+  const { default: User } = await import('../models/User.js')
+  const { default: Booking } = await import('../models/Booking.js')
+  const { default: Listing } = await import('../models/Listing.js')
+
+  const users = await User.find({}, { uid: 1, email: 1, displayName: 1, photoURL: 1 }).sort({ createdAt: -1 })
+
+  const usersWithCounts = await Promise.all(
+    users.map(async (user) => {
+      // Count total rentals (bookings where this user is the renter)
+      const rentalsCount = await Booking.countDocuments({
+        userId: user.uid,
+        paymentStatus: 'completed',
+      })
+
+      // Count total listings (active listings by this user)
+      const listingsCount = await Listing.countDocuments({
+        userId: user.uid,
+        isActive: true,
+      })
+
+      return {
+        id: user._id.toString(),
+        uid: user.uid,
+        name: user.displayName || 'N/A',
+        email: user.email,
+        photoURL: user.photoURL,
+        totalRentals: rentalsCount,
+        totalListings: listingsCount,
+      }
+    })
+  )
+
+  return usersWithCounts
 }
 
-// Update admin status
-export const updateAdminStatus = async (email, status) => {
-  const admin = await Admin.findOneAndUpdate(
-    { email },
-    { $set: { status } },
-    { returnDocument: 'after', runValidators: true }
-  )
+// Delete a user by ID
+export const deleteUserById = async (userId) => {
+  const { default: User } = await import('../models/User.js')
+  const { default: Booking } = await import('../models/Booking.js')
+  const { default: Listing } = await import('../models/Listing.js')
+
+  const user = await User.findById(userId)
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  // Delete all listings by this user
+  await Listing.deleteMany({ userId: user.uid })
+
+  // Delete all bookings by this user
+  await Booking.deleteMany({ $or: [{ userId: user.uid }, { renterId: user.uid }] })
+
+  // Delete the user
+  await User.deleteOne({ _id: userId })
+
+  return user
+}
+
+// Get all admins with details
+export const getAllAdminsWithDetails = async () => {
+  const admins = await Admin.find({ role: 'admin' }).sort({ createdAt: -1 })
+
+  return admins.map((admin) => ({
+    id: admin._id.toString(),
+    name: admin.displayName || 'N/A',
+    email: admin.email,
+    photoURL: admin.photoURL,
+    joinedDate: admin.createdAt,
+    role: admin.role,
+    status: admin.status,
+  }))
+}
+
+// Delete an admin by email
+export const deleteAdminByEmail = async (email) => {
+  const admin = await Admin.findOneAndDelete({ email, role: 'admin' })
   if (!admin) {
     throw new Error('Admin not found')
   }
   return admin
 }
 
-// Add support team member
-export const addSupportTeamMember = async (email) => {
-  const existing = await Admin.findOne({ email })
-  if (existing) {
-    throw new Error('Email already registered')
+// Update admin email
+export const updateAdminEmail = async (oldEmail, newEmail) => {
+  // Check if new email already exists
+  const existingAdmin = await Admin.findOne({ email: newEmail })
+  if (existingAdmin) {
+    throw new Error('Email already in use')
   }
 
-  const supportMember = await Admin.create({
-    email,
-    role: 'support_team',
-    status: 'active',
-  })
-
-  return supportMember
-}
-
-// Get all support team members
-export const getAllSupportTeam = async () => {
-  return await Admin.find({ role: 'support_team' })
-}
-
-// Remove support team member
-export const removeSupportTeamMember = async (email) => {
-  const result = await Admin.findOneAndDelete({ email, role: 'support_team' })
-  if (!result) {
-    throw new Error('Support team member not found')
-  }
-  return result
-}
-
-// Update admin role
-export const updateAdminRole = async (email, role) => {
   const admin = await Admin.findOneAndUpdate(
-    { email },
-    { $set: { role } },
+    { email: oldEmail },
+    { $set: { email: newEmail } },
     { returnDocument: 'after', runValidators: true }
   )
+
   if (!admin) {
     throw new Error('Admin not found')
   }
+
   return admin
 }

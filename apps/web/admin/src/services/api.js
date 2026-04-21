@@ -19,76 +19,6 @@ export const adminApi = {
     return responseData
   },
 
-  // Get admin profile
-  getProfile: async (email) => {
-    const response = await fetch(`${API_BASE_URL}/api/admin/profile`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to get profile')
-    }
-
-    return response.json()
-  },
-
-  // Delivery Partner Methods
-  addDeliveryPartner: async (email) => {
-    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to add delivery partner')
-    }
-
-    return data
-  },
-
-  getDeliveryPartners: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to get delivery partners')
-    }
-
-    return response.json()
-  },
-
-  removeDeliveryPartner: async (email) => {
-    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners/${email}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to remove delivery partner')
-    }
-
-    return data
-  },
-
   // Admin Methods
   addAdmin: async (email) => {
     const response = await fetch(`${API_BASE_URL}/api/admin/add-admin`, {
@@ -108,8 +38,8 @@ export const adminApi = {
     return data
   },
 
-  getAdmins: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/admin/admins`, {
+  getAllAdmins: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/list`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -124,61 +54,8 @@ export const adminApi = {
     return response.json()
   },
 
-  updateAdminStatus: async (email, status) => {
-    const response = await fetch(`${API_BASE_URL}/api/admin/admin-status/${email}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ status }),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to update admin status')
-    }
-
-    return data
-  },
-
-  // Support Team Methods
-  addSupportTeamMember: async (email) => {
-    const response = await fetch(`${API_BASE_URL}/api/admin/support-team`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email }),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Failed to add support team member')
-    }
-
-    return data
-  },
-
-  getSupportTeam: async () => {
-    const response = await fetch(`${API_BASE_URL}/api/admin/support-team`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || 'Failed to get support team')
-    }
-
-    return response.json()
-  },
-
-  removeSupportTeamMember: async (email) => {
-    const response = await fetch(`${API_BASE_URL}/api/admin/support-team/${email}`, {
+  deleteAdmin: async (email) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/admin/${email}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -188,26 +65,59 @@ export const adminApi = {
     const data = await response.json()
 
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to remove support team member')
+      throw new Error(data.message || 'Failed to delete admin')
     }
 
     return data
   },
 
-  // Update Role
-  updateAdminRole: async (email, role) => {
-    const response = await fetch(`${API_BASE_URL}/api/admin/update-role/${email}`, {
+  updateAdminEmail: async (email, newEmail) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/admin-email/${email}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ role }),
+      body: JSON.stringify({ newEmail }),
     })
 
     const data = await response.json()
 
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to update admin role')
+      throw new Error(data.message || 'Failed to update admin email')
+    }
+
+    return data
+  },
+
+  // Users Methods
+  getUsers: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to get users')
+    }
+
+    return response.json()
+  },
+
+  deleteUser: async (userId) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to delete user')
     }
 
     return data
