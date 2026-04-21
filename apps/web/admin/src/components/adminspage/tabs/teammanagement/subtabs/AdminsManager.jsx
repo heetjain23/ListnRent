@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { useAdminUsers } from "../../../../hooks/useAdminUsers";
+import { useAdminUsers } from "../../../../../hooks/useAdminUsers";
 
 const AdminsManager = () => {
   const {

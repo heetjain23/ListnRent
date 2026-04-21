@@ -2,42 +2,27 @@ import React from "react";
 import PageHeader from "../../../shared/PageHeader";
 import Badge from "../../../shared/Badge";
 import TableWrapper from "../../../shared/TableWrapper";
-import UsersManager from "./UsersManager";
-import AdminsManager from "./AdminsManager";
+import UsersManager from "./subtabs/UsersManager";
+import AdminsManager from "./subtabs/AdminsManager";
+import DeliveryPartnerManager from "./subtabs/DeliveryPartnerManager";
 import { useAdminAuth } from "../../../../hooks/useAdminAuth";
 import { useAdminUsers } from "../../../../hooks/useAdminUsers";
+import { useDeliveryPartners } from "../../../../hooks/useDeliveryPartners";
 import { isSuperAdmin } from "../../../../utils/permissions";
 
 const TeamManagementTab = () => {
   const { admin } = useAdminAuth();
   const { users, fetchUsers, admins, fetchAdmins } = useAdminUsers();
+  const { deliveryPartners, fetchDeliveryPartners } = useDeliveryPartners();
   const [activeTab, setActiveTab] = React.useState("users");
   const isSuper = isSuperAdmin(admin?.role);
 
-  // Fetch users and admins on component mount
+  // Fetch users, admins, and delivery partners on component mount
   React.useEffect(() => {
     fetchUsers();
     fetchAdmins();
-  }, [fetchUsers, fetchAdmins]);
-
-  const deliveryPartnersData = [
-    {
-      id: 1,
-      name: "Rajesh Kumar",
-      email: "rajesh@delivery.com",
-      phone: "+91-98765-43210",
-      assignedDeliveries: 28,
-      status: "ACTIVE",
-    },
-    {
-      id: 2,
-      name: "Priya Nair",
-      email: "priya@delivery.com",
-      phone: "+91-98765-43211",
-      assignedDeliveries: 15,
-      status: "ACTIVE",
-    },
-  ];
+    fetchDeliveryPartners();
+  }, [fetchUsers, fetchAdmins, fetchDeliveryPartners]);
 
   const supportTeamData = [
     {
@@ -81,7 +66,7 @@ const TeamManagementTab = () => {
             {
               id: "delivery_partners",
               label: "Delivery Partners",
-              count: "45",
+              count: deliveryPartners.length.toLocaleString(),
             },
             { id: "support_team", label: "Support Team", count: "8" },
           ].map((tab) => (
@@ -108,27 +93,7 @@ const TeamManagementTab = () => {
 
         {activeTab === "admins" && <AdminsManager />}
 
-        {activeTab === "delivery_partners" && (
-          <TableWrapper
-            columns={[
-              { key: "name", label: "Partner Name" },
-              { key: "email", label: "Email" },
-              { key: "phone", label: "Phone" },
-              { key: "assignedDeliveries", label: "Assigned Deliveries" },
-              {
-                key: "status",
-                label: "Status",
-                render: (val) => <Badge variant="success">{val}</Badge>,
-              },
-            ]}
-            data={deliveryPartnersData}
-            actions={() => (
-              <button className="text-teal-600 hover:text-teal-700 font-semibold text-sm">
-                View Details
-              </button>
-            )}
-          />
-        )}
+        {activeTab === "delivery_partners" && <DeliveryPartnerManager />}
 
         {activeTab === "support_team" && (
           <div>

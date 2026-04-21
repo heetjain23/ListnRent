@@ -14,6 +14,9 @@ const adminSchema = new mongoose.Schema(
     photoURL: {
       type: String,
     },
+    phone: {
+      type: String,
+    },
     role: {
       type: String,
       enum: ['admin', 'delivery_partner', 'super_admin', 'support_team'],

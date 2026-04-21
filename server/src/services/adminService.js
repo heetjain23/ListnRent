@@ -169,3 +169,130 @@ export const updateAdminEmail = async (oldEmail, newEmail) => {
 
   return admin
 }
+
+// ========== DELIVERY PARTNER METHODS ==========
+
+// Get all delivery partners
+export const getAllDeliveryPartners = async () => {
+  try {
+    const partners = await Admin.find({ role: 'delivery_partner' }).sort({ createdAt: -1 })
+
+    const formattedPartners = partners.map((partner) => ({
+      id: partner._id.toString(),
+      name: partner.displayName || 'N/A',
+      email: partner.email,
+      phone: partner.phone || 'N/A',
+      profileImage: partner.photoURL || null,
+      assignedDeliveries: 0,
+      completedDeliveries: 0,
+      pendingDeliveries: 0,
+      status: partner.status === 'active' ? 'ACTIVE' : 'INACTIVE',
+      joinedDate: partner.createdAt,
+    }))
+
+    return formattedPartners
+  } catch (error) {
+    throw error
+  }
+}
+
+// Add a new delivery partner
+export const addDeliveryPartner = async (partnerData) => {
+  const { name, email, phone } = partnerData
+
+  // Check if partner already exists
+  const existing = await Admin.findOne({ email })
+  if (existing) {
+    throw new Error('Email already registered')
+  }
+
+  const partner = await Admin.create({
+    email,
+    displayName: name,
+    phone: phone || 'N/A',
+    role: 'delivery_partner',
+    status: 'active',
+  })
+
+  return {
+    id: partner._id.toString(),
+    name: partner.displayName,
+    email: partner.email,
+    phone: partner.phone,
+    profileImage: partner.photoURL || null,
+    assignedDeliveries: 0,
+    completedDeliveries: 0,
+    pendingDeliveries: 0,
+    status: partner.status === 'active' ? 'ACTIVE' : 'INACTIVE',
+    joinedDate: partner.createdAt,
+  }
+}
+
+// Update delivery partner
+export const updateDeliveryPartner = async (partnerId, updates) => {
+  const updateData = {}
+  
+  if (updates.name) updateData.displayName = updates.name
+  if (updates.email) updateData.email = updates.email
+  if (updates.phone) updateData.phone = updates.phone
+  if (updates.status) updateData.status = updates.status === 'ACTIVE' ? 'active' : 'inactive'
+
+  const partner = await Admin.findByIdAndUpdate(
+    partnerId,
+    { $set: updateData },
+    { returnDocument: 'after', runValidators: true }
+  )
+
+  if (!partner) {
+    throw new Error('Delivery partner not found')
+  }
+
+  return {
+    id: partner._id.toString(),
+    name: partner.displayName,
+    email: partner.email,
+    phone: partner.phone,
+    profileImage: partner.photoURL || null,
+    assignedDeliveries: 0,
+    completedDeliveries: 0,
+    pendingDeliveries: 0,
+    status: partner.status === 'active' ? 'ACTIVE' : 'INACTIVE',
+    joinedDate: partner.createdAt,
+  }
+}
+
+// Delete a delivery partner
+export const deleteDeliveryPartner = async (partnerId) => {
+  const partner = await Admin.findByIdAndDelete(partnerId)
+
+  if (!partner) {
+    throw new Error('Delivery partner not found')
+  }
+
+  return partner
+}
+
+// Toggle delivery partner status
+export const toggleDeliveryPartnerStatus = async (partnerId) => {
+  const partner = await Admin.findById(partnerId)
+
+  if (!partner) {
+    throw new Error('Delivery partner not found')
+  }
+
+  partner.status = partner.status === 'active' ? 'inactive' : 'active'
+  await partner.save()
+
+  return {
+    id: partner._id.toString(),
+    name: partner.displayName,
+    email: partner.email,
+    phone: partner.phone,
+    profileImage: partner.photoURL || null,
+    assignedDeliveries: 0,
+    completedDeliveries: 0,
+    pendingDeliveries: 0,
+    status: partner.status === 'active' ? 'ACTIVE' : 'INACTIVE',
+    joinedDate: partner.createdAt,
+  }
+}

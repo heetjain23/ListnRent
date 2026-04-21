@@ -122,4 +122,92 @@ export const adminApi = {
 
     return data
   },
+
+  // Delivery Partners Methods
+  getDeliveryPartners: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get delivery partners')
+    }
+
+    return data
+  },
+
+  addDeliveryPartner: async (partnerData) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(partnerData),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to add delivery partner')
+    }
+
+    return data
+  },
+
+  updateDeliveryPartner: async (partnerId, updates) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners/${partnerId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update delivery partner')
+    }
+
+    return data
+  },
+
+  deleteDeliveryPartner: async (partnerId) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners/${partnerId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to delete delivery partner')
+    }
+
+    return data
+  },
+
+  toggleDeliveryPartnerStatus: async (partnerId) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners/${partnerId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to toggle delivery partner status')
+    }
+
+    return data
+  },
 }
