@@ -210,4 +210,92 @@ export const adminApi = {
 
     return data
   },
+
+  // Support Team Methods
+  getSupportTeamMembers: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/support-team`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get support team members')
+    }
+
+    return data
+  },
+
+  addSupportTeamMember: async (memberData) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/support-team`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(memberData),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to add support team member')
+    }
+
+    return data
+  },
+
+  updateSupportTeamMember: async (memberId, updates) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/support-team/${memberId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update support team member')
+    }
+
+    return data
+  },
+
+  deleteSupportTeamMember: async (memberId) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/support-team/${memberId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to delete support team member')
+    }
+
+    return data
+  },
+
+  toggleSupportTeamMemberStatus: async (memberId) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/support-team/${memberId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to toggle support team member status')
+    }
+
+    return data
+  },
 }

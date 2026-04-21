@@ -12,6 +12,11 @@ import {
   handleUpdateDeliveryPartner,
   handleDeleteDeliveryPartner,
   handleToggleDeliveryPartnerStatus,
+  handleGetAllSupportTeamMembers,
+  handleAddSupportTeamMember,
+  handleUpdateSupportTeamMember,
+  handleDeleteSupportTeamMember,
+  handleToggleSupportTeamMemberStatus,
 } from '../controllers/adminController.js'
 
 const router = express.Router()
@@ -35,5 +40,12 @@ router.post('/delivery-partners', handleAddDeliveryPartner)
 router.patch('/delivery-partners/:id', handleUpdateDeliveryPartner)
 router.delete('/delivery-partners/:id', handleDeleteDeliveryPartner)
 router.patch('/delivery-partners/:id/status', handleToggleDeliveryPartnerStatus)
+
+// Support Team Routes
+router.get('/support-team', handleGetAllSupportTeamMembers)
+router.post('/support-team', handleAddSupportTeamMember)
+router.patch('/support-team/:id', handleUpdateSupportTeamMember)
+router.delete('/support-team/:id', handleDeleteSupportTeamMember)
+router.patch('/support-team/:id/status', handleToggleSupportTeamMemberStatus)
 
 export default router

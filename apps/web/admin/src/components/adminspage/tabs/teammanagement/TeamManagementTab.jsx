@@ -5,43 +5,28 @@ import TableWrapper from "../../../shared/TableWrapper";
 import UsersManager from "./subtabs/UsersManager";
 import AdminsManager from "./subtabs/AdminsManager";
 import DeliveryPartnerManager from "./subtabs/DeliveryPartnerManager";
+import SupportTeamManager from "./subtabs/SupportTeamManager";
 import { useAdminAuth } from "../../../../hooks/useAdminAuth";
 import { useAdminUsers } from "../../../../hooks/useAdminUsers";
 import { useDeliveryPartners } from "../../../../hooks/useDeliveryPartners";
+import { useSupportTeam } from "../../../../hooks/useSupportTeam";
 import { isSuperAdmin } from "../../../../utils/permissions";
 
 const TeamManagementTab = () => {
   const { admin } = useAdminAuth();
   const { users, fetchUsers, admins, fetchAdmins } = useAdminUsers();
   const { deliveryPartners, fetchDeliveryPartners } = useDeliveryPartners();
+  const { supportTeamMembers, fetchSupportTeamMembers } = useSupportTeam();
   const [activeTab, setActiveTab] = React.useState("users");
   const isSuper = isSuperAdmin(admin?.role);
 
-  // Fetch users, admins, and delivery partners on component mount
+  // Fetch users, admins, delivery partners, and support team members on component mount
   React.useEffect(() => {
     fetchUsers();
     fetchAdmins();
     fetchDeliveryPartners();
-  }, [fetchUsers, fetchAdmins, fetchDeliveryPartners]);
-
-  const supportTeamData = [
-    {
-      id: 1,
-      name: "Maya Patel",
-      email: "maya@support.atelier.in",
-      role: "Support Lead",
-      permissions: "Full Access",
-      status: "ACTIVE",
-    },
-    {
-      id: 2,
-      name: "Rohan Singh",
-      email: "rohan@support.atelier.in",
-      role: "Support Agent",
-      permissions: "Limited",
-      status: "ACTIVE",
-    },
-  ];
+    fetchSupportTeamMembers();
+  }, [fetchUsers, fetchAdmins, fetchDeliveryPartners, fetchSupportTeamMembers]);
 
   return (
     <>
@@ -68,7 +53,11 @@ const TeamManagementTab = () => {
               label: "Delivery Partners",
               count: deliveryPartners.length.toLocaleString(),
             },
-            { id: "support_team", label: "Support Team", count: "8" },
+            { 
+              id: "support_team", 
+              label: "Support Team", 
+              count: supportTeamMembers.length.toLocaleString() 
+            },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -95,34 +84,7 @@ const TeamManagementTab = () => {
 
         {activeTab === "delivery_partners" && <DeliveryPartnerManager />}
 
-        {activeTab === "support_team" && (
-          <div>
-            <div className="mb-4">
-              <button className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-semibold transition">
-                + Add Support Member
-              </button>
-            </div>
-            <TableWrapper
-              columns={[
-                { key: "name", label: "Name" },
-                { key: "email", label: "Email" },
-                { key: "role", label: "Role" },
-                { key: "permissions", label: "Permissions" },
-                {
-                  key: "status",
-                  label: "Status",
-                  render: (val) => <Badge variant="success">{val}</Badge>,
-                },
-              ]}
-              data={supportTeamData}
-              actions={() => (
-                <button className="text-teal-600 hover:text-teal-700 font-semibold text-sm">
-                  Edit
-                </button>
-              )}
-            />
-          </div>
-        )}
+        {activeTab === "support_team" && <SupportTeamManager />}
       </div>
     </>
   );

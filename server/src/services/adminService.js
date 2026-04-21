@@ -296,3 +296,118 @@ export const toggleDeliveryPartnerStatus = async (partnerId) => {
     joinedDate: partner.createdAt,
   }
 }
+
+// ========== SUPPORT TEAM METHODS ==========
+
+// Get all support team members
+export const getAllSupportTeamMembers = async () => {
+  try {
+    const members = await Admin.find({ role: 'support_team' }).sort({ createdAt: -1 })
+
+    const formattedMembers = members.map((member) => ({
+      id: member._id.toString(),
+      name: member.displayName || 'N/A',
+      email: member.email,
+      phone: member.phone || 'N/A',
+      profileImage: member.photoURL || null,
+      status: member.status === 'active' ? 'ACTIVE' : 'INACTIVE',
+      joinedDate: member.createdAt,
+    }))
+
+    return formattedMembers
+  } catch (error) {
+    throw error
+  }
+}
+
+// Add a new support team member
+export const addSupportTeamMember = async (memberData) => {
+  const { name, email, phone } = memberData
+
+  // Check if member already exists
+  const existing = await Admin.findOne({ email })
+  if (existing) {
+    throw new Error('Email already registered')
+  }
+
+  const member = await Admin.create({
+    email,
+    displayName: name,
+    phone: phone || 'N/A',
+    role: 'support_team',
+    status: 'active',
+  })
+
+  return {
+    id: member._id.toString(),
+    name: member.displayName,
+    email: member.email,
+    phone: member.phone,
+    profileImage: member.photoURL || null,
+    status: member.status === 'active' ? 'ACTIVE' : 'INACTIVE',
+    joinedDate: member.createdAt,
+  }
+}
+
+// Update support team member
+export const updateSupportTeamMember = async (memberId, updates) => {
+  const updateData = {}
+  
+  if (updates.name) updateData.displayName = updates.name
+  if (updates.email) updateData.email = updates.email
+  if (updates.phone) updateData.phone = updates.phone
+  if (updates.status) updateData.status = updates.status === 'ACTIVE' ? 'active' : 'inactive'
+
+  const member = await Admin.findByIdAndUpdate(
+    memberId,
+    { $set: updateData },
+    { returnDocument: 'after', runValidators: true }
+  )
+
+  if (!member) {
+    throw new Error('Support team member not found')
+  }
+
+  return {
+    id: member._id.toString(),
+    name: member.displayName,
+    email: member.email,
+    phone: member.phone,
+    profileImage: member.photoURL || null,
+    status: member.status === 'active' ? 'ACTIVE' : 'INACTIVE',
+    joinedDate: member.createdAt,
+  }
+}
+
+// Delete a support team member
+export const deleteSupportTeamMember = async (memberId) => {
+  const member = await Admin.findByIdAndDelete(memberId)
+
+  if (!member) {
+    throw new Error('Support team member not found')
+  }
+
+  return member
+}
+
+// Toggle support team member status
+export const toggleSupportTeamMemberStatus = async (memberId) => {
+  const member = await Admin.findById(memberId)
+
+  if (!member) {
+    throw new Error('Support team member not found')
+  }
+
+  member.status = member.status === 'active' ? 'inactive' : 'active'
+  await member.save()
+
+  return {
+    id: member._id.toString(),
+    name: member.displayName,
+    email: member.email,
+    phone: member.phone,
+    profileImage: member.photoURL || null,
+    status: member.status === 'active' ? 'ACTIVE' : 'INACTIVE',
+    joinedDate: member.createdAt,
+  }
+}

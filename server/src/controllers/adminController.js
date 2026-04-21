@@ -347,3 +347,142 @@ export const handleToggleDeliveryPartnerStatus = async (req, res) => {
     })
   }
 }
+
+// ========== SUPPORT TEAM CONTROLLERS ==========
+
+// GET /api/admin/support-team - Get all support team members
+export const handleGetAllSupportTeamMembers = async (req, res) => {
+  try {
+    const members = await adminService.getAllSupportTeamMembers()
+
+    res.status(200).json({
+      success: true,
+      supportTeam: members,
+    })
+  } catch (error) {
+    console.error('Get all support team members error:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get support team members',
+    })
+  }
+}
+
+// POST /api/admin/support-team - Add a new support team member
+export const handleAddSupportTeamMember = async (req, res) => {
+  try {
+    const { email, phone } = req.body
+
+    if (!email || !phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and phone are required',
+      })
+    }
+
+    // Generate name from email (first part before @)
+    const nameFromEmail = email.split('@')[0];
+
+    const member = await adminService.addSupportTeamMember({
+      name: nameFromEmail,
+      email,
+      phone,
+    })
+
+    res.status(201).json({
+      success: true,
+      message: 'Support team member added successfully',
+      supportMember: member,
+    })
+  } catch (error) {
+    console.error('Add support team member error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to add support team member',
+    })
+  }
+}
+
+// PATCH /api/admin/support-team/:id - Update support team member
+export const handleUpdateSupportTeamMember = async (req, res) => {
+  try {
+    const { id } = req.params
+    const updates = req.body
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Member ID is required',
+      })
+    }
+
+    const member = await adminService.updateSupportTeamMember(id, updates)
+
+    res.status(200).json({
+      success: true,
+      message: 'Support team member updated successfully',
+      supportMember: member,
+    })
+  } catch (error) {
+    console.error('Update support team member error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to update support team member',
+    })
+  }
+}
+
+// DELETE /api/admin/support-team/:id - Delete a support team member
+export const handleDeleteSupportTeamMember = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Member ID is required',
+      })
+    }
+
+    await adminService.deleteSupportTeamMember(id)
+
+    res.status(200).json({
+      success: true,
+      message: 'Support team member deleted successfully',
+    })
+  } catch (error) {
+    console.error('Delete support team member error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to delete support team member',
+    })
+  }
+}
+
+// PATCH /api/admin/support-team/:id/status - Toggle support team member status
+export const handleToggleSupportTeamMemberStatus = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Member ID is required',
+      })
+    }
+
+    const member = await adminService.toggleSupportTeamMemberStatus(id)
+
+    res.status(200).json({
+      success: true,
+      message: 'Support team member status updated successfully',
+      supportMember: member,
+    })
+  } catch (error) {
+    console.error('Toggle support team member status error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to update support team member status',
+    })
+  }
+}
