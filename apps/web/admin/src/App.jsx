@@ -1,25 +1,72 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AdminAuthProvider } from './context/AdminAuthContext'
-import ProtectedRoute from './components/ProtectedRoute'
+import ProtectedRoute from './components/shared/ProtectedRoute'
 import AdminLogin from './pages/AdminLogin'
-import Dashboard from './pages/Dashboard'
+import AdminsPage from './pages/AdminsPage'
+import DeliveryPartnerPage from './pages/DeliveryPartnerPage'
+import SupportTeamPage from './pages/SupportTeamPage'
+import ErrorPage from './pages/ErrorPage'
+import TermsAndConditions from './pages/TermsAndConditions'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import ContactUsPage from './pages/ContactUsPage'
 
 const App = () => {
   return (
     <AdminAuthProvider>
       <Routes>
+        {/* Public Routes */}
         <Route path="/login" element={<AdminLogin />} />
+        <Route path="/terms" element={<TermsAndConditions />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/contact" element={<ContactUsPage />} />
+        
+        {/* Protected Routes - Admin Dashboard (all tabs) */}
         <Route
-          path="/dashboard"
+          path="/admin"
           element={
-            <ProtectedRoute>
-              <Dashboard />
+            <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+              <AdminsPage activeTab="dashboard" />
             </ProtectedRoute>
           }
         />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+        {/* Protected Routes - Admin with tab params */}
+        <Route
+          path="/admin/:tab"
+          element={
+            <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
+              <AdminsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Delivery Partner Page */}
+        <Route
+          path="/delivery-partner"
+          element={
+            <ProtectedRoute>
+              <DeliveryPartnerPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Support Team Page */}
+        <Route
+          path="/support-team"
+          element={
+            <ProtectedRoute>
+              <SupportTeamPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Error Page */}
+        <Route path="/error" element={<ErrorPage />} />
+
+        {/* Default Routes */}
+        <Route path="/" element={<Navigate to="/admin" replace />} />
+        <Route path="*" element={<Navigate to="/error" replace />} />
       </Routes>
     </AdminAuthProvider>
   )

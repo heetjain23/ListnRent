@@ -252,3 +252,127 @@ export const handleUpdateAdminStatus = async (req, res) => {
     })
   }
 }
+
+// POST /api/admin/support-team - Add support team member
+export const handleAddSupportTeamMember = async (req, res) => {
+  try {
+    const { email } = req.body
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required',
+      })
+    }
+
+    const supportMember = await adminService.addSupportTeamMember(email)
+
+    res.status(201).json({
+      success: true,
+      message: 'Support team member added successfully',
+      supportMember: {
+        email: supportMember.email,
+        role: supportMember.role,
+        status: supportMember.status,
+      },
+    })
+  } catch (error) {
+    console.error('Add support team member error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to add support team member',
+    })
+  }
+}
+
+// GET /api/admin/support-team - Get all support team members
+export const handleGetSupportTeam = async (req, res) => {
+  try {
+    const supportTeam = await adminService.getAllSupportTeam()
+
+    res.status(200).json({
+      success: true,
+      supportTeam: supportTeam.map((st) => ({
+        email: st.email,
+        displayName: st.displayName,
+        role: st.role,
+        status: st.status,
+        createdAt: st.createdAt,
+      })),
+    })
+  } catch (error) {
+    console.error('Get support team error:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get support team',
+    })
+  }
+}
+
+// DELETE /api/admin/support-team/:email - Remove support team member
+export const handleRemoveSupportTeamMember = async (req, res) => {
+  try {
+    const { email } = req.params
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required',
+      })
+    }
+
+    await adminService.removeSupportTeamMember(email)
+
+    res.status(200).json({
+      success: true,
+      message: 'Support team member removed successfully',
+    })
+  } catch (error) {
+    console.error('Remove support team member error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to remove support team member',
+    })
+  }
+}
+
+// PATCH /api/admin/update-role/:email - Update admin role
+export const handleUpdateAdminRole = async (req, res) => {
+  try {
+    const { email } = req.params
+    const { role } = req.body
+
+    if (!email || !role) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and role are required',
+      })
+    }
+
+    const validRoles = ['admin', 'delivery_partner', 'super_admin', 'support_team']
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Valid roles are: ${validRoles.join(', ')}`,
+      })
+    }
+
+    const admin = await adminService.updateAdminRole(email, role)
+
+    res.status(200).json({
+      success: true,
+      message: 'Admin role updated successfully',
+      admin: {
+        email: admin.email,
+        role: admin.role,
+        status: admin.status,
+      },
+    })
+  } catch (error) {
+    console.error('Update admin role error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to update admin role',
+    })
+  }
+}

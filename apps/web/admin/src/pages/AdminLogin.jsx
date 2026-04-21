@@ -15,7 +15,7 @@ const AdminLogin = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      const from = location.state?.from?.pathname || '/dashboard'
+      const from = location.state?.from?.pathname || '/admin'
       navigate(from)
     }
   }, [isAuthenticated, navigate, location])

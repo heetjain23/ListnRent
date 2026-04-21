@@ -43,7 +43,7 @@ export const updateAdminProfile = async (email, updates) => {
   const admin = await Admin.findOneAndUpdate(
     { email },
     { $set: updates },
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   )
   if (!admin) {
     throw new Error('Admin not found')
@@ -113,7 +113,50 @@ export const updateAdminStatus = async (email, status) => {
   const admin = await Admin.findOneAndUpdate(
     { email },
     { $set: { status } },
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
+  )
+  if (!admin) {
+    throw new Error('Admin not found')
+  }
+  return admin
+}
+
+// Add support team member
+export const addSupportTeamMember = async (email) => {
+  const existing = await Admin.findOne({ email })
+  if (existing) {
+    throw new Error('Email already registered')
+  }
+
+  const supportMember = await Admin.create({
+    email,
+    role: 'support_team',
+    status: 'active',
+  })
+
+  return supportMember
+}
+
+// Get all support team members
+export const getAllSupportTeam = async () => {
+  return await Admin.find({ role: 'support_team' })
+}
+
+// Remove support team member
+export const removeSupportTeamMember = async (email) => {
+  const result = await Admin.findOneAndDelete({ email, role: 'support_team' })
+  if (!result) {
+    throw new Error('Support team member not found')
+  }
+  return result
+}
+
+// Update admin role
+export const updateAdminRole = async (email, role) => {
+  const admin = await Admin.findOneAndUpdate(
+    { email },
+    { $set: { role } },
+    { returnDocument: 'after', runValidators: true }
   )
   if (!admin) {
     throw new Error('Admin not found')

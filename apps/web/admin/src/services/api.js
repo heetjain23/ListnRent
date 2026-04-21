@@ -141,4 +141,75 @@ export const adminApi = {
 
     return data
   },
+
+  // Support Team Methods
+  addSupportTeamMember: async (email) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/support-team`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to add support team member')
+    }
+
+    return data
+  },
+
+  getSupportTeam: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/support-team`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || 'Failed to get support team')
+    }
+
+    return response.json()
+  },
+
+  removeSupportTeamMember: async (email) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/support-team/${email}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to remove support team member')
+    }
+
+    return data
+  },
+
+  // Update Role
+  updateAdminRole: async (email, role) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/update-role/${email}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ role }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update admin role')
+    }
+
+    return data
+  },
 }

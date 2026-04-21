@@ -8,6 +8,10 @@ import {
   handleAddAdmin,
   handleGetAdmins,
   handleUpdateAdminStatus,
+  handleAddSupportTeamMember,
+  handleGetSupportTeam,
+  handleRemoveSupportTeamMember,
+  handleUpdateAdminRole,
 } from '../controllers/adminController.js'
 
 const router = express.Router()
@@ -27,5 +31,13 @@ router.delete('/delivery-partners/:email', handleRemoveDeliveryPartner)
 router.post('/add-admin', handleAddAdmin)
 router.get('/admins', handleGetAdmins)
 router.patch('/admin-status/:email', handleUpdateAdminStatus)
+
+// Support Team Routes
+router.post('/support-team', handleAddSupportTeamMember)
+router.get('/support-team', handleGetSupportTeam)
+router.delete('/support-team/:email', handleRemoveSupportTeamMember)
+
+// Update Admin Role
+router.patch('/update-role/:email', handleUpdateAdminRole)
 
 export default router
