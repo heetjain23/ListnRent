@@ -348,6 +348,109 @@ export const handleToggleDeliveryPartnerStatus = async (req, res) => {
   }
 }
 
+// GET /api/admin/delivery-handling/tasks - Get delivery handling tasks
+export const handleGetDeliveryHandlingTasks = async (req, res) => {
+  try {
+    const tasks = await adminService.getDeliveryHandlingTasks()
+
+    res.status(200).json({
+      success: true,
+      tasks,
+    })
+  } catch (error) {
+    console.error('Get delivery handling tasks error:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get delivery tasks',
+    })
+  }
+}
+
+// POST /api/admin/delivery-handling/:bookingId/assign - Assign partner to a booking
+export const handleAssignDeliveryPartnerToBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.params
+    const { deliveryPartnerId } = req.body || {}
+
+    if (!bookingId || !deliveryPartnerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Booking ID and delivery partner ID are required',
+      })
+    }
+
+    const task = await adminService.assignDeliveryPartnerToBooking(bookingId, deliveryPartnerId)
+
+    res.status(200).json({
+      success: true,
+      message: 'Delivery partner assigned successfully',
+      task,
+    })
+  } catch (error) {
+    console.error('Assign delivery partner error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to assign delivery partner',
+    })
+  }
+}
+
+// PATCH /api/admin/delivery-handling/:bookingId/status - Update delivery status
+export const handleUpdateDeliveryTaskStatus = async (req, res) => {
+  try {
+    const { bookingId } = req.params
+    const { deliveryStatus } = req.body || {}
+
+    if (!bookingId || !deliveryStatus) {
+      return res.status(400).json({
+        success: false,
+        message: 'Booking ID and delivery status are required',
+      })
+    }
+
+    const task = await adminService.updateDeliveryTaskStatus(bookingId, deliveryStatus)
+
+    res.status(200).json({
+      success: true,
+      message: 'Delivery status updated successfully',
+      task,
+    })
+  } catch (error) {
+    console.error('Update delivery status error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to update delivery status',
+    })
+  }
+}
+
+// GET /api/admin/delivery-partners/:email/tasks - Get assigned tasks for delivery partner
+export const handleGetAssignedTasksForDeliveryPartner = async (req, res) => {
+  try {
+    const { email } = req.params
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required',
+      })
+    }
+
+    const tasks = await adminService.getAssignedTasksForDeliveryPartner(email)
+
+    res.status(200).json({
+      success: true,
+      tasks,
+    })
+  } catch (error) {
+    console.error('Get assigned partner tasks error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to get assigned tasks',
+    })
+  }
+}
+
 // GET /api/admin/delivery-partners/profile/:email - Get current delivery partner profile by email
 export const handleGetDeliveryPartnerProfile = async (req, res) => {
   try {

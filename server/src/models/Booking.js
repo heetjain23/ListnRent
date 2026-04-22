@@ -85,6 +85,31 @@ const bookingSchema = new mongoose.Schema(
       enum: ["active", "completed", "cancelled"],
       default: "active",
     },
+    deliveryDate: {
+      type: Date,
+    },
+    deliveryStatus: {
+      type: String,
+      enum: ["unassigned", "assigned", "picked_up", "delivered", "returned"],
+      default: "unassigned",
+    },
+    deliveryPartnerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+      default: null,
+    },
+    deliveryPartnerName: {
+      type: String,
+      default: "",
+    },
+    deliveryPartnerEmail: {
+      type: String,
+      default: "",
+    },
+    deliveryAssignedAt: {
+      type: Date,
+      default: null,
+    },
     deliveryDetails: {
       mobileNumber: String,
       deliveryAddress: String,

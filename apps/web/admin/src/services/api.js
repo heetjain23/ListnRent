@@ -246,6 +246,76 @@ export const adminApi = {
     return data
   },
 
+  getDeliveryHandlingTasks: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-handling/tasks`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get delivery handling tasks')
+    }
+
+    return data
+  },
+
+  assignDeliveryPartnerToBooking: async (bookingId, deliveryPartnerId) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-handling/${bookingId}/assign`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ deliveryPartnerId }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to assign delivery partner')
+    }
+
+    return data
+  },
+
+  updateDeliveryTaskStatus: async (bookingId, deliveryStatus) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-handling/${bookingId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ deliveryStatus }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update delivery status')
+    }
+
+    return data
+  },
+
+  getAssignedTasksForDeliveryPartner: async (email) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners/${encodeURIComponent(email)}/tasks`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get assigned delivery tasks')
+    }
+
+    return data
+  },
+
   // Support Team Methods
   getSupportTeamMembers: async () => {
     const response = await fetch(`${API_BASE_URL}/api/admin/support-team`, {

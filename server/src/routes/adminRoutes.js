@@ -12,6 +12,10 @@ import {
   handleUpdateDeliveryPartner,
   handleDeleteDeliveryPartner,
   handleToggleDeliveryPartnerStatus,
+  handleGetDeliveryHandlingTasks,
+  handleAssignDeliveryPartnerToBooking,
+  handleUpdateDeliveryTaskStatus,
+  handleGetAssignedTasksForDeliveryPartner,
   handleGetDeliveryPartnerProfile,
   handleUpdateDeliveryPartnerProfile,
   handleGetAllSupportTeamMembers,
@@ -42,6 +46,10 @@ router.post('/delivery-partners', handleAddDeliveryPartner)
 router.patch('/delivery-partners/:id', handleUpdateDeliveryPartner)
 router.delete('/delivery-partners/:id', handleDeleteDeliveryPartner)
 router.patch('/delivery-partners/:id/status', handleToggleDeliveryPartnerStatus)
+router.get('/delivery-partners/:email/tasks', handleGetAssignedTasksForDeliveryPartner)
+router.get('/delivery-handling/tasks', handleGetDeliveryHandlingTasks)
+router.post('/delivery-handling/:bookingId/assign', handleAssignDeliveryPartnerToBooking)
+router.patch('/delivery-handling/:bookingId/status', handleUpdateDeliveryTaskStatus)
 router.get('/delivery-partners/profile/:email', handleGetDeliveryPartnerProfile)
 router.patch('/delivery-partners/profile/:email', handleUpdateDeliveryPartnerProfile)
 

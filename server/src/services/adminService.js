@@ -1,5 +1,23 @@
 import Admin from '../models/Admin.js'
 
+const getLocalDateKey = (dateValue) => {
+  const date = new Date(dateValue)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getStartOfToday = () => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return today
+}
+
+const isDeliveryCompleted = (status = '') => ['delivered', 'returned'].includes(status)
+
+const isDeliveryAssigned = (status = '') => ['assigned', 'picked_up'].includes(status)
+
 const splitDisplayName = (displayName = '') => {
   const normalizedName = (displayName || '').trim()
 
@@ -40,6 +58,54 @@ const formatDeliveryPartnerProfile = (partner) => {
     photoURL: partner.photoURL || null,
     role: partner.role,
     status: partner.status,
+  }
+}
+
+const formatDeliveryTask = ({ booking, listing, customer, deliveryPartner }) => {
+  const deliveryDate = booking.deliveryDate || booking.startDate
+  const deliveryDateKey = getLocalDateKey(deliveryDate)
+  const todayKey = getLocalDateKey(new Date())
+  const bucket =
+    deliveryDateKey === todayKey
+      ? 'today'
+      : deliveryDateKey > todayKey
+        ? 'future'
+        : 'past'
+
+  return {
+    id: booking._id.toString(),
+    bookingId: booking._id.toString(),
+    listingId: booking.listingId?._id?.toString?.() || booking.listingId?.toString?.() || '',
+    listingTitle: listing?.title || booking.listingId?.title || 'Listing',
+    listingImage: listing?.images?.[0] || booking.listingId?.images?.[0] || null,
+    customerName: customer?.displayName || booking.customerName || customer?.email || booking.userId,
+    customerEmail: customer?.email || booking.customerEmail || '',
+    customerPhone: customer?.deliveryDetails?.mobileNumber || booking.deliveryDetails?.mobileNumber || '',
+    address: booking.deliveryDetails?.deliveryAddress || customer?.deliveryDetails?.deliveryAddress || '',
+    landmark: booking.deliveryDetails?.landmark || customer?.deliveryDetails?.landmark || '',
+    pincode: booking.deliveryDetails?.pincode || customer?.deliveryDetails?.pincode || '',
+    startDate: booking.startDate,
+    endDate: booking.endDate,
+    deliveryDate,
+    deliveryDateKey,
+    bucket,
+    statusGroup: isDeliveryCompleted(booking.deliveryStatus)
+      ? 'completed'
+      : isDeliveryAssigned(booking.deliveryStatus)
+        ? 'assigned'
+        : 'unassigned',
+    deliveryStatus: booking.deliveryStatus || 'unassigned',
+    deliveryPartnerId: booking.deliveryPartnerId ? booking.deliveryPartnerId.toString() : '',
+    deliveryPartnerName: booking.deliveryPartnerName || deliveryPartner?.displayName || '',
+    deliveryPartnerEmail: booking.deliveryPartnerEmail || deliveryPartner?.email || '',
+    deliveryAssignedAt: booking.deliveryAssignedAt || null,
+    totalAmount: booking.totalAmount || 0,
+    pendingAmount: booking.pendingAmount || 0,
+    rentalAmount: booking.rentalAmount || 0,
+    depositAmount: booking.depositAmount || 0,
+    paymentStatus: booking.paymentStatus,
+    bookingStatus: booking.bookingStatus,
+    createdAt: booking.createdAt,
   }
 }
 
@@ -338,6 +404,159 @@ export const toggleDeliveryPartnerStatus = async (partnerId) => {
     status: partner.status === 'active' ? 'ACTIVE' : 'INACTIVE',
     joinedDate: partner.createdAt,
   }
+}
+
+// Get delivery handling tasks for admin dashboard
+export const getDeliveryHandlingTasks = async () => {
+  const { default: Booking } = await import('../models/Booking.js')
+  const { default: User } = await import('../models/User.js')
+
+  const startOfToday = getStartOfToday()
+
+  const bookings = await Booking.find({
+    bookingStatus: 'active',
+    paymentStatus: { $in: ['partial', 'completed'] },
+    $or: [
+      { deliveryDate: { $gte: startOfToday } },
+      { deliveryDate: { $exists: false } },
+      { deliveryDate: null },
+    ],
+  })
+    .populate('listingId')
+    .sort({ deliveryDate: 1, startDate: 1, createdAt: -1 })
+
+  const userIds = [...new Set(bookings.map((booking) => booking.userId).filter(Boolean))]
+  const users = await User.find({ uid: { $in: userIds } }, { uid: 1, email: 1, displayName: 1, deliveryDetails: 1 })
+  const userMap = new Map(users.map((user) => [user.uid, user]))
+
+  const partnerIds = [...new Set(bookings.map((booking) => booking.deliveryPartnerId).filter(Boolean).map((partnerId) => partnerId.toString()))]
+  const partners = partnerIds.length
+    ? await Admin.find({ _id: { $in: partnerIds } }, { email: 1, displayName: 1, phone: 1 })
+    : []
+  const partnerMap = new Map(partners.map((partner) => [partner._id.toString(), partner]))
+
+  return bookings.map((booking) => {
+    const customer = userMap.get(booking.userId)
+    const deliveryPartner = booking.deliveryPartnerId ? partnerMap.get(booking.deliveryPartnerId.toString()) : null
+
+    return formatDeliveryTask({
+      booking,
+      listing: booking.listingId,
+      customer,
+      deliveryPartner,
+    })
+  })
+}
+
+// Assign delivery partner to a booking
+export const assignDeliveryPartnerToBooking = async (bookingId, partnerId) => {
+  const { default: Booking } = await import('../models/Booking.js')
+
+  const booking = await Booking.findById(bookingId).populate('listingId')
+  if (!booking) {
+    throw new Error('Booking not found')
+  }
+
+  const partner = await Admin.findOne({
+    _id: partnerId,
+    role: 'delivery_partner',
+  })
+
+  if (!partner) {
+    throw new Error('Delivery partner not found')
+  }
+
+  booking.deliveryPartnerId = partner._id
+  booking.deliveryPartnerName = partner.displayName || partner.email
+  booking.deliveryPartnerEmail = partner.email
+  booking.deliveryAssignedAt = new Date()
+  booking.deliveryStatus = 'assigned'
+  booking.deliveryDate = booking.deliveryDate || booking.startDate
+
+  await booking.save()
+
+  const { default: User } = await import('../models/User.js')
+  const customer = await User.findOne({ uid: booking.userId }, { uid: 1, email: 1, displayName: 1, deliveryDetails: 1 })
+
+  return formatDeliveryTask({
+    booking,
+    listing: booking.listingId,
+    customer,
+    deliveryPartner: partner,
+  })
+}
+
+// Update booking delivery status
+export const updateDeliveryTaskStatus = async (bookingId, deliveryStatus) => {
+  const { default: Booking } = await import('../models/Booking.js')
+
+  const allowedStatuses = ['unassigned', 'assigned', 'picked_up', 'delivered', 'returned']
+  if (!allowedStatuses.includes(deliveryStatus)) {
+    throw new Error('Invalid delivery status')
+  }
+
+  const booking = await Booking.findById(bookingId).populate('listingId')
+  if (!booking) {
+    throw new Error('Booking not found')
+  }
+
+  booking.deliveryStatus = deliveryStatus
+  booking.deliveryDate = booking.deliveryDate || booking.startDate
+  await booking.save()
+
+  const { default: User } = await import('../models/User.js')
+  const customer = await User.findOne({ uid: booking.userId }, { uid: 1, email: 1, displayName: 1, deliveryDetails: 1 })
+
+  const deliveryPartner = booking.deliveryPartnerId
+    ? await Admin.findById(booking.deliveryPartnerId, { email: 1, displayName: 1, phone: 1 })
+    : null
+
+  return formatDeliveryTask({
+    booking,
+    listing: booking.listingId,
+    customer,
+    deliveryPartner,
+  })
+}
+
+// Get assigned delivery tasks for a specific delivery partner
+export const getAssignedTasksForDeliveryPartner = async (email) => {
+  const { default: Booking } = await import('../models/Booking.js')
+  const { default: User } = await import('../models/User.js')
+
+  const partner = await Admin.findOne({
+    email,
+    role: 'delivery_partner',
+  })
+
+  if (!partner) {
+    throw new Error('Delivery partner not found')
+  }
+
+  const bookings = await Booking.find({
+    deliveryPartnerId: partner._id,
+    bookingStatus: 'active',
+    paymentStatus: { $in: ['partial', 'completed'] },
+  })
+    .populate('listingId')
+    .sort({ deliveryDate: 1, startDate: 1, createdAt: -1 })
+
+  const userIds = [...new Set(bookings.map((booking) => booking.userId).filter(Boolean))]
+  const users = await User.find({ uid: { $in: userIds } }, { uid: 1, email: 1, displayName: 1, deliveryDetails: 1 })
+  const userMap = new Map(users.map((user) => [user.uid, user]))
+
+  return bookings
+    .map((booking) => {
+      const customer = userMap.get(booking.userId)
+
+      return formatDeliveryTask({
+        booking,
+        listing: booking.listingId,
+        customer,
+        deliveryPartner: partner,
+      })
+    })
+    .filter((task) => task.bucket === 'today' || task.bucket === 'future')
 }
 
 // Get delivery partner profile by email

@@ -1,12 +1,19 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { futureTasks } from '../../../mockData'
 import { getBadgeClass } from './badgeStyles'
 
-const FutureTasksSubtab = ({ onTaskSelect }) => {
+const FutureTasksSubtab = ({ tasks = [], onTaskSelect }) => {
+  if (tasks.length === 0) {
+    return (
+      <div className="mt-5 rounded-lg border border-dashed border-stone-300 bg-[#f8f8f5] p-6 text-sm font-semibold text-stone-600">
+        No upcoming deliveries scheduled.
+      </div>
+    )
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-5 grid gap-3">
-      {futureTasks.map((task) => {
+      {tasks.map((task) => {
         const [month, day] = task.date.split(' ')
 
         return (

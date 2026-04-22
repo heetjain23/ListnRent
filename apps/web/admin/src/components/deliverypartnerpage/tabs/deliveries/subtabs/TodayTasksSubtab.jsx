@@ -1,6 +1,5 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { todayTasks } from '../../../mockData'
 import { getBadgeClass } from './badgeStyles'
 import { FaRoute } from "react-icons/fa6";
 
@@ -8,14 +7,22 @@ const RouteIcon = () => (
   <FaRoute size={18} className="text-teal-900" />
 )
 
-const TodayTasksSubtab = ({ onTaskSelect }) => {
+const TodayTasksSubtab = ({ tasks = [], onTaskSelect }) => {
+  if (tasks.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-stone-300 bg-[#f8f8f5] p-6 text-sm font-semibold text-stone-600">
+        No tasks scheduled for today.
+      </div>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="grid grid-cols-1 gap-5 lg:grid-cols-2"
     >
-      {todayTasks.map((task, index) => (
+      {tasks.map((task, index) => (
         <motion.button
           key={task.id}
           type="button"
