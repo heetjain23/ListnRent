@@ -12,6 +12,8 @@ import {
   handleUpdateDeliveryPartner,
   handleDeleteDeliveryPartner,
   handleToggleDeliveryPartnerStatus,
+  handleGetDeliveryPartnerProfile,
+  handleUpdateDeliveryPartnerProfile,
   handleGetAllSupportTeamMembers,
   handleAddSupportTeamMember,
   handleUpdateSupportTeamMember,
@@ -40,6 +42,8 @@ router.post('/delivery-partners', handleAddDeliveryPartner)
 router.patch('/delivery-partners/:id', handleUpdateDeliveryPartner)
 router.delete('/delivery-partners/:id', handleDeleteDeliveryPartner)
 router.patch('/delivery-partners/:id/status', handleToggleDeliveryPartnerStatus)
+router.get('/delivery-partners/profile/:email', handleGetDeliveryPartnerProfile)
+router.patch('/delivery-partners/profile/:email', handleUpdateDeliveryPartnerProfile)
 
 // Support Team Routes
 router.get('/support-team', handleGetAllSupportTeamMembers)

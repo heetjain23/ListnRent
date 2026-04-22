@@ -348,6 +348,62 @@ export const handleToggleDeliveryPartnerStatus = async (req, res) => {
   }
 }
 
+// GET /api/admin/delivery-partners/profile/:email - Get current delivery partner profile by email
+export const handleGetDeliveryPartnerProfile = async (req, res) => {
+  try {
+    const { email } = req.params
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required',
+      })
+    }
+
+    const profile = await adminService.getDeliveryPartnerProfileByEmail(email)
+
+    res.status(200).json({
+      success: true,
+      profile,
+    })
+  } catch (error) {
+    console.error('Get delivery partner profile error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to get delivery partner profile',
+    })
+  }
+}
+
+// PATCH /api/admin/delivery-partners/profile/:email - Update current delivery partner profile by email
+export const handleUpdateDeliveryPartnerProfile = async (req, res) => {
+  try {
+    const { email } = req.params
+    const updates = req.body || {}
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required',
+      })
+    }
+
+    const profile = await adminService.updateDeliveryPartnerProfileByEmail(email, updates)
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      profile,
+    })
+  } catch (error) {
+    console.error('Update delivery partner profile error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to update delivery partner profile',
+    })
+  }
+}
+
 // ========== SUPPORT TEAM CONTROLLERS ==========
 
 // GET /api/admin/support-team - Get all support team members

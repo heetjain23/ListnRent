@@ -211,6 +211,41 @@ export const adminApi = {
     return data
   },
 
+  getDeliveryPartnerProfile: async (email) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners/profile/${encodeURIComponent(email)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get delivery partner profile')
+    }
+
+    return data
+  },
+
+  updateDeliveryPartnerProfile: async (email, updates) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-partners/profile/${encodeURIComponent(email)}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update delivery partner profile')
+    }
+
+    return data
+  },
+
   // Support Team Methods
   getSupportTeamMembers: async () => {
     const response = await fetch(`${API_BASE_URL}/api/admin/support-team`, {

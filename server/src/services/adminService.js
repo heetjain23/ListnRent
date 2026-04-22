@@ -1,5 +1,48 @@
 import Admin from '../models/Admin.js'
 
+const splitDisplayName = (displayName = '') => {
+  const normalizedName = (displayName || '').trim()
+
+  if (!normalizedName) {
+    return {
+      firstName: '',
+      lastName: '',
+    }
+  }
+
+  const [firstName, ...lastNameParts] = normalizedName.split(/\s+/)
+
+  return {
+    firstName: firstName || '',
+    lastName: lastNameParts.join(' ') || '',
+  }
+}
+
+const normalizeOptionalField = (value) => {
+  if (value === null || value === undefined) {
+    return ''
+  }
+
+  const normalized = String(value).trim()
+  return normalized.toUpperCase() === 'N/A' ? '' : normalized
+}
+
+const formatDeliveryPartnerProfile = (partner) => {
+  const { firstName, lastName } = splitDisplayName(partner.displayName)
+
+  return {
+    id: partner._id.toString(),
+    firstName,
+    lastName,
+    email: partner.email,
+    phone: normalizeOptionalField(partner.phone),
+    address: normalizeOptionalField(partner.address),
+    photoURL: partner.photoURL || null,
+    role: partner.role,
+    status: partner.status,
+  }
+}
+
 // Find or create admin user
 export const findOrCreateAdmin = async ({ email, displayName, photoURL, role = 'delivery_partner' }) => {
   let admin = await Admin.findOne({ email })
@@ -295,6 +338,56 @@ export const toggleDeliveryPartnerStatus = async (partnerId) => {
     status: partner.status === 'active' ? 'ACTIVE' : 'INACTIVE',
     joinedDate: partner.createdAt,
   }
+}
+
+// Get delivery partner profile by email
+export const getDeliveryPartnerProfileByEmail = async (email) => {
+  const partner = await Admin.findOne({
+    email,
+    role: 'delivery_partner',
+  })
+
+  if (!partner) {
+    throw new Error('Delivery partner not found')
+  }
+
+  return formatDeliveryPartnerProfile(partner)
+}
+
+// Update delivery partner profile by email
+export const updateDeliveryPartnerProfileByEmail = async (email, updates) => {
+  const partner = await Admin.findOne({
+    email,
+    role: 'delivery_partner',
+  })
+
+  if (!partner) {
+    throw new Error('Delivery partner not found')
+  }
+
+  const firstName = normalizeOptionalField(updates.firstName)
+  const lastName = normalizeOptionalField(updates.lastName)
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim()
+
+  if (updates.firstName !== undefined || updates.lastName !== undefined) {
+    partner.displayName = fullName
+  }
+
+  if (updates.phone !== undefined) {
+    partner.phone = normalizeOptionalField(updates.phone)
+  }
+
+  if (updates.address !== undefined) {
+    partner.address = normalizeOptionalField(updates.address)
+  }
+
+  if (updates.photoURL !== undefined) {
+    partner.photoURL = normalizeOptionalField(updates.photoURL)
+  }
+
+  await partner.save()
+
+  return formatDeliveryPartnerProfile(partner)
 }
 
 // ========== SUPPORT TEAM METHODS ==========
