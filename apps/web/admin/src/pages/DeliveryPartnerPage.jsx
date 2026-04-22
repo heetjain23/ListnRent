@@ -1,8 +1,8 @@
 import React from 'react'
-import DeliveryPartnerDeveloping from '../components/deliverypartnerpage/DeliveryPartnerDeveloping'
+import DeliveryPartnerPortal from '../components/deliverypartnerpage/DeliveryPartnerPortal'
 
 const DeliveryPartnerPage = () => {
-  return <DeliveryPartnerDeveloping />
+  return <DeliveryPartnerPortal />
 }
 
 export default DeliveryPartnerPage
