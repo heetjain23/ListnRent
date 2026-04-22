@@ -37,6 +37,7 @@ const Sidebar = ({ isOpen, onClose, menuItems, currentTab, onTabChange }) => {
     'Team Management': 'team',
     'Marketplace': 'marketplace',
     'Disputes': 'disputes',
+    'Delivires Handling': 'deliviresHandling',
     'Finance': 'finance',
     'Analytics': 'analytics',
     'Settings': 'settings',

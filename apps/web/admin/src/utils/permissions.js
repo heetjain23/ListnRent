@@ -17,6 +17,7 @@ const ROLE_MENU_ACCESS = {
     { icon: '👥', label: 'Team Management', path: '/admin/team' },
     { icon: '🏪', label: 'Marketplace', path: '/admin/marketplace' },
     { icon: '⚠️', label: 'Disputes', path: '/admin/disputes' },
+    { icon: '🚚', label: 'Delivires Handling', path: '/admin/deliviresHandling' },
     { icon: '💰', label: 'Finance', path: '/admin/finance' },
     { icon: '📈', label: 'Analytics', path: '/admin/analytics' },
     { icon: '⚙️', label: 'Settings', path: '/admin/settings' },
@@ -25,6 +26,7 @@ const ROLE_MENU_ACCESS = {
     { icon: '📊', label: 'Dashboard', path: '/admin' },
     { icon: '🏪', label: 'Marketplace', path: '/admin/marketplace' },
     { icon: '⚠️', label: 'Disputes', path: '/admin/disputes' },
+    { icon: '🚚', label: 'Delivires Handling', path: '/admin/deliviresHandling' },
     { icon: '💰', label: 'Finance', path: '/admin/finance' },
     { icon: '📈', label: 'Analytics', path: '/admin/analytics' },
     // No Team Management (can't create new admin)
@@ -49,6 +51,10 @@ const PAGE_PERMISSIONS = {
     restricted: ['delivery_partner', 'support_team'],
   },
   '/disputes': {
+    allowed: ['super_admin', 'admin'],
+    restricted: ['delivery_partner', 'support_team'],
+  },
+  '/deliviresHandling': {
     allowed: ['super_admin', 'admin'],
     restricted: ['delivery_partner', 'support_team'],
   },
