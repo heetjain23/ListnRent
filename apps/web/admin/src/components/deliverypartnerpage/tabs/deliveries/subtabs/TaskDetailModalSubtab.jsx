@@ -3,7 +3,24 @@ import { AnimatePresence, motion } from 'framer-motion'
 
 const money = (value) => `Rs ${Number(value || 0).toLocaleString('en-IN')}`
 
-const TaskDetailModalSubtab = ({ task, onClose }) => {
+const hasDateReached = (dateValue) => {
+  if (!dateValue) return false
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return false
+  date.setHours(0, 0, 0, 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return date.getTime() <= today.getTime()
+}
+
+const prettyDate = (dateValue) => {
+  if (!dateValue) return 'scheduled date'
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return 'scheduled date'
+  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+const TaskDetailModalSubtab = ({ task, onClose, onMarkMilestone, marking = false }) => {
   const [frontImage, setFrontImage] = React.useState('')
   const [backImage, setBackImage] = React.useState('')
 
@@ -12,6 +29,56 @@ const TaskDetailModalSubtab = ({ task, onClose }) => {
   const handlePreview = (file, setter) => {
     if (!file) return
     setter(URL.createObjectURL(file))
+  }
+
+  const milestones = task.milestones || {}
+  const isPickupDone = !!milestones.sellerPickupCompletedAt
+  const isPaymentDone = task.paymentStatus === 'completed' || !!milestones.restPaymentCompletedAt
+  const isBuyerDeliveryDone = !!milestones.buyerDeliveryCompletedAt
+  const isBuyerPickupDone = !!milestones.buyerPickupCompletedAt
+  const isSellerReturnDone = !!milestones.sellerReturnCompletedAt
+  const isDepositReturned = !!milestones.depositReturnedAt
+
+  const pickupDate = task.sellerPickupDate || task.deliveryDate || null
+  const deliveryDate = task.eventDate || null
+  const buyerPickupDate = task.customerPickupDate || task.sellerReturnDate || null
+  const sellerReturnDate = task.sellerReturnDate || task.customerPickupDate || null
+
+  const canPickupNow = hasDateReached(pickupDate)
+  const canDeliverNow = hasDateReached(deliveryDate)
+  const canBuyerPickupNow = hasDateReached(buyerPickupDate)
+  const canSellerReturnNow = hasDateReached(sellerReturnDate)
+
+  let nextAction = null
+  let waitingMessage = ''
+  if (!isPickupDone) {
+    if (canPickupNow) {
+      nextAction = { label: 'Pick Up Completed', key: 'seller_pickup_completed' }
+    } else {
+      waitingMessage = `Pickup can be marked on or after ${prettyDate(pickupDate)}.`
+    }
+  } else if (!isPaymentDone) {
+    nextAction = { label: 'Payment Done', key: 'rest_payment_completed' }
+  } else if (!isBuyerDeliveryDone) {
+    if (canDeliverNow) {
+      nextAction = { label: 'Delivery Completed', key: 'buyer_delivery_completed' }
+    } else {
+      waitingMessage = `Delivery can be marked on or after ${prettyDate(deliveryDate)}.`
+    }
+  } else if (!isBuyerPickupDone) {
+    if (canBuyerPickupNow) {
+      nextAction = { label: 'Payment Completed', key: 'buyer_pickup_completed' }
+    } else {
+      waitingMessage = `Buyer pickup can be marked on or after ${prettyDate(buyerPickupDate)}.`
+    }
+  } else if (!isSellerReturnDone) {
+    if (canSellerReturnNow) {
+      nextAction = { label: 'Seller Delivery Done', key: 'seller_return_completed' }
+    } else {
+      waitingMessage = `Return can be marked on or after ${prettyDate(sellerReturnDate)}.`
+    }
+  } else if (!isDepositReturned) {
+    nextAction = { label: 'Deposit Returned', key: 'deposit_returned' }
   }
 
   return (
@@ -80,10 +147,25 @@ const TaskDetailModalSubtab = ({ task, onClose }) => {
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <button type="button" className="rounded-lg bg-teal-900 px-3 py-2 text-sm font-bold text-white">Mark as Picked Up</button>
-            <button type="button" className="rounded-lg bg-teal-900 px-3 py-2 text-sm font-bold text-white">Mark as Delivered</button>
-            <button type="button" className="rounded-lg bg-teal-900 px-3 py-2 text-sm font-bold text-white">Mark as Returned</button>
+          <div className="mt-4">
+            {nextAction ? (
+              <button
+                type="button"
+                onClick={() => onMarkMilestone?.(task.bookingId, nextAction.key)}
+                disabled={marking}
+                className="rounded-lg bg-teal-900 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {nextAction.label}
+              </button>
+            ) : waitingMessage ? (
+              <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+                {waitingMessage}
+              </p>
+            ) : (
+              <p className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
+                All delivery milestones are completed for this task.
+              </p>
+            )}
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">

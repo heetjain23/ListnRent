@@ -30,7 +30,14 @@ const toUiTask = (task) => {
     pending: task.pendingAmount || 0,
     bookingId: task.bookingId,
     deliveryStatus: task.deliveryStatus,
+    eventDate: task.eventDate || null,
+    sellerPickupDate: task.sellerPickupDate || null,
+    customerPickupDate: task.customerPickupDate || null,
+    sellerReturnDate: task.sellerReturnDate || null,
     bucket: task.bucket,
+    milestones: task.milestones || {},
+    timeline: task.timeline || null,
+    paymentStatus: task.paymentStatus,
   }
 }
 
@@ -40,6 +47,7 @@ const DeliveriesTab = () => {
   const [tasks, setTasks] = React.useState([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState('')
+  const [marking, setMarking] = React.useState(false)
 
   const loadAssignedTasks = React.useCallback(async () => {
     if (!admin?.email) {
@@ -70,6 +78,23 @@ const DeliveriesTab = () => {
   const todayTasks = tasks.filter((task) => task.bucket === 'today')
   const futureTasks = tasks.filter((task) => task.bucket === 'future')
   const activeCount = todayTasks.length + futureTasks.length
+
+  const handleMarkMilestone = async (bookingId, action) => {
+    if (!bookingId || !action) return
+
+    setMarking(true)
+    setError('')
+
+    try {
+      await adminApi.markDeliveryMilestone(bookingId, action)
+      await loadAssignedTasks()
+      setActiveTask(null)
+    } catch (err) {
+      setError(err.message || 'Failed to update task milestone')
+    } finally {
+      setMarking(false)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-280 bg-transparent">
@@ -104,7 +129,12 @@ const DeliveriesTab = () => {
         <FutureTasksSubtab tasks={futureTasks} onTaskSelect={setActiveTask} />
       </div>
 
-      <TaskDetailModalSubtab task={activeTask} onClose={() => setActiveTask(null)} />
+      <TaskDetailModalSubtab
+        task={activeTask}
+        onClose={() => setActiveTask(null)}
+        onMarkMilestone={handleMarkMilestone}
+        marking={marking}
+      />
     </div>
   )
 }

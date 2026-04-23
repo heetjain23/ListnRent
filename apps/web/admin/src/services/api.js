@@ -316,6 +316,24 @@ export const adminApi = {
     return data
   },
 
+  markDeliveryMilestone: async (bookingId, action) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/delivery-handling/${bookingId}/milestone`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to mark delivery milestone')
+    }
+
+    return data
+  },
+
   // Support Team Methods
   getSupportTeamMembers: async () => {
     const response = await fetch(`${API_BASE_URL}/api/admin/support-team`, {

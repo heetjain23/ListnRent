@@ -10,6 +10,33 @@ import BookingSection         from '../components/listing-detail/BookingSection'
 import HostMetadataSection    from '../components/listing-detail/HostMetadataSection'
 import { HostCard }           from '../components/listing-detail/HostMetadataSection'
 
+const parseLocalDate = (value) => {
+  if (!value) return null
+
+  if (value instanceof Date) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate())
+  }
+
+  if (typeof value === 'string') {
+    const ymdMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+    if (ymdMatch) {
+      const [, year, month, day] = ymdMatch
+      return new Date(Number(year), Number(month) - 1, Number(day))
+    }
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+}
+
+const formatLocalDate = (dateObj) => {
+  const year = dateObj.getFullYear()
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const day = String(dateObj.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // ─── Breadcrumb ────────────────────────────────────────────────────────────────
 const Breadcrumb = ({ category, title }) => (
   <nav
@@ -127,6 +154,7 @@ const ListingDetail = () => {
       state: {
         listing,
         renterId: listing.userId,
+        eventDate,
         startDate,
         endDate,
         durationDays,
@@ -137,7 +165,8 @@ const ListingDetail = () => {
   // ── Calculate check-in and return dates from event date ──────────────────────
   const getCalculatedDates = () => {
     if (!eventDate) return { startDate: '', endDate: '' }
-    const event = new Date(eventDate)
+    const event = parseLocalDate(eventDate)
+    if (!event) return { startDate: '', endDate: '' }
     
     // Check-in = 1 day before event
     const checkIn = new Date(event)
@@ -148,8 +177,8 @@ const ListingDetail = () => {
     returnDate.setDate(returnDate.getDate() + (durationDays || 1))
     
     return {
-      startDate: checkIn.toISOString().split('T')[0],
-      endDate: returnDate.toISOString().split('T')[0],
+      startDate: formatLocalDate(checkIn),
+      endDate: formatLocalDate(returnDate),
     }
   }
 

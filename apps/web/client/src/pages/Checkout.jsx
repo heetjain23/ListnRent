@@ -77,7 +77,7 @@ const Checkout = () => {
     return null;
   }
 
-  const { listing, renterId, startDate, endDate, durationDays } = bookingData;
+  const { listing, renterId, eventDate, startDate, endDate, durationDays } = bookingData;
 
   // Calculate days and amount using durationDays (actual rental duration)
   const totalDays = durationDays || 1;
@@ -186,6 +186,7 @@ const Checkout = () => {
                 listingId: listing._id,
                 userId: user.uid,
                 renterId,
+                eventDate,
                 startDate,
                 endDate,
                 totalDays,

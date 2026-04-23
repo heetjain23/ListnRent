@@ -451,6 +451,35 @@ export const handleGetAssignedTasksForDeliveryPartner = async (req, res) => {
   }
 }
 
+// PATCH /api/admin/delivery-handling/:bookingId/milestone - Mark delivery lifecycle milestone
+export const handleMarkDeliveryMilestone = async (req, res) => {
+  try {
+    const { bookingId } = req.params
+    const { action } = req.body || {}
+
+    if (!bookingId || !action) {
+      return res.status(400).json({
+        success: false,
+        message: 'Booking ID and action are required',
+      })
+    }
+
+    const task = await adminService.markDeliveryMilestone(bookingId, action)
+
+    res.status(200).json({
+      success: true,
+      message: 'Milestone updated successfully',
+      task,
+    })
+  } catch (error) {
+    console.error('Mark delivery milestone error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to mark delivery milestone',
+    })
+  }
+}
+
 // GET /api/admin/delivery-partners/profile/:email - Get current delivery partner profile by email
 export const handleGetDeliveryPartnerProfile = async (req, res) => {
   try {

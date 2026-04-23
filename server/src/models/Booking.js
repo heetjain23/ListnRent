@@ -110,6 +110,48 @@ const bookingSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    eventDate: {
+      type: Date,
+      default: null,
+    },
+    sellerPickupDate: {
+      type: Date,
+      default: null,
+    },
+    customerPickupDate: {
+      type: Date,
+      default: null,
+    },
+    sellerReturnDate: {
+      type: Date,
+      default: null,
+    },
+    milestones: {
+      sellerPickupCompletedAt: {
+        type: Date,
+        default: null,
+      },
+      buyerDeliveryCompletedAt: {
+        type: Date,
+        default: null,
+      },
+      buyerPickupCompletedAt: {
+        type: Date,
+        default: null,
+      },
+      sellerReturnCompletedAt: {
+        type: Date,
+        default: null,
+      },
+      restPaymentCompletedAt: {
+        type: Date,
+        default: null,
+      },
+      depositReturnedAt: {
+        type: Date,
+        default: null,
+      },
+    },
     deliveryDetails: {
       mobileNumber: String,
       deliveryAddress: String,

@@ -7,6 +7,26 @@ import { MdExpandMore, MdExpandLess } from 'react-icons/md'
 import { auth } from '../services/firebase'
 import { getOptimizedImageUrl } from '../services/cloudinary'
 
+const parseLocalDate = (value) => {
+  if (!value) return null
+
+  if (value instanceof Date) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate())
+  }
+
+  if (typeof value === 'string') {
+    const ymdMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+    if (ymdMatch) {
+      const [, year, month, day] = ymdMatch
+      return new Date(Number(year), Number(month) - 1, Number(day))
+    }
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+}
+
 const RentalDetail = () => {
   const { rentalId } = useParams()
   const navigate = useNavigate()
@@ -16,6 +36,26 @@ const RentalDetail = () => {
   const [error, setError] = useState(null)
   const [rentalDetails, setRentalDetails] = useState(null)
   const [timelineExpanded, setTimelineExpanded] = useState(false)
+
+  const formatTimelineDate = (value) => {
+    if (!value) return 'Pending'
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return 'Pending'
+    return parsed.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  }
+
+  const normalizeTimelineItems = (items = []) =>
+    items.map((item) => ({
+      ...item,
+      status: item.completed ? 'completed' : 'pending',
+      dateLabel: formatTimelineDate(item.at),
+    }))
 
   const getApiBaseUrl = () => {
     const env = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL
@@ -38,11 +78,11 @@ const RentalDetail = () => {
 
       const idToken = await currentUser.getIdToken()
 
-      // Extract listingId and bookingId from the rental ID
-      const [listingId, bookingId] = rentalId.split('-')
+      // Extract bookingId from route value `${listingId}-${bookingId}`
+      const bookingId = rentalId?.includes('-') ? rentalId.split('-')[1] : rentalId
 
       const response = await fetch(
-        `${getApiBaseUrl()}/api/listings/${listingId}/bookings/${bookingId}`,
+        `${getApiBaseUrl()}/api/payments/booking/${bookingId}`,
         {
           method: 'GET',
           headers: {
@@ -58,15 +98,36 @@ const RentalDetail = () => {
       }
 
       const data = await response.json()
-      console.log('[RentalDetail] Details fetched:', data.data)
+      const bookingData = data.data?.booking || data.data
+
+      console.log('[RentalDetail] Details fetched:', bookingData)
       console.log('[RentalDetail] Payment data:', {
-        rentalAmount: data.data?.rentalAmount,
-        depositAmount: data.data?.depositAmount,
-        bookingFee: data.data?.bookingFee,
-        totalAmount: data.data?.totalAmount,
-        pendingAmount: data.data?.pendingAmount,
+        rentalAmount: bookingData?.rentalAmount,
+        depositAmount: bookingData?.depositAmount,
+        bookingFee: bookingData?.bookingFee,
+        totalAmount: bookingData?.totalAmount,
+        pendingAmount: bookingData?.pendingAmount,
       })
-      setRentalDetails(data.data)
+
+      setRentalDetails(bookingData)
+
+      setRental((prev) => ({
+        ...(prev || {}),
+        listingTitle: bookingData?.listingId?.title || prev?.listingTitle,
+        listingCategory: bookingData?.listingId?.category || prev?.listingCategory,
+        listingSize: bookingData?.listingId?.size || prev?.listingSize,
+        listingImage: bookingData?.listingId?.images?.[0] || prev?.listingImage,
+        rentalStartDate: bookingData?.startDate || prev?.rentalStartDate,
+        rentalEndDate: bookingData?.endDate || prev?.rentalEndDate,
+        totalDaysBooked: bookingData?.totalDays || prev?.totalDaysBooked,
+        renterEmail: bookingData?.userId?.email || prev?.renterEmail,
+        bookingId: bookingData?._id || prev?.bookingId,
+        rentalAmount: bookingData?.rentalAmount || prev?.rentalAmount,
+        depositAmount: bookingData?.depositAmount || prev?.depositAmount,
+        bookingFee: bookingData?.bookingFee || prev?.bookingFee,
+        totalAmount: bookingData?.totalAmount || prev?.totalAmount,
+        pendingAmount: bookingData?.pendingAmount || prev?.pendingAmount,
+      }))
     } catch (err) {
       console.error('[RentalDetail] Error fetching details:', err)
       // If API fetch fails but we have data from location state, continue
@@ -80,13 +141,15 @@ const RentalDetail = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    if (!rental && rentalId) {
+    if (rentalId) {
       fetchRentalDetails()
     }
-  }, [rentalId, rental])
+  }, [rentalId])
 
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-IN', {
+    const parsed = parseLocalDate(date)
+    if (!parsed) return 'Invalid date'
+    return parsed.toLocaleDateString('en-IN', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -94,7 +157,9 @@ const RentalDetail = () => {
   }
 
   const formatDateWithDay = (date) => {
-    return new Date(date).toLocaleDateString('en-IN', {
+    const parsed = parseLocalDate(date)
+    if (!parsed) return 'Invalid date'
+    return parsed.toLocaleDateString('en-IN', {
       weekday: 'long',
       year: 'numeric',
       month: 'short',
@@ -120,9 +185,12 @@ const RentalDetail = () => {
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const start = new Date(rental.rentalStartDate)
+    const start = parseLocalDate(rental.rentalStartDate)
+    const end = parseLocalDate(rental.rentalEndDate)
+    if (!start || !end) {
+      return { label: 'Upcoming', color: 'bg-yellow-100 text-yellow-800', badge: 'Upcoming' }
+    }
     start.setHours(0, 0, 0, 0)
-    const end = new Date(rental.rentalEndDate)
     end.setHours(0, 0, 0, 0)
 
     if (today < start) {
@@ -134,107 +202,10 @@ const RentalDetail = () => {
     }
   }
 
-  const getTimelineEvents = () => {
-    const events = []
-    
-    // 1. Booking Confirmed - booking creation date
-    events.push({
-      id: 'confirmed',
-      title: 'Booking Confirmed',
-      description: 'User has successfully booked the outfit',
-      date: rentalDetails?.createdAt || rental?.bookingDate || new Date(),
-      status: 'completed',
-      showDate: true,
-    })
-
-    // 2. Advance Payment Received (no date display)
-    events.push({
-      id: 'advance_payment',
-      title: 'Advance Payment Received',
-      description: 'Pre-booking/partial payment completed',
-      status: 'completed',
-      showDate: false,
-    })
-
-    // 3. Outfit Picked Up from Owner - start date
-    events.push({
-      id: 'pickup_owner',
-      title: 'Outfit Picked Up from Owner',
-      description: 'Item collected from owner/vendor',
-      date: rental?.rentalStartDate || new Date(),
-      status: 'completed',
-      showDate: true,
-    })
-
-    // 4. Full Payment Completed (no date display)
-    events.push({
-      id: 'full_payment',
-      title: 'Full Payment Completed',
-      description: 'Remaining payment received',
-      status: 'completed',
-      showDate: false,
-    })
-
-    // 5. Delivered to Customer - same as start date
-    const deliveryDate = new Date(rental?.rentalStartDate || new Date())
-    events.push({
-      id: 'delivered_customer',
-      title: 'Delivered to Customer',
-      description: 'Outfit successfully delivered',
-      date: deliveryDate,
-      status: 'pending',
-      showDate: true,
-    })
-
-    // 6. Return Collected from Customer - end date
-    const returnCollectedDate = new Date(rental?.rentalEndDate || new Date())
-    events.push({
-      id: 'return_collected',
-      title: 'Return Collected from Customer',
-      description: 'Outfit picked up after rental period',
-      date: returnCollectedDate,
-      status: 'pending',
-      showDate: true,
-    })
-
-    // 7. Security Deposit Refunded (no date display)
-    events.push({
-      id: 'deposit_refunded',
-      title: 'Security Deposit Refunded',
-      description: 'Deposit returned to customer',
-      status: 'pending',
-      showDate: false,
-    })
-
-    // 8. Sent for Cleaning - same as end date
-    const cleaningDate = new Date(rental?.rentalEndDate || new Date())
-    events.push({
-      id: 'cleaning',
-      title: 'Sent for Cleaning',
-      description: 'Outfit sent for maintenance/cleaning',
-      date: cleaningDate,
-      status: 'pending',
-      showDate: true,
-    })
-
-    // 9. Returned to Owner - 2 days after end date
-    const returnOwnerDate = new Date(rental?.rentalEndDate || new Date())
-    returnOwnerDate.setDate(returnOwnerDate.getDate() + 2)
-    events.push({
-      id: 'returned_owner',
-      title: 'Returned to Owner',
-      description: 'Outfit handed back to owner and cycle complete',
-      date: returnOwnerDate,
-      status: 'pending',
-      showDate: true,
-    })
-
-    return events
-  }
-
   const status = getRentalStatus()
   const totalDays = calculateTotalDays()
-  const timelineEvents = getTimelineEvents()
+  const sellerTimeline = normalizeTimelineItems(rentalDetails?.timeline?.seller || [])
+  const timelineEvents = sellerTimeline
 
   if (loading) {
     return (
@@ -367,13 +338,13 @@ const RentalDetail = () => {
                         <div>
                           <p className="text-xs opacity-80 mb-1">STARTS</p>
                           <p className="font-bold text-sm">
-                            {new Date(rental.rentalStartDate).toLocaleDateString('en-IN', {
+                            {parseLocalDate(rental.rentalStartDate)?.toLocaleDateString('en-IN', {
                               month: 'short',
                               day: 'numeric',
                             })}
                           </p>
                           <p className="text-xs opacity-70">
-                            {new Date(rental.rentalStartDate).toLocaleDateString('en-IN', {
+                            {parseLocalDate(rental.rentalStartDate)?.toLocaleDateString('en-IN', {
                               weekday: 'short',
                             })}
                           </p>
@@ -385,13 +356,13 @@ const RentalDetail = () => {
                         <div>
                           <p className="text-xs opacity-80 mb-1">ENDS</p>
                           <p className="font-bold text-sm">
-                            {new Date(rental.rentalEndDate).toLocaleDateString('en-IN', {
+                            {parseLocalDate(rental.rentalEndDate)?.toLocaleDateString('en-IN', {
                               month: 'short',
                               day: 'numeric',
                             })}
                           </p>
                           <p className="text-xs opacity-70">
-                            {new Date(rental.rentalEndDate).toLocaleDateString('en-IN', {
+                            {parseLocalDate(rental.rentalEndDate)?.toLocaleDateString('en-IN', {
                               weekday: 'short',
                             })}
                           </p>
@@ -517,13 +488,8 @@ const RentalDetail = () => {
                           )}
                         </div>
                         <div className="pb-4">
-                          <p className="font-medium text-[#1A1A1A] text-sm">{event.title}</p>
-                          {event.description && (
-                            <p className="text-xs text-[#999] mt-1">{event.description}</p>
-                          )}
-                          {event.showDate && event.date && (
-                            <p className="text-xs text-[#999] mt-1 font-bold">{formatDate(event.date)}</p>
-                          )}
+                          <p className="font-medium text-[#1A1A1A] text-sm">{event.label || event.title}</p>
+                          <p className="text-xs text-[#999] mt-1 font-bold">{event.dateLabel}</p>
                         </div>
                       </div>
                     ))}

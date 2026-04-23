@@ -18,6 +18,143 @@ const isDeliveryCompleted = (status = '') => ['delivered', 'returned'].includes(
 
 const isDeliveryAssigned = (status = '') => ['assigned', 'picked_up'].includes(status)
 
+const hasDateReached = (dateValue) => {
+  if (!dateValue) return false
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return false
+  date.setHours(0, 0, 0, 0)
+  return date.getTime() <= getStartOfToday().getTime()
+}
+
+const buildTimelineForBooking = (booking) => {
+  const milestones = booking.milestones || {}
+
+  const hasAdvancePayment = ['partial', 'completed'].includes(booking.paymentStatus) && Number(booking.paidAmount || 0) > 0
+  const restPaymentCompletedAt = milestones.restPaymentCompletedAt || null
+  const isRestPaymentDone = booking.paymentStatus === 'completed' || !!restPaymentCompletedAt
+  const pickupDate = booking.sellerPickupDate || booking.deliveryDate || null
+  const returnDate = booking.sellerReturnDate || booking.customerPickupDate || null
+  const customerDeliveryDate = booking.eventDate || booking.startDate || booking.deliveryDate || null
+  const customerPickupDate = booking.customerPickupDate || returnDate || null
+
+  return {
+    customer: [
+      {
+        key: 'booking_confirmed',
+        label: 'Booking Confirmed',
+        completed: true,
+        at: booking.createdAt,
+      },
+      {
+        key: 'advance_payment_done',
+        label: '50% Rent Payment Done',
+        completed: hasAdvancePayment,
+        at: hasAdvancePayment ? booking.createdAt : null,
+      },
+      {
+        key: 'delivery_date',
+        label: 'Delivery Date',
+        completed: hasAdvancePayment && hasDateReached(customerDeliveryDate),
+        at: customerDeliveryDate,
+      },
+      {
+        key: 'rest_payment_completed',
+        label: 'Rest Payment Completed',
+        completed: isRestPaymentDone,
+        at: restPaymentCompletedAt,
+      },
+      {
+        key: 'delivery_completed',
+        label: 'Delivery Completed',
+        completed: !!milestones.buyerDeliveryCompletedAt,
+        at: milestones.buyerDeliveryCompletedAt || null,
+      },
+      {
+        key: 'pickup_date',
+        label: 'Pickup Date',
+        completed: !!milestones.buyerDeliveryCompletedAt && hasDateReached(customerPickupDate),
+        at: customerPickupDate,
+      },
+      {
+        key: 'payment_completed',
+        label: 'Payment Completed',
+        completed: !!milestones.buyerPickupCompletedAt,
+        at: milestones.buyerPickupCompletedAt || null,
+      },
+      {
+        key: 'deposit_returned',
+        label: 'Deposit Returned',
+        completed: !!milestones.depositReturnedAt,
+        at: milestones.depositReturnedAt || null,
+      },
+    ],
+    seller: [
+      {
+        key: 'booking_received',
+        label: 'Booking Received',
+        completed: hasAdvancePayment,
+        at: hasAdvancePayment ? booking.createdAt : null,
+      },
+      {
+        key: 'pickup_date',
+        label: 'Pickup Date',
+        completed: hasAdvancePayment && hasDateReached(pickupDate),
+        at: pickupDate,
+      },
+      {
+        key: 'pickup_completed',
+        label: 'Pickup Completed',
+        completed: !!milestones.sellerPickupCompletedAt,
+        at: pickupDate,
+      },
+      {
+        key: 'payment_received',
+        label: 'Payment Received',
+        completed: isRestPaymentDone,
+        at: restPaymentCompletedAt,
+      },
+      {
+        key: 'return_date',
+        label: 'Return Date',
+        completed: isRestPaymentDone && hasDateReached(returnDate),
+        at: returnDate,
+      },
+      {
+        key: 'return_completed',
+        label: 'Return Completed',
+        completed: !!milestones.sellerReturnCompletedAt,
+        at: milestones.sellerReturnCompletedAt || null,
+      },
+    ],
+    logistics: [
+      {
+        key: 'seller_pickup_completed',
+        label: 'Pickup Completed (Seller Location)',
+        completed: !!milestones.sellerPickupCompletedAt,
+        at: milestones.sellerPickupCompletedAt || null,
+      },
+      {
+        key: 'buyer_delivery_completed',
+        label: 'Delivery Completed (Buyer Location)',
+        completed: !!milestones.buyerDeliveryCompletedAt,
+        at: milestones.buyerDeliveryCompletedAt || null,
+      },
+      {
+        key: 'buyer_pickup_completed',
+        label: 'Pickup Done (Buyer Location)',
+        completed: !!milestones.buyerPickupCompletedAt,
+        at: milestones.buyerPickupCompletedAt || null,
+      },
+      {
+        key: 'seller_return_completed',
+        label: 'Delivery Completed (Seller Location)',
+        completed: !!milestones.sellerReturnCompletedAt,
+        at: milestones.sellerReturnCompletedAt || null,
+      },
+    ],
+  }
+}
+
 const splitDisplayName = (displayName = '') => {
   const normalizedName = (displayName || '').trim()
 
@@ -87,6 +224,10 @@ const formatDeliveryTask = ({ booking, listing, customer, deliveryPartner }) => 
     startDate: booking.startDate,
     endDate: booking.endDate,
     deliveryDate,
+    eventDate: booking.eventDate || booking.startDate || null,
+    sellerPickupDate: booking.sellerPickupDate || booking.deliveryDate || null,
+    customerPickupDate: booking.customerPickupDate || null,
+    sellerReturnDate: booking.sellerReturnDate || booking.customerPickupDate || null,
     deliveryDateKey,
     bucket,
     statusGroup: isDeliveryCompleted(booking.deliveryStatus)
@@ -106,6 +247,8 @@ const formatDeliveryTask = ({ booking, listing, customer, deliveryPartner }) => 
     paymentStatus: booking.paymentStatus,
     bookingStatus: booking.bookingStatus,
     createdAt: booking.createdAt,
+    milestones: booking.milestones || {},
+    timeline: buildTimelineForBooking(booking),
   }
 }
 
@@ -417,6 +560,7 @@ export const getDeliveryHandlingTasks = async () => {
     bookingStatus: 'active',
     paymentStatus: { $in: ['partial', 'completed'] },
     $or: [
+      { deliveryStatus: 'unassigned' },
       { deliveryDate: { $gte: startOfToday } },
       { deliveryDate: { $exists: false } },
       { deliveryDate: null },
@@ -557,6 +701,126 @@ export const getAssignedTasksForDeliveryPartner = async (email) => {
       })
     })
     .filter((task) => task.bucket === 'today' || task.bucket === 'future')
+}
+
+// Mark a delivery lifecycle milestone
+export const markDeliveryMilestone = async (bookingId, action) => {
+  const { default: Booking } = await import('../models/Booking.js')
+
+  const booking = await Booking.findById(bookingId).populate('listingId')
+  if (!booking) {
+    throw new Error('Booking not found')
+  }
+
+  if (!booking.milestones) {
+    booking.milestones = {}
+  }
+
+  const now = new Date()
+  const sellerPickupDate = booking.sellerPickupDate || booking.deliveryDate || null
+  const buyerDeliveryDate = booking.eventDate || booking.startDate || booking.deliveryDate || null
+  const buyerPickupDate = booking.customerPickupDate || booking.sellerReturnDate || booking.endDate || null
+  const sellerReturnDate = booking.sellerReturnDate || booking.customerPickupDate || booking.endDate || null
+
+  if (booking.bookingStatus === 'completed') {
+    throw new Error('Booking is already completed')
+  }
+
+  switch (action) {
+    case 'seller_pickup_completed': {
+      if (!hasDateReached(sellerPickupDate)) {
+        throw new Error('Seller pickup can only be marked on or after pickup date')
+      }
+
+      booking.milestones.sellerPickupCompletedAt = booking.milestones.sellerPickupCompletedAt || now
+      booking.deliveryStatus = 'picked_up'
+      break
+    }
+    case 'buyer_delivery_completed': {
+      if (!booking.milestones.sellerPickupCompletedAt) {
+        throw new Error('Mark seller pickup before buyer delivery')
+      }
+
+      if (booking.paymentStatus !== 'completed' && !booking.milestones.restPaymentCompletedAt) {
+        throw new Error('Complete rest payment before marking buyer delivery')
+      }
+
+      if (!hasDateReached(buyerDeliveryDate)) {
+        throw new Error('Buyer delivery can only be marked on or after delivery date')
+      }
+
+      booking.milestones.buyerDeliveryCompletedAt = booking.milestones.buyerDeliveryCompletedAt || now
+      booking.deliveryStatus = 'delivered'
+      break
+    }
+    case 'buyer_pickup_completed': {
+      if (!booking.milestones.buyerDeliveryCompletedAt) {
+        throw new Error('Mark buyer delivery before pickup from buyer')
+      }
+
+      if (!hasDateReached(buyerPickupDate)) {
+        throw new Error('Pickup from buyer can only be marked on or after pickup date')
+      }
+
+      booking.milestones.buyerPickupCompletedAt = booking.milestones.buyerPickupCompletedAt || now
+      booking.deliveryStatus = 'picked_up'
+      break
+    }
+    case 'seller_return_completed': {
+      if (!booking.milestones.buyerPickupCompletedAt) {
+        throw new Error('Mark pickup from buyer before completing return to seller')
+      }
+
+      if (!hasDateReached(sellerReturnDate)) {
+        throw new Error('Return to seller can only be marked on or after return date')
+      }
+
+      booking.milestones.sellerReturnCompletedAt = booking.milestones.sellerReturnCompletedAt || now
+      booking.deliveryStatus = 'returned'
+      break
+    }
+    case 'rest_payment_completed': {
+      if (!booking.milestones.sellerPickupCompletedAt) {
+        throw new Error('Mark seller pickup completed before marking payment done')
+      }
+
+      if (!hasDateReached(buyerDeliveryDate)) {
+        throw new Error('Rest payment can only be marked on or after delivery date')
+      }
+
+      booking.milestones.restPaymentCompletedAt = booking.milestones.restPaymentCompletedAt || now
+      booking.paymentStatus = 'completed'
+      booking.pendingAmount = 0
+      booking.paidAmount = Number(booking.totalAmount || booking.paidAmount || 0)
+      break
+    }
+    case 'deposit_returned': {
+      if (!booking.milestones.sellerReturnCompletedAt) {
+        throw new Error('Complete seller return before deposit refund')
+      }
+
+      booking.milestones.depositReturnedAt = booking.milestones.depositReturnedAt || now
+      booking.bookingStatus = 'completed'
+      break
+    }
+    default:
+      throw new Error('Invalid milestone action')
+  }
+
+  await booking.save()
+
+  const { default: User } = await import('../models/User.js')
+  const customer = await User.findOne({ uid: booking.userId }, { uid: 1, email: 1, displayName: 1, deliveryDetails: 1 })
+  const deliveryPartner = booking.deliveryPartnerId
+    ? await Admin.findById(booking.deliveryPartnerId, { email: 1, displayName: 1, phone: 1 })
+    : null
+
+  return formatDeliveryTask({
+    booking,
+    listing: booking.listingId,
+    customer,
+    deliveryPartner,
+  })
 }
 
 // Get delivery partner profile by email

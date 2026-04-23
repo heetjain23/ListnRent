@@ -16,6 +16,7 @@ import {
   handleAssignDeliveryPartnerToBooking,
   handleUpdateDeliveryTaskStatus,
   handleGetAssignedTasksForDeliveryPartner,
+  handleMarkDeliveryMilestone,
   handleGetDeliveryPartnerProfile,
   handleUpdateDeliveryPartnerProfile,
   handleGetAllSupportTeamMembers,
@@ -50,6 +51,7 @@ router.get('/delivery-partners/:email/tasks', handleGetAssignedTasksForDeliveryP
 router.get('/delivery-handling/tasks', handleGetDeliveryHandlingTasks)
 router.post('/delivery-handling/:bookingId/assign', handleAssignDeliveryPartnerToBooking)
 router.patch('/delivery-handling/:bookingId/status', handleUpdateDeliveryTaskStatus)
+router.patch('/delivery-handling/:bookingId/milestone', handleMarkDeliveryMilestone)
 router.get('/delivery-partners/profile/:email', handleGetDeliveryPartnerProfile)
 router.patch('/delivery-partners/profile/:email', handleUpdateDeliveryPartnerProfile)
 

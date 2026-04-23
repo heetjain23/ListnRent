@@ -14,6 +14,26 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(!booking);
   const [error, setError] = useState(null);
 
+  const formatTimelineDate = (value) => {
+    if (!value) return "Pending";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "Pending";
+    return parsed.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  const normalizeTimelineItems = (items = []) =>
+    items.map((item) => ({
+      ...item,
+      status: item.completed ? "completed" : "pending",
+      dateLabel: formatTimelineDate(item.at),
+    }));
+
   const getApiBaseUrl = () => {
     const env = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL;
     if (env) return env.endsWith("/") ? env.slice(0, -1) : env;
@@ -58,7 +78,7 @@ const OrderDetail = () => {
       const data = await response.json();
       console.log("[OrderDetail] Booking fetched:", data.data);
       console.log("[OrderDetail] DeliveryDetails:", data.data?.deliveryDetails);
-      setBooking(data.data);
+      setBooking(data.data?.booking || data.data);
     } catch (err) {
       console.error("[OrderDetail] Error fetching booking:", err);
       setError(err.message);
@@ -70,12 +90,11 @@ const OrderDetail = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
 
-    // If we don't have booking data and have a bookingId, fetch it
-    if (!location.state?.booking && bookingId) {
-      console.log("[OrderDetail] No booking in state, fetching from API...");
+    if (bookingId) {
+      console.log("[OrderDetail] Fetching latest booking details for timeline...");
       fetchBooking();
     }
-  }, [bookingId, location.state?.booking]);
+  }, [bookingId]);
 
   const getStatusBadgeInfo = (status) => {
     switch (status) {
@@ -413,6 +432,7 @@ const OrderDetail = () => {
   }
 
   const statusInfo = getStatusBadgeInfo(booking.bookingStatus);
+  const customerTimeline = normalizeTimelineItems(booking.timeline?.customer || []);
 
   return (
     <motion.div
@@ -755,6 +775,44 @@ const OrderDetail = () => {
                 </div>
               </motion.div>
             )}
+
+            {/* Customer Timeline */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35, duration: 0.4 }}
+              className="bg-white rounded-xl border border-[#E8E0D5] p-6 shadow-sm"
+            >
+              <h2 className="text-xl font-bold text-[#1A1A1A] mb-5">Order Timeline</h2>
+
+              <div className="space-y-4">
+                {customerTimeline.length > 0 ? (
+                  customerTimeline.map((event, index) => (
+                    <div key={event.key || index} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`h-6 w-6 rounded-full grid place-items-center text-xs font-bold text-white ${
+                            event.status === "completed" ? "bg-[#004D40]" : "bg-[#D4C5B5]"
+                          }`}
+                        >
+                          {event.status === "completed" ? "✓" : "•"}
+                        </div>
+                        {index < customerTimeline.length - 1 && (
+                          <div className="w-0.5 h-8 bg-[#E8E0D5] mt-1" />
+                        )}
+                      </div>
+                      <div className="pb-2">
+                        <p className="text-sm font-semibold text-[#1A1A1A]">{event.label}</p>
+                        <p className="text-xs text-[#777] mt-1">{event.dateLabel}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-[#777]">Timeline will appear here once booking events start.</p>
+                )}
+              </div>
+            </motion.div>
+
           </motion.div>
         </div>
 

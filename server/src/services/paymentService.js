@@ -4,6 +4,160 @@ import Booking from "../models/Booking.js";
 import User from "../models/User.js";
 import { getListingById, markListingAsRented } from "./listingService.js";
 
+const addDays = (dateValue, days) => {
+  const date = new Date(dateValue);
+  date.setDate(date.getDate() + days);
+  return date;
+};
+
+const hasDateReached = (dateValue) => {
+  if (!dateValue) return false;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return false;
+  date.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date.getTime() <= today.getTime();
+};
+
+const buildTimelineForBooking = (booking) => {
+  const data = booking.toObject ? booking.toObject() : booking;
+  const milestones = data.milestones || {};
+
+  const hasAdvancePayment = ["partial", "completed"].includes(data.paymentStatus) && Number(data.paidAmount || 0) > 0;
+  const restPaymentCompletedAt = milestones.restPaymentCompletedAt || null;
+  const isRestPaymentDone = data.paymentStatus === "completed" || !!restPaymentCompletedAt;
+  const pickupDate = data.sellerPickupDate || data.deliveryDate || null;
+  const returnDate = data.sellerReturnDate || data.customerPickupDate || null;
+  const customerDeliveryDate = data.eventDate || data.startDate || data.deliveryDate || null;
+  const customerPickupDate = data.customerPickupDate || returnDate || null;
+
+  return {
+    customer: [
+      {
+        key: "booking_confirmed",
+        label: "Booking Confirmed",
+        completed: true,
+        at: data.createdAt,
+      },
+      {
+        key: "advance_payment_done",
+        label: "50% Rent Payment Done",
+        completed: hasAdvancePayment,
+        at: hasAdvancePayment ? data.createdAt : null,
+      },
+      {
+        key: "delivery_date",
+        label: "Delivery Date",
+        completed: hasAdvancePayment && hasDateReached(customerDeliveryDate),
+        at: customerDeliveryDate,
+      },
+      {
+        key: "rest_payment_completed",
+        label: "Rest Payment Completed",
+        completed: isRestPaymentDone,
+        at: restPaymentCompletedAt,
+      },
+      {
+        key: "delivery_completed",
+        label: "Delivery Completed",
+        completed: !!milestones.buyerDeliveryCompletedAt,
+        at: milestones.buyerDeliveryCompletedAt || null,
+      },
+      {
+        key: "pickup_date",
+        label: "Pickup Date",
+        completed: !!milestones.buyerDeliveryCompletedAt && hasDateReached(customerPickupDate),
+        at: customerPickupDate,
+      },
+      {
+        key: "payment_completed",
+        label: "Payment Completed",
+        completed: !!milestones.buyerPickupCompletedAt,
+        at: milestones.buyerPickupCompletedAt || null,
+      },
+      {
+        key: "deposit_returned",
+        label: "Deposit Returned",
+        completed: !!milestones.depositReturnedAt,
+        at: milestones.depositReturnedAt || null,
+      },
+    ],
+    seller: [
+      {
+        key: "booking_received",
+        label: "Booking Received",
+        completed: hasAdvancePayment,
+        at: hasAdvancePayment ? data.createdAt : null,
+      },
+      {
+        key: "pickup_date",
+        label: "Pickup Date",
+        completed: hasAdvancePayment && hasDateReached(pickupDate),
+        at: pickupDate,
+      },
+      {
+        key: "pickup_completed",
+        label: "Pickup Completed",
+        completed: !!milestones.sellerPickupCompletedAt,
+        at: pickupDate,
+      },
+      {
+        key: "payment_received",
+        label: "Payment Received",
+        completed: isRestPaymentDone,
+        at: restPaymentCompletedAt,
+      },
+      {
+        key: "return_date",
+        label: "Return Date",
+        completed: isRestPaymentDone && hasDateReached(returnDate),
+        at: returnDate,
+      },
+      {
+        key: "return_completed",
+        label: "Return Completed",
+        completed: !!milestones.sellerReturnCompletedAt,
+        at: milestones.sellerReturnCompletedAt || null,
+      },
+    ],
+    logistics: [
+      {
+        key: "seller_pickup_completed",
+        label: "Pickup Completed (Seller Location)",
+        completed: !!milestones.sellerPickupCompletedAt,
+        at: milestones.sellerPickupCompletedAt || null,
+      },
+      {
+        key: "buyer_delivery_completed",
+        label: "Delivery Completed (Buyer Location)",
+        completed: !!milestones.buyerDeliveryCompletedAt,
+        at: milestones.buyerDeliveryCompletedAt || null,
+      },
+      {
+        key: "buyer_pickup_completed",
+        label: "Pickup Done (Buyer Location)",
+        completed: !!milestones.buyerPickupCompletedAt,
+        at: milestones.buyerPickupCompletedAt || null,
+      },
+      {
+        key: "seller_return_completed",
+        label: "Delivery Completed (Seller Location)",
+        completed: !!milestones.sellerReturnCompletedAt,
+        at: milestones.sellerReturnCompletedAt || null,
+      },
+    ],
+  };
+};
+
+const withTimeline = (booking) => {
+  const data = booking.toObject ? booking.toObject() : booking;
+  return {
+    ...data,
+    timeline: buildTimelineForBooking(data),
+  };
+};
+
 // Initialize Razorpay with error checking
 let razorpay;
 try {
@@ -29,6 +183,7 @@ export const createOrder = async (bookingData) => {
       listingId,
       userId,
       renterId,
+      eventDate,
       startDate,
       endDate,
       durationDays,
@@ -165,6 +320,7 @@ export const verifyPayment = async (paymentData) => {
       listingId,
       userId,
       renterId,
+      eventDate,
       startDate,
       endDate,
       totalDays,
@@ -219,6 +375,9 @@ export const verifyPayment = async (paymentData) => {
       totalPendingAmount: pendingAmount,
     });
 
+    // Start date is pickup date (one day before event) in current booking flow.
+    const normalizedEventDate = eventDate || addDays(startDate, 1)
+
     // Create booking ONLY after payment verification succeeds
     const booking = new Booking({
       listingId,
@@ -227,6 +386,10 @@ export const verifyPayment = async (paymentData) => {
       startDate,
       endDate,
       deliveryDate: startDate,
+      eventDate: normalizedEventDate,
+      sellerPickupDate: startDate,
+      customerPickupDate: addDays(endDate, 1),
+      sellerReturnDate: addDays(endDate, 1),
       totalDays,
       pricePerDay: Number(pricePerDay),
       rentalAmount: rentalAmountNum,
@@ -244,6 +407,14 @@ export const verifyPayment = async (paymentData) => {
       deliveryPartnerName: "",
       deliveryPartnerEmail: "",
       deliveryAssignedAt: null,
+      milestones: {
+        sellerPickupCompletedAt: null,
+        buyerDeliveryCompletedAt: null,
+        buyerPickupCompletedAt: null,
+        sellerReturnCompletedAt: null,
+        restPaymentCompletedAt: null,
+        depositReturnedAt: null,
+      },
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
       razorpaySignature: razorpay_signature,
@@ -302,7 +473,7 @@ export const getBooking = async (bookingId) => {
     console.log("[PaymentService] Booking deliveryDetails:", booking.deliveryDetails);
     console.log("[PaymentService] Booking object keys:", Object.keys(booking.toObject()));
     
-    return booking;
+    return withTimeline(booking);
   } catch (error) {
     console.error("[PaymentService] getBooking error:", error);
     throw new Error(`Failed to get booking: ${error.message}`);
@@ -313,7 +484,7 @@ export const getUserBookings = async (userId) => {
   try {
     const bookings = await Booking.find({ userId }).populate("listingId").sort({ createdAt: -1 });
     
-    return bookings;
+    return bookings.map((booking) => withTimeline(booking));
   } catch (error) {
     throw new Error(`Failed to get user bookings: ${error.message}`);
   }
@@ -323,7 +494,7 @@ export const getRenterBookings = async (renterId) => {
   try {
     const bookings = await Booking.find({ renterId }).populate("listingId").sort({ createdAt: -1 });
     
-    return bookings;
+    return bookings.map((booking) => withTimeline(booking));
   } catch (error) {
     throw new Error(`Failed to get renter bookings: ${error.message}`);
   }
@@ -350,7 +521,7 @@ export const markPaymentFailed = async (bookingId, userId) => {
     }
 
     console.log("[PaymentService] Marked booking as failed:", bookingId);
-    return booking;
+    return withTimeline(booking);
   } catch (error) {
     throw new Error(`Failed to mark payment as failed: ${error.message}`);
   }
