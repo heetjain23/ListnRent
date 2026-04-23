@@ -17,6 +17,7 @@ const DeleteAccountModal = ({ onClose, onSuccess, user }) => {
 
       // Delete user account and all their listings
       await api('/api/users/account', {
+        auth: true,
         method: 'DELETE',
       })
 

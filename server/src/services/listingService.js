@@ -3,56 +3,88 @@ import User from "../models/User.js";
 import Booking from "../models/Booking.js";
 import admin from "../config/firebase-admin.js";
 
-// Helper function to fetch owner data from MongoDB
-const enrichListingWithOwnerData = async (listing) => {
+const toPlainListing = (listing) =>
+  listing?.toObject ? listing.toObject() : listing;
+
+const displayNameFromEmail = (email) => {
+  if (!email) return "User";
+  return email
+    .split("@")[0]
+    .replace(/[._-]/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ") || "User";
+};
+
+const ownerFromDbUser = (user) => ({
+  displayName: user.displayName || displayNameFromEmail(user.email),
+  name: user.displayName || displayNameFromEmail(user.email),
+  email: user.email,
+  phone: null,
+});
+
+const ownerFromFirebaseUser = (user) => {
+  const displayName = user.displayName || displayNameFromEmail(user.email);
+
+  return {
+    displayName,
+    name: displayName,
+    email: user.email,
+    phone: user.phoneNumber,
+  };
+};
+
+const getOwnerMap = async (userIds) => {
+  const uniqueUserIds = [...new Set(userIds.filter(Boolean))];
+  const ownerMap = new Map();
+
+  if (uniqueUserIds.length === 0) return ownerMap;
+
+  const dbUsers = await User.find({ uid: { $in: uniqueUserIds } })
+    .select("uid email displayName")
+    .lean();
+
+  for (const user of dbUsers) {
+    ownerMap.set(user.uid, ownerFromDbUser(user));
+  }
+
+  const missingUserIds = uniqueUserIds.filter((uid) => !ownerMap.has(uid));
+  if (missingUserIds.length === 0) return ownerMap;
+
   try {
-    if (listing.userId) {
-      
-      // First try to get user from MongoDB
-      let dbUser = await User.findOne({ uid: listing.userId });
-      
-      if (dbUser) {
-        return {
-          ...listing.toObject ? listing.toObject() : listing,
-          owner: {
-            displayName: dbUser.displayName || 'User',
-            name: dbUser.displayName || 'User',
-            email: dbUser.email,
-            phone: null,
-          },
-        };
-      }
-      
-      // Fallback to Firebase if user not in DB
-      console.log('[ListingService] User not in DB, falling back to Firebase')
-      const firebaseUser = await admin.auth().getUser(listing.userId);
-      
-      // Determine displayName: use Firebase displayName, or create default from email
-      let displayName = firebaseUser.displayName;
-      if (!displayName) {
-        // Create default displayName from email (e.g., "john.doe@gmail.com" -> "John Doe")
-        if (firebaseUser.email) {
-          displayName = firebaseUser.email.split('@')[0].replace(/[._-]/g, ' ');
-          displayName = displayName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-        } else {
-          displayName = 'User';
-        }
-      }
-      
-      return {
-        ...listing.toObject ? listing.toObject() : listing,
-        owner: {
-          displayName: displayName,
-          name: displayName,
-          email: firebaseUser.email,
-          phone: firebaseUser.phoneNumber,
-        },
-      };
+    const firebaseResult = await admin.auth().getUsers(
+      missingUserIds.map((uid) => ({ uid })),
+    );
+
+    for (const user of firebaseResult.users) {
+      ownerMap.set(user.uid, ownerFromFirebaseUser(user));
     }
   } catch (error) {
-    console.warn(`Could not fetch owner data for UID ${listing.userId}:`, error.message);
+    console.warn("[ListingService] Firebase owner batch fallback failed:", error.message);
   }
-  return listing.toObject ? listing.toObject() : listing;
+
+  return ownerMap;
+};
+
+const enrichListingsWithOwnerData = async (listings) => {
+  const plainListings = listings.map(toPlainListing);
+  const ownerMap = await getOwnerMap(plainListings.map((listing) => listing.userId));
+
+  return plainListings.map((listing) => ({
+    ...listing,
+    owner: ownerMap.get(listing.userId) || {
+      displayName: "User",
+      name: "User",
+      email: null,
+      phone: null,
+    },
+  }));
+};
+
+const enrichListingWithOwnerData = async (listing) => {
+  const [enrichedListing] = await enrichListingsWithOwnerData([listing]);
+  return enrichedListing;
 };
 
 export const createListing = async (userId, data) => {
@@ -67,6 +99,7 @@ export const createListing = async (userId, data) => {
 // ----------------------------
 export const getAllListings = async (filters = {}) => {
   const query = { isActive: true, isDraft: { $ne: true } };
+  const limit = Math.min(Math.max(Number(filters.limit) || 0, 0), 60);
 
   // Handle filters - convert to array if string for consistent $in usage
   if (filters.category) {
@@ -83,14 +116,18 @@ export const getAllListings = async (filters = {}) => {
   }
   if (filters.city) query["location.city"] = filters.city;
 
-  const listings = await Listing.find(query).sort({ createdAt: -1 });
+  let listingsQuery = Listing.find(query)
+    .select("-bookings -rentalHistory -__v")
+    .sort({ createdAt: -1 })
+    .lean();
 
-  // Enrich each listing with owner data from Firebase
-  const enrichedListings = await Promise.all(
-    listings.map((listing) => enrichListingWithOwnerData(listing))
-  );
-  
-  return enrichedListings;
+  if (limit > 0) {
+    listingsQuery = listingsQuery.limit(limit);
+  }
+
+  const listings = await listingsQuery;
+
+  return enrichListingsWithOwnerData(listings);
 };
 
 // ----------------------------
@@ -239,19 +276,6 @@ export const markListingAsAvailable = async (listingId, booking, renterInfo) => 
       },
       { new: true }
     );
-
-    // Invalidate caches after marking as available
-    try {
-      await deleteCache(`listing:${listingId}`);
-      const client = (await import("../config/redis.js")).getRedisClient();
-      const keys = await client.keys("listings:*");
-      if (keys.length > 0) {
-        await client.del(keys);
-        console.log("[ListingService] Invalidated listing caches after marking as available");
-      }
-    } catch (cacheError) {
-      console.error("[ListingService] Cache invalidation error:", cacheError.message);
-    }
 
     return listing;
   } catch (error) {

@@ -63,6 +63,7 @@ const Dashboard = () => {
   const handleDeleteAccount = async () => {
     try {
       await api('/api/users/account', {
+        auth: true,
         method: 'DELETE',
       })
       // Clear local auth state

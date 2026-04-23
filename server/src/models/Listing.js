@@ -145,4 +145,8 @@ const listingSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+listingSchema.index({ isActive: 1, isDraft: 1, createdAt: -1 });
+listingSchema.index({ category: 1, occasion: 1, gender: 1, "location.city": 1, createdAt: -1 });
+listingSchema.index({ userId: 1, createdAt: -1 });
+
 export default mongoose.model("Listing", listingSchema);

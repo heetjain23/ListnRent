@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import HeroSection from "../components/home/HeroSection";
 import CuratedOccasionsSection from "../components/home/CuratedOccasionsSection";
 import SeamlessJourneySection from "../components/home/SeamlessJourneySection";
@@ -7,11 +7,13 @@ import NewsletterSection from "../components/home/NewsletterSection";
 import { useListings } from "../hooks/useListings";
 
 const Home = () => {
-  const [activeCategory, setActiveCategory] = useState("All");
+  const activeCategory = "All";
 
   // Fetch from real API — pass category filter (skip 'All')
-  const { listings, loading, error } = useListings(
-    activeCategory !== "All" ? { category: activeCategory } : {},
+  const { listings, loading } = useListings(
+    activeCategory !== "All"
+      ? { category: activeCategory, limit: 4 }
+      : { limit: 4 },
   );
 
   return (
