@@ -16,7 +16,7 @@ const Home = () => {
 
   return (
     <div>
-      <HeroSection />
+      <HeroSection listings={listings} loading={loading} />
       <TrendingNowSection listings={listings} loading={loading} />
       <CuratedOccasionsSection />
       <SeamlessJourneySection />
