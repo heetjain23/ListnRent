@@ -193,18 +193,6 @@ const Navbar = () => {
           >
             Collection
           </Link>
-          {!loading && user && (
-            <Link
-              to="/dashboard"
-              className={`rounded-full px-4 py-2 text-sm font-semibold tracking-wide transition-all duration-300 ease-out ${
-                location.pathname === '/dashboard'
-                  ? 'bg-[#00342B] text-[#FAF7F2] shadow-[0_6px_18px_rgba(0,52,43,0.25)]'
-                  : 'text-[#5B5149] hover:bg-[rgba(0,52,43,0.08)] hover:text-[#00342B]'
-              }`}
-            >
-              Dashboard
-            </Link>
-          )}
 
           <div className="ml-3 flex items-center gap-3 border-l border-[rgba(0,52,43,0.14)] pl-4">
             {!loading && user ? (
