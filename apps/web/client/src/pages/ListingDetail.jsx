@@ -248,7 +248,7 @@ const ListingDetail = () => {
   }
 
   return (
-    <div className="min-h-screen pt-16 md:pt-20 pb-20 md:pb-24 px-4 md:px-6" style={{ backgroundColor: '#FDFCF0' }}>
+    <div className="min-h-screen pt-24 md:pt-24 pb-20 md:pb-24 px-4 md:px-6" style={{ backgroundColor: '#FDFCF0' }}>
       <div className="max-w-6xl mx-auto">
 
         {/* Breadcrumb - Hidden on mobile, shown on md+ */}

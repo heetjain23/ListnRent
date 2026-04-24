@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { AnimatePresence, motion } from 'motion/react'
 import { useAuth } from '../../hooks/useAuth'
+import { RiMenu3Fill } from "react-icons/ri";
+import { MdClose } from "react-icons/md";
 
 const shellVariants = {
   hidden: {
@@ -40,12 +42,14 @@ const Navbar = () => {
   const [hasPassedHeroSection, setHasPassedHeroSection] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
+  const navRef = useRef(null)
   const profileDropdownRef = useRef(null)
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout, loading } = useAuth()
   const isHomePage = location.pathname === '/'
   const navState = scrolled || !isHomePage ? 'scrolled' : 'top'
+  const mobileShellState = menuOpen ? 'scrolled' : navState
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12)
@@ -90,11 +94,19 @@ const Navbar = () => {
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
         setProfileDropdownOpen(false)
       }
+
+      if (menuOpen && navRef.current && !navRef.current.contains(event.target)) {
+        setMenuOpen(false)
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+    document.addEventListener('touchstart', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
+  }, [menuOpen])
 
   const handleDashboardClick = () => {
     navigate('/dashboard')
@@ -129,6 +141,7 @@ const Navbar = () => {
 
   return (
     <motion.nav
+      ref={navRef}
       initial="hidden"
       animate={navState}
       variants={shellVariants}
@@ -138,17 +151,17 @@ const Navbar = () => {
       <motion.div
         aria-hidden="true"
         initial={false}
-        animate={navState}
+        animate={mobileShellState}
         variants={{
           top: { opacity: 0, y: -8 },
           scrolled: { opacity: 1, y: 0 },
         }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute inset-0 border-b border-[rgba(0,52,43,0.08)] bg-[linear-gradient(135deg,rgba(251,248,243,0.96)_0%,rgba(247,241,231,0.95)_52%,rgba(239,228,212,0.93)_100%)] shadow-[0_10px_30px_rgba(26,26,26,0.08)] backdrop-blur-md"
+        className="absolute left-0 right-0 top-0 h-20 border-b border-[rgba(0,52,43,0.08)] bg-[linear-gradient(135deg,rgba(251,248,243,0.96)_0%,rgba(247,241,231,0.95)_52%,rgba(239,228,212,0.93)_100%)] shadow-[0_10px_30px_rgba(26,26,26,0.08)] backdrop-blur-md"
       />
 
       <motion.div
-        className="relative mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-4 sm:px-6"
+        className="relative mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-5 sm:px-6"
         variants={{
           hidden: { opacity: 0 },
           top: { opacity: 1 },
@@ -296,7 +309,7 @@ const Navbar = () => {
         </motion.div>
 
         <motion.button
-          className="flex flex-col gap-1.5 p-1 lg:hidden"
+          className="mr-1 flex flex-col gap-1.5 overflow-visible p-2 lg:hidden"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
           aria-expanded={menuOpen}
@@ -304,21 +317,7 @@ const Navbar = () => {
           whileHover={{ y: -1 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
         >
-          <motion.span
-            className="block h-0.5 w-5 bg-[#1A1A1A]"
-            animate={{ rotate: menuOpen ? 45 : 0, y: menuOpen ? 6 : 0 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-          />
-          <motion.span
-            className="block h-0.5 w-5 bg-[#1A1A1A]"
-            animate={{ opacity: menuOpen ? 0 : 1, x: menuOpen ? 2 : 0 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-          />
-          <motion.span
-            className="block h-0.5 w-5 bg-[#1A1A1A]"
-            animate={{ rotate: menuOpen ? -45 : 0, y: menuOpen ? -6 : 0 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
-          />
+          {menuOpen ? <MdClose size={28} /> : <RiMenu3Fill size={25} />}
         </motion.button>
       </motion.div>
 
@@ -329,28 +328,25 @@ const Navbar = () => {
             animate={{ opacity: 1, y: 0, height: 'auto' }}
             exit={{ opacity: 0, y: -8, height: 0 }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="lg:hidden overflow-hidden border-t border-[rgba(0,52,43,0.12)] bg-[linear-gradient(135deg,#FBF8F3_0%,#F7F1E7_52%,#EFE4D4_100%)] px-4 pb-5 pt-4 sm:px-6"
+            className="lg:hidden overflow-hidden border-t border-[rgba(0,52,43,0.12)] bg-[linear-gradient(135deg,rgba(251,248,243,0.96)_0%,rgba(247,241,231,0.95)_52%,rgba(239,228,212,0.93)_100%)] px-4 pb-5 pt-4 sm:px-6"
           >
             <div className="grid grid-cols-2 gap-2.5">
               <button
-                onClick={() => handleNavigate('/collection')}
+                onClick={() => handleNavigate('/create')}
                 className="rounded-full bg-[#00342B] px-4 py-2.5 text-sm font-bold text-[#FAF7F2] shadow-[0_8px_22px_rgba(0,52,43,0.26)]"
               >
-                Explore
+                + List Outfit
               </button>
               {!loading && user ? (
                 <button
-                  onClick={() => handleNavigate('/create')}
-                  className="rounded-full border border-[#D4AF37] bg-white/80 px-4 py-2.5 text-sm font-bold text-[#00342B]"
+                  onClick={handleDashboardClick}
+                  className={`rounded-full px-4 py-2.5 text-sm font-bold transition-colors ${
+                    location.pathname === '/dashboard'
+                      ? 'bg-[#00342B] text-[#FAF7F2] shadow-[0_8px_22px_rgba(0,52,43,0.26)]'
+                      : 'border border-[#D4AF37] bg-white/80 text-[#00342B]'
+                  }`}
                 >
-                  + List Outfit
-                </button>
-              ) : hasPassedHeroSection ? (
-                <button
-                  onClick={() => handleNavigate('/create')}
-                  className="rounded-full border border-[#D4AF37] bg-white/80 px-4 py-2.5 text-sm font-bold text-[#00342B]"
-                >
-                  + List Outfit
+                  Dashboard
                 </button>
               ) : (
                 <button
@@ -384,21 +380,9 @@ const Navbar = () => {
                 Collection
               </Link>
 
-              {!loading && user && (
-                <Link
-                  to="/dashboard"
-                  className={`block rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                    location.pathname === '/dashboard'
-                      ? 'bg-[#00342B] text-[#FAF7F2]'
-                      : 'bg-white/75 text-[#4A443D] hover:bg-white'
-                  }`}
-                >
-                  Dashboard
-                </Link>
-              )}
             </div>
 
-            {!loading && user ? (
+            {!loading && user && (
               <div className="mt-4 border-t border-[rgba(0,52,43,0.12)] pt-4">
                 <p className="mb-2 text-xs text-[#7A7068]">Signed in as {user.email}</p>
                 <button
@@ -406,15 +390,6 @@ const Navbar = () => {
                   className="w-full rounded-xl border border-[#F0D7CF] bg-[#FFF3EF] px-4 py-2.5 text-left text-sm font-medium text-red-700"
                 >
                   Log Out
-                </button>
-              </div>
-            ) : (
-              <div className="mt-4 border-t border-[rgba(0,52,43,0.12)] pt-4">
-                <button
-                  onClick={() => handleNavigate('/login')}
-                  className="w-full rounded-xl border border-[rgba(0,52,43,0.14)] bg-white/80 px-4 py-2.5 text-left text-sm font-semibold text-[#4A443D]"
-                >
-                  {loading ? 'Loading...' : 'Continue to Sign In'}
                 </button>
               </div>
             )}

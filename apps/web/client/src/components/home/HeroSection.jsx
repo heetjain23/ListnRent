@@ -998,10 +998,10 @@ export default function HeroSection({ listings = [], loading = false }) {
         ref={heroRef}
         className={`relative flex items-center overflow-hidden bg-[linear-gradient(135deg,#FBF8F3_0%,#F7F1E7_52%,#EFE4D4_100%)] ${
           isMobile
-            ? "pb-10 pt-14"
+            ? "pb-10 pt-18"
             : isTablet
-              ? "min-h-[92vh] pb-13 pt-17"
-              : "min-h-[92vh] pb-15 pt-20"
+              ? "min-h-[92vh] pb-13 pt-20"
+              : "min-h-[92vh] pb-15 pt-25"
         }`}
       >
         <AmbientGlowBackground
@@ -1023,11 +1023,11 @@ export default function HeroSection({ listings = [], loading = false }) {
           className={`relative z-2 mx-auto w-full max-w-300 ${isMobile ? "px-4" : "px-6"}`}
         >
           <div
-            className={`grid items-center ${isTablet || isMobile ? "grid-cols-1" : "grid-cols-[1fr_auto]"} ${isMobile ? "gap-7" : "gap-12"}`}
+            className={`grid items-center ${isMobile ? "grid-cols-1" : "grid-cols-[1fr_auto]"} ${isMobile ? "gap-7" : "gap-12"}`}
           >
             {/* ── LEFT COLUMN ─────────────────────────────── */}
             <div
-              className={`${isTablet || isMobile ? "max-w-full" : "max-w-150"} ${isMobile ? "text-center" : "text-left"}`}
+              className={`${isMobile ? "order-2 max-w-full" : "order-1 max-w-150"} ${isMobile ? "text-center" : "text-left"}`}
             >
               {/* Tag line */}
               <motion.div
@@ -1150,7 +1150,7 @@ export default function HeroSection({ listings = [], loading = false }) {
                 duration: 0.9,
                 ease: [0.16, 1, 0.3, 1],
               }}
-              className={`flex justify-center ${isTablet || isMobile ? "mt-2" : "mt-0"}`}
+              className={`order-1 flex justify-center ${isMobile ? "mt-2" : "mt-0"}`}
               style={{
                 x: useTransform(mouseX, [0, 1], [8, -8]),
                 y: useTransform(mouseY, [0, 1], [4, -4]),
