@@ -7,6 +7,7 @@ import Button from '../components/ui/Button'
 import { CATEGORIES, OCCASIONS, GENDER, SIZES, CONDITIONS, MATERIALS } from '../constants'
 import { listingsApi } from '../services/api'
 import { uploadMultipleImages } from '../services/cloudinary'
+import { useSEO } from '../hooks/useSEO'
 
 const OUTFIT_CATEGORIES = CATEGORIES.filter((c) => c !== 'All')
 const OUTFIT_OCCASIONS = OCCASIONS.filter((o) => o !== 'All')
@@ -16,6 +17,13 @@ const OUTFIT_GENDERS = GENDER.filter((g) => g !== 'All')
 
 const CreateListing = () => {
   const navigate = useNavigate()
+  useSEO({
+    title: 'Create Listing',
+    description: 'Create and publish a new outfit listing on ListnRent.',
+    canonicalPath: '/create',
+    noIndex: true,
+  })
+
   const { user, loading, isAuthenticated } = useAuth()
   const fileInputRef = useRef(null)
   const [previewImages, setPreviewImages] = useState([])

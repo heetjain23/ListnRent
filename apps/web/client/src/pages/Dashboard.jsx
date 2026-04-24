@@ -15,9 +15,17 @@ import MyRentalsAsOwner from '../components/dashboard/MyRentalsAsOwner'
 import MyEarnings from '../components/dashboard/MyEarnings'
 import { FaClipboardList } from "react-icons/fa6";
 import { api } from '../services/api'
+import { useSEO } from '../hooks/useSEO'
 
 const Dashboard = () => {
   const navigate = useNavigate()
+  useSEO({
+    title: 'Dashboard',
+    description: 'Manage your listings, rentals, earnings, and account settings on ListnRent.',
+    canonicalPath: '/dashboard',
+    noIndex: true,
+  })
+
   const { user, logout, loading: authLoading } = useAuth()
   const {
     listings,

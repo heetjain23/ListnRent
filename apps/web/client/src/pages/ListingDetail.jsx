@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useListing } from '../hooks/useListings'
+import { useSEO } from '../hooks/useSEO'
 
 // Section components
 import ImageGallerySection    from '../components/listing-detail/ImageGallerySection'
@@ -132,6 +133,63 @@ const ListingDetail = () => {
   const navigate     = useNavigate()
   const { user }     = useAuth()
   const { listing, loading, error, refetch } = useListing(id)
+
+  const productSchema = useMemo(() => {
+    if (!listing) return null
+
+    const listingUrl = typeof window !== 'undefined'
+      ? window.location.href
+      : `https://listnrent.com/listing/${listing._id || id}`
+
+    const image = Array.isArray(listing.images) ? listing.images.filter(Boolean) : []
+    const itemCondition =
+      listing.condition === 'Excellent'
+        ? 'https://schema.org/UsedCondition'
+        : listing.condition === 'New'
+          ? 'https://schema.org/NewCondition'
+          : 'https://schema.org/UsedCondition'
+
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: listing.title,
+      description: listing.description,
+      category: listing.category,
+      image,
+      brand: {
+        '@type': 'Brand',
+        name: 'ListnRent',
+      },
+      offers: {
+        '@type': 'Offer',
+        url: listingUrl,
+        priceCurrency: 'INR',
+        price: Number(listing.pricePerDay) || 0,
+        availability: listing.isActive
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+        itemCondition,
+      },
+    }
+  }, [listing, id])
+
+  useSEO({
+    title: listing?.title ? `${listing.title} for Rent` : 'Outfit Details',
+    description: listing?.description
+      ? `${listing.description.slice(0, 150)}${listing.description.length > 150 ? '...' : ''}`
+      : 'View outfit details, rental pricing, and booking availability on ListnRent.',
+    keywords: [
+      listing?.category,
+      listing?.occasion,
+      'outfit rental',
+      'clothing rental',
+      'designer wear rental',
+      'ListnRent',
+    ].filter(Boolean).join(', '),
+    canonicalPath: `/listing/${listing?._id || id}`,
+    ogType: 'product',
+    structuredData: productSchema,
+  })
 
   const [activeImage,    setActiveImage]    = useState(0)
   const [eventDate,      setEventDate]      = useState('')

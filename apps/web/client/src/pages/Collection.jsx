@@ -8,6 +8,7 @@ import FilterModal from '../components/collection/FilterModal'
 import TopBar from '../components/collection/TopBar'
 import Grid from '../components/collection/Grid'
 import Pagination from '../components/collection/Pagination'
+import { useSEO } from '../hooks/useSEO'
 
 const Collection = () => {
   const [searchParams] = useSearchParams()
@@ -36,6 +37,21 @@ const Collection = () => {
   const [sortBy, setSortBy] = useState('Relevance')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 12
+
+  const seoTitle = selectedOccasion
+    ? `${selectedOccasion} Outfit Collection`
+    : selectedGender
+      ? `${selectedGender} Outfit Collection`
+      : 'Outfit Collection'
+
+  useSEO({
+    title: seoTitle,
+    description:
+      'Browse rental outfits by category, occasion, and style. Discover designer lehengas, sarees, and party wear available for rent on ListnRent.',
+    keywords:
+      'outfit collection, rent outfits, clothing rental collection, lehenga rental, saree rental, occasion wear rental, fashion rental India, ListnRent collection',
+    canonicalPath: '/collection',
+  })
 
   // Update filters if URL params change
   useEffect(() => {

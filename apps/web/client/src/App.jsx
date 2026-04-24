@@ -8,10 +8,18 @@ import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import PageLoadAnimation from './components/animations/PageLoadAnimation'
 import AnimatedRoutes from './components/animations/AnimatedRoutes'
+import { useSEO } from './hooks/useSEO'
 
 const CompleteMagicLink = () => {
   const [status, setStatus] = useState('loading') // loading, success, error
   const [error, setError] = useState(null)
+
+  useSEO({
+    title: 'Complete Sign In',
+    description: 'Completing your secure sign-in on ListnRent.',
+    canonicalPath: '/complete-magic-link',
+    noIndex: true,
+  })
 
   useEffect(() => {
     const completeSignIn = async () => {

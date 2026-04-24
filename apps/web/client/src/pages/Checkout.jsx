@@ -6,11 +6,19 @@ import { auth } from "../services/firebase";
 import { getOptimizedImageUrl } from "../services/cloudinary";
 import { BILLING_FEES } from "../constants";
 import Button from "../components/ui/Button";
+import { useSEO } from "../hooks/useSEO";
 
 const Checkout = () => {
   const navigate = useNavigate(); 
   const location = useLocation();
   const { user } = useAuth();
+
+  useSEO({
+    title: 'Checkout',
+    description: 'Secure checkout for outfit rentals on ListnRent.',
+    canonicalPath: '/checkout',
+    noIndex: true,
+  });
 
   // Get booking details from navigation state
   const bookingData = location.state;
