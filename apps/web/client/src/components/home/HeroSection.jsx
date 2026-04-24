@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, useMotionValue, useTransform, useSpring, useMotionTemplate } from "motion/react";
+import {
+  motion,
+  useMotionValue,
+  useTransform,
+  useSpring,
+  useMotionTemplate,
+} from "motion/react";
 import { getOptimizedImageUrl } from "../../services/cloudinary";
 
 // ─── Floating Fabric Particle System ─────────────────────────────────────────
@@ -232,14 +238,16 @@ function AnimatedCounter({ to, suffix = "", prefix = "" }) {
           }, 16);
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.5 },
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, [to]);
   return (
     <span ref={ref}>
-      {prefix}{val}{suffix}
+      {prefix}
+      {val}
+      {suffix}
     </span>
   );
 }
@@ -288,7 +296,11 @@ function GlitchWord({ word, delay = 0 }) {
       className="relative inline-block"
       initial={{ opacity: 0, y: 40, filter: "blur(8px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      transition={{ duration: 0.7, delay: delay / 1000, ease: [0.16, 1, 0.3, 1] }}
+      transition={{
+        duration: 0.7,
+        delay: delay / 1000,
+        ease: [0.16, 1, 0.3, 1],
+      }}
     >
       {word}
     </motion.span>
@@ -311,11 +323,19 @@ function FloatingAccent({ accent, mouseX, mouseY, isMobile }) {
       <motion.div
         animate={{
           y: [0, -10, 0],
-          rotate: [accent.rotate, accent.rotate + (accent.floatRotate ?? 0), accent.rotate],
+          rotate: [
+            accent.rotate,
+            accent.rotate + (accent.floatRotate ?? 0),
+            accent.rotate,
+          ],
           scale: [1, 1.03, 0.98, 1],
           opacity: [baseOpacity, Math.min(baseOpacity + 0.08, 1), baseOpacity],
         }}
-        transition={{ duration: accent.duration, repeat: Infinity, ease: "easeInOut" }}
+        transition={{
+          duration: accent.duration,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
         className="relative"
         style={{
           width: accent.width,
@@ -326,26 +346,16 @@ function FloatingAccent({ accent, mouseX, mouseY, isMobile }) {
       >
         {accent.variant === "glass-panel" && (
           <>
-            <div
-              className="absolute inset-4.5 rounded-[28px] border border-white/20"
-            />
-            <div
-              className="absolute left-7 right-7 top-[26%] h-px bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.82),rgba(255,255,255,0))]"
-            />
-            <div
-              className="absolute bottom-7.5 left-7 h-22.5 w-22.5 rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.26),rgba(212,175,55,0))]"
-            />
+            <div className="absolute inset-4.5 rounded-[28px] border border-white/20" />
+            <div className="absolute left-7 right-7 top-[26%] h-px bg-[linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,0.82),rgba(255,255,255,0))]" />
+            <div className="absolute bottom-7.5 left-7 h-22.5 w-22.5 rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.26),rgba(212,175,55,0))]" />
           </>
         )}
 
         {accent.variant === "halo-panel" && (
           <>
-            <div
-              className="absolute inset-4 rounded-3xl border border-[rgba(0,52,43,0.1)]"
-            />
-            <div
-              className="absolute left-[24%] top-[24%] h-[52%] w-[52%] rounded-full bg-[radial-gradient(circle,rgba(0,52,43,0.16),rgba(0,52,43,0))]"
-            />
+            <div className="absolute inset-4 rounded-3xl border border-[rgba(0,52,43,0.1)]" />
+            <div className="absolute left-[24%] top-[24%] h-[52%] w-[52%] rounded-full bg-[radial-gradient(circle,rgba(0,52,43,0.16),rgba(0,52,43,0))]" />
           </>
         )}
       </motion.div>
@@ -488,7 +498,12 @@ function AmbientGlowBackground({ mouseX, mouseY, isMobile }) {
 
       <motion.div
         animate={{ opacity: [0.22, 0.5, 0.22] }}
-        transition={{ duration: 8.2, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
+        transition={{
+          duration: 8.2,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 1.2,
+        }}
         className="pointer-events-none absolute bottom-[20%] left-[68%] top-[22%] w-px"
         style={{
           x: useTransform(mouseX, [0, 1], [-10, 10]),
@@ -550,10 +565,12 @@ function TiltCard({ children, style }) {
       onMouseMove={handleMove}
       onMouseLeave={handleLeave}
       style={{
-        rotateX: rotX, rotateY: rotY, scale,
+        rotateX: rotX,
+        rotateY: rotY,
+        scale,
         transformStyle: "preserve-3d",
         perspective: 800,
-        ...style
+        ...style,
       }}
     >
       {children}
@@ -571,7 +588,9 @@ function TrustBadge({ icon, label, delay }) {
       className="flex min-w-20 flex-col items-center gap-1.5 rounded-xl border border-[rgba(212,175,55,0.2)] bg-white/70 px-4 py-3 backdrop-blur-md"
     >
       <span className="text-[20px]">{icon}</span>
-      <span className="text-center text-[9px] font-semibold uppercase leading-[1.3] tracking-widest text-[#00342B]">{label}</span>
+      <span className="text-center text-[9px] font-semibold uppercase leading-[1.3] tracking-widest text-[#00342B]">
+        {label}
+      </span>
     </motion.div>
   );
 }
@@ -585,7 +604,10 @@ function CursorFollower() {
   const [active, setActive] = useState(false);
 
   useEffect(() => {
-    const move = (e) => { x.set(e.clientX); y.set(e.clientY); };
+    const move = (e) => {
+      x.set(e.clientX);
+      y.set(e.clientY);
+    };
     const down = () => setActive(true);
     const up = () => setActive(false);
     window.addEventListener("mousemove", move);
@@ -602,7 +624,12 @@ function CursorFollower() {
     <>
       <motion.div
         className="pointer-events-none fixed -left-5 -top-5 z-9999 h-10 w-10 rounded-full border-[1.5px] border-[rgba(212,175,55,0.5)]"
-        style={{ x: sx, y: sy, scale: active ? 0.6 : 1, transition: "scale 0.15s" }}
+        style={{
+          x: sx,
+          y: sy,
+          scale: active ? 0.6 : 1,
+          transition: "scale 0.15s",
+        }}
       />
       <motion.div
         className="pointer-events-none fixed -left-0.75 -top-0.75 z-9999 h-1.5 w-1.5 rounded-full bg-[#D4AF37]"
@@ -614,15 +641,75 @@ function CursorFollower() {
 
 // ─── Stacked Outfit Images (SVG placeholder visualization) ────────────────────
 const FALLBACK_SHOWCASE = [
-  { id: null, title: "Bridal Lehenga", category: "Lehenga", pricePerDay: 800, image: "", location: "Mumbai", rotate: -8, x: -24, color: "#8B4513" },
-  { id: null, title: "Regal Sherwani", category: "Sherwani", pricePerDay: 1100, image: "", location: "Bandra", rotate: 2, x: 0, color: "#00342B" },
-  { id: null, title: "Festive Silk Saree", category: "Saree", pricePerDay: 900, image: "", location: "Juhu", rotate: 9, x: 24, color: "#C8622A" },
+  {
+    id: null,
+    title: "Bridal Lehenga",
+    category: "Lehenga",
+    pricePerDay: 800,
+    image: "",
+    location: "Mumbai",
+    rotate: -8,
+    x: -24,
+    color: "#8B4513",
+  },
+  {
+    id: null,
+    title: "Regal Sherwani",
+    category: "Sherwani",
+    pricePerDay: 1100,
+    image: "",
+    location: "Bandra",
+    rotate: 2,
+    x: 0,
+    color: "#00342B",
+  },
+  {
+    id: null,
+    title: "Festive Silk Saree",
+    category: "Saree",
+    pricePerDay: 900,
+    image: "",
+    location: "Juhu",
+    rotate: 9,
+    x: 24,
+    color: "#C8622A",
+  },
 ];
 
 const LOADING_SHOWCASE = [
-  { id: "loading-1", title: "Loading outfit...", category: "Curated", pricePerDay: "--", image: "", location: "Mumbai", rotate: -8, x: -24, color: "#8B4513" },
-  { id: "loading-2", title: "Loading outfit...", category: "Curated", pricePerDay: "--", image: "", location: "Mumbai", rotate: 2, x: 0, color: "#00342B" },
-  { id: "loading-3", title: "Loading outfit...", category: "Curated", pricePerDay: "--", image: "", location: "Mumbai", rotate: 9, x: 24, color: "#C8622A" },
+  {
+    id: "loading-1",
+    title: "Loading outfit...",
+    category: "Curated",
+    pricePerDay: "--",
+    image: "",
+    location: "Mumbai",
+    rotate: -8,
+    x: -24,
+    color: "#8B4513",
+  },
+  {
+    id: "loading-2",
+    title: "Loading outfit...",
+    category: "Curated",
+    pricePerDay: "--",
+    image: "",
+    location: "Mumbai",
+    rotate: 2,
+    x: 0,
+    color: "#00342B",
+  },
+  {
+    id: "loading-3",
+    title: "Loading outfit...",
+    category: "Curated",
+    pricePerDay: "--",
+    image: "",
+    location: "Mumbai",
+    rotate: 9,
+    x: 24,
+    color: "#C8622A",
+  },
 ];
 
 const getListingLocation = (listing) => {
@@ -635,7 +722,9 @@ const getListingLocation = (listing) => {
 const buildShowcaseCards = (listings = []) => {
   const realCards = listings
     .filter((listing) => listing?._id || listing?.id)
-    .sort((a, b) => Number(Boolean(b.images?.[0])) - Number(Boolean(a.images?.[0])))
+    .sort(
+      (a, b) => Number(Boolean(b.images?.[0])) - Number(Boolean(a.images?.[0])),
+    )
     .slice(0, 3)
     .map((listing, index) => ({
       id: listing._id || listing.id,
@@ -652,7 +741,12 @@ const buildShowcaseCards = (listings = []) => {
   return realCards.length ? realCards : FALLBACK_SHOWCASE;
 };
 
-function OutfitShowcase({ compact = false, listings = [], loading = false, onSelectListing }) {
+function OutfitShowcase({
+  compact = false,
+  listings = [],
+  loading = false,
+  onSelectListing,
+}) {
   const [hovered, setHovered] = useState(null);
   const config = compact
     ? {
@@ -674,7 +768,9 @@ function OutfitShowcase({ compact = false, listings = [], loading = false, onSel
         reviewsLeft: -16,
       };
 
-  const hasRealListings = listings.some((listing) => listing?._id || listing?.id);
+  const hasRealListings = listings.some(
+    (listing) => listing?._id || listing?.id,
+  );
   const cards = hasRealListings
     ? buildShowcaseCards(listings)
     : loading
@@ -697,18 +793,26 @@ function OutfitShowcase({ compact = false, listings = [], loading = false, onSel
             if (!loading) onSelectListing(card.id);
           }}
           onKeyDown={(e) => {
-            if ((e.key === "Enter" || e.key === " ") && !loading) onSelectListing(card.id);
+            if ((e.key === "Enter" || e.key === " ") && !loading)
+              onSelectListing(card.id);
           }}
           onHoverStart={() => setHovered(i)}
           onHoverEnd={() => setHovered(null)}
           initial={{ opacity: 0, y: 60, rotate: card.rotate }}
           animate={{
-            opacity: 1, y: 0, rotate: card.rotate,
+            opacity: 1,
+            y: 0,
+            rotate: card.rotate,
             x: card.x,
             z: hovered === i ? 50 : i * 5,
             scale: 1,
           }}
-          transition={{ delay: 0.8 + i * 0.12, duration: 0.8, type: "spring", stiffness: 120 }}
+          transition={{
+            delay: 0.8 + i * 0.12,
+            duration: 0.8,
+            type: "spring",
+            stiffness: 120,
+          }}
           className={`absolute flex cursor-pointer flex-col justify-end overflow-hidden border border-white/15 ${compact ? "rounded-[20px] p-5" : "rounded-3xl p-6"}`}
           style={{
             top: i * (compact ? 12 : 16),
@@ -716,12 +820,18 @@ function OutfitShowcase({ compact = false, listings = [], loading = false, onSel
             width: `min(${config.cardWidth}px, 64vw)`,
             height: `min(${config.cardHeight}px, 76vw)`,
             background: `linear-gradient(145deg, ${card.color}, ${card.color}dd)`,
-            boxShadow: hovered === i ? "0 32px 64px rgba(0,0,0,0.3)" : "0 8px 32px rgba(0,0,0,0.2)",
+            boxShadow:
+              hovered === i
+                ? "0 32px 64px rgba(0,0,0,0.3)"
+                : "0 8px 32px rgba(0,0,0,0.2)",
           }}
         >
           {card.image ? (
             <motion.img
-              src={getOptimizedImageUrl(card.image, { width: compact ? 360 : 520, height: compact ? 500 : 700 })}
+              src={getOptimizedImageUrl(card.image, {
+                width: compact ? 360 : 520,
+                height: compact ? 500 : 700,
+              })}
               alt={card.title}
               loading={i === 0 ? "eager" : "lazy"}
               animate={{ scale: hovered === i ? 1.08 : 1 }}
@@ -744,16 +854,35 @@ function OutfitShowcase({ compact = false, listings = [], loading = false, onSel
 
           {/* Card info */}
           <div className="relative z-2">
-            <div className={`flex items-center justify-between gap-2 ${compact ? "mb-2" : "mb-2.5"}`}>
-              <span className={`${compact ? "text-[9px]" : "text-[12px]"} font-extrabold uppercase tracking-[0.18em] text-[#D4AF37]`}>{card.category}</span>
-              <span className={`${compact ? "px-2 py-1 text-[10px]" : "px-2.5 py-1.5 text-[13px]"} whitespace-nowrap rounded-full bg-[#D4AF37] font-extrabold text-[#1A1A1A]`}>
+            <div
+              className={`flex items-center justify-between gap-2 ${compact ? "mb-2" : "mb-2.5"}`}
+            >
+              <span
+                className={`${compact ? "text-[9px]" : "text-[12px]"} font-extrabold uppercase tracking-[0.18em] text-[#D4AF37]`}
+              >
+                {card.category}
+              </span>
+              <span
+                className={`${compact ? "px-2 py-1 text-[10px]" : "px-2.5 py-1.5 text-[13px]"} whitespace-nowrap rounded-full bg-[#D4AF37] font-extrabold text-[#1A1A1A]`}
+              >
                 {loading ? "Loading" : `Rs ${card.pricePerDay}/day`}
               </span>
             </div>
-            <div className={`${compact ? "mb-1.75 text-[15px]" : "mb-2.5 text-[24px]"} font-serif font-extrabold leading-[1.12] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.35)]`}>{card.title}</div>
+            <div
+              className={`${compact ? "mb-1.75 text-[15px]" : "mb-2.5 text-[24px]"} font-serif font-extrabold leading-[1.12] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.35)]`}
+            >
+              {card.title}
+            </div>
             <div className="flex items-center justify-between gap-2">
-              <span className={`${compact ? "text-[10px]" : "text-[13px]"} truncate whitespace-nowrap font-semibold text-[rgba(255,255,255,0.82)]`}>{card.location}</span>
-              <motion.span animate={{ x: hovered === i ? 3 : 0 }} className={`${compact ? "text-[11px]" : "text-[13px]"} whitespace-nowrap font-extrabold text-[#FAF7F2]`}>
+              <span
+                className={`${compact ? "text-[10px]" : "text-[13px]"} truncate whitespace-nowrap font-semibold text-[rgba(255,255,255,0.82)]`}
+              >
+                {card.location}
+              </span>
+              <motion.span
+                animate={{ x: hovered === i ? 3 : 0 }}
+                className={`${compact ? "text-[11px]" : "text-[13px]"} whitespace-nowrap font-extrabold text-[#FAF7F2]`}
+              >
                 {loading ? "Loading..." : "View ->"}
               </motion.span>
             </div>
@@ -779,7 +908,9 @@ function OutfitShowcase({ compact = false, listings = [], loading = false, onSel
           right: config.priceRight,
         }}
       >
-        {loading ? "Fetching outfits..." : `${Math.max(listings.length, 120)}+ Outfits`}
+        {loading
+          ? "Fetching outfits..."
+          : `${Math.max(listings.length, 120)}+ Outfits`}
       </motion.div>
 
       {/* Reviews badge */}
@@ -794,10 +925,23 @@ function OutfitShowcase({ compact = false, listings = [], loading = false, onSel
         }}
       >
         <div className="mb-1 flex gap-0.5">
-          {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize: compact ? 10 : 12, color: "#D4AF37" }}>★</span>)}
+          {[1, 2, 3, 4, 5].map((s) => (
+            <span
+              key={s}
+              style={{ fontSize: compact ? 10 : 12, color: "#D4AF37" }}
+            >
+              ★
+            </span>
+          ))}
         </div>
-        <div className={`${compact ? "text-[10px]" : "text-[12px]"} font-bold text-[#00342B]`}>340+ Happy Renters</div>
-        <div style={{ fontSize: compact ? 9 : 10, color: "#888" }}>Avg ₹4,200 savings</div>
+        <div
+          className={`${compact ? "text-[10px]" : "text-[12px]"} font-bold text-[#00342B]`}
+        >
+          340+ Happy Renters
+        </div>
+        <div style={{ fontSize: compact ? 9 : 10, color: "#888" }}>
+          Avg ₹4,200 savings
+        </div>
       </motion.div>
     </div>
   );
@@ -812,7 +956,7 @@ export default function HeroSection({ listings = [], loading = false }) {
   const parallaxX = useTransform(mouseX, [0, 1], [-20, 20]);
   const parallaxY = useTransform(mouseY, [0, 1], [-12, 12]);
   const [viewportWidth, setViewportWidth] = useState(
-    typeof window === "undefined" ? 1280 : window.innerWidth
+    typeof window === "undefined" ? 1280 : window.innerWidth,
   );
   const isMobile = viewportWidth < 768;
   const isTablet = viewportWidth >= 768 && viewportWidth < 1100;
@@ -853,10 +997,18 @@ export default function HeroSection({ listings = [], loading = false }) {
       <section
         ref={heroRef}
         className={`relative flex items-center overflow-hidden bg-[linear-gradient(135deg,#FBF8F3_0%,#F7F1E7_52%,#EFE4D4_100%)] ${
-          isMobile ? "pb-10 pt-14" : isTablet ? "min-h-[92vh] pb-13 pt-17" : "min-h-[92vh] pb-15 pt-20"
+          isMobile
+            ? "pb-10 pt-14"
+            : isTablet
+              ? "min-h-[92vh] pb-13 pt-17"
+              : "min-h-[92vh] pb-15 pt-20"
         }`}
       >
-        <AmbientGlowBackground mouseX={mouseX} mouseY={mouseY} isMobile={isMobile} />
+        <AmbientGlowBackground
+          mouseX={mouseX}
+          mouseY={mouseY}
+          isMobile={isMobile}
+        />
 
         {/* Large decorative letter */}
         <motion.div
@@ -867,11 +1019,16 @@ export default function HeroSection({ listings = [], loading = false }) {
         </motion.div>
 
         {/* Content wrapper */}
-        <div className={`relative z-2 mx-auto w-full max-w-300 ${isMobile ? "px-4" : "px-6"}`}>
-          <div className={`grid items-center ${isTablet || isMobile ? "grid-cols-1" : "grid-cols-[1fr_auto]"} ${isMobile ? "gap-7" : "gap-12"}`}>
-
+        <div
+          className={`relative z-2 mx-auto w-full max-w-300 ${isMobile ? "px-4" : "px-6"}`}
+        >
+          <div
+            className={`grid items-center ${isTablet || isMobile ? "grid-cols-1" : "grid-cols-[1fr_auto]"} ${isMobile ? "gap-7" : "gap-12"}`}
+          >
             {/* ── LEFT COLUMN ─────────────────────────────── */}
-            <div className={`${isTablet || isMobile ? "max-w-full" : "max-w-150"} ${isMobile ? "text-center" : "text-left"}`}>
+            <div
+              className={`${isTablet || isMobile ? "max-w-full" : "max-w-150"} ${isMobile ? "text-center" : "text-left"}`}
+            >
               {/* Tag line */}
               <motion.div
                 initial={{ opacity: 0, x: -30 }}
@@ -879,8 +1036,12 @@ export default function HeroSection({ listings = [], loading = false }) {
                 transition={{ duration: 0.6 }}
                 className={`mb-6 inline-flex items-center gap-2.5 rounded-full border border-[rgba(212,175,55,0.3)] bg-[rgba(212,175,55,0.1)] py-1.5 pl-2 pr-4 ${isMobile ? "mx-auto" : "mx-0"}`}
               >
-                <span className="rounded-[30px] bg-[#D4AF37] px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.15em] text-[#1A1A1A]">New</span>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8B7340]">The Curated Heritage Platform</span>
+                <span className="rounded-[30px] bg-[#D4AF37] px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.15em] text-[#1A1A1A]">
+                  New
+                </span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8B7340]">
+                  The Curated Heritage Platform
+                </span>
               </motion.div>
 
               {/* Headline */}
@@ -902,7 +1063,11 @@ export default function HeroSection({ listings = [], loading = false }) {
               <motion.div
                 initial={{ scaleX: 0, originX: 0 }}
                 animate={{ scaleX: 1 }}
-                transition={{ delay: 1.1, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                transition={{
+                  delay: 1.1,
+                  duration: 0.7,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
                 className={`mb-6 h-0.75 max-w-80 rounded-sm bg-[linear-gradient(90deg,#D4AF37,#C8622A,transparent)] ${isMobile ? "mx-auto" : "mx-0"}`}
               />
 
@@ -913,8 +1078,9 @@ export default function HeroSection({ listings = [], loading = false }) {
                 transition={{ delay: 0.9, duration: 0.6 }}
                 className={`mb-9 max-w-120 text-[clamp(14px,1.6vw,17px)] leading-[1.7] text-[#666] ${isMobile ? "mx-auto" : "mx-0"}`}
               >
-                Experience designer lehengas, sherwanis & sarees without the lifetime cost.
-                Sustainable luxury for Mumbai's social season — delivered to your door.
+                Experience designer lehengas, sherwanis & sarees without the
+                lifetime cost. Sustainable luxury for Mumbai's social season —
+                delivered to your door.
               </motion.p>
 
               {/* CTAs */}
@@ -928,7 +1094,9 @@ export default function HeroSection({ listings = [], loading = false }) {
                   onClick={goToCollection}
                   className={`relative overflow-hidden rounded-full bg-[#00342B] px-8 py-3.75 text-[14px] font-bold tracking-[0.08em] text-[#FAF7F2] shadow-[0_8px_32px_rgba(0,52,43,0.25)] ${isMobile ? "w-full max-w-[320px]" : "w-auto"}`}
                 >
-                  <span style={{ position: "relative", zIndex: 1 }}>Explore Collection →</span>
+                  <span style={{ position: "relative", zIndex: 1 }}>
+                    Explore Collection →
+                  </span>
                   <motion.div
                     className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(212,175,55,0.15),transparent)]"
                     style={{ x: "-100%" }}
@@ -959,9 +1127,15 @@ export default function HeroSection({ listings = [], loading = false }) {
                 ].map((stat, i) => (
                   <div key={i}>
                     <div className="font-serif text-[clamp(22px,3vw,34px)] font-black leading-none text-[#00342B]">
-                      <AnimatedCounter to={stat.value} suffix={stat.suffix} prefix={stat.prefix || ""} />
+                      <AnimatedCounter
+                        to={stat.value}
+                        suffix={stat.suffix}
+                        prefix={stat.prefix || ""}
+                      />
                     </div>
-                    <div className="mt-0.75 text-[11px] uppercase tracking-[0.12em] text-[#999]">{stat.label}</div>
+                    <div className="mt-0.75 text-[11px] uppercase tracking-[0.12em] text-[#999]">
+                      {stat.label}
+                    </div>
                   </div>
                 ))}
               </motion.div>
@@ -971,12 +1145,24 @@ export default function HeroSection({ listings = [], loading = false }) {
             <motion.div
               initial={{ opacity: 0, x: 60 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5, duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+              transition={{
+                delay: 0.5,
+                duration: 0.9,
+                ease: [0.16, 1, 0.3, 1],
+              }}
               className={`flex justify-center ${isTablet || isMobile ? "mt-2" : "mt-0"}`}
-              style={{ x: useTransform(mouseX, [0, 1], [8, -8]), y: useTransform(mouseY, [0, 1], [4, -4]) }}
+              style={{
+                x: useTransform(mouseX, [0, 1], [8, -8]),
+                y: useTransform(mouseY, [0, 1], [4, -4]),
+              }}
             >
               <TiltCard>
-                <OutfitShowcase compact={isMobile} listings={listings} loading={loading} onSelectListing={goToListing} />
+                <OutfitShowcase
+                  compact={isMobile}
+                  listings={listings}
+                  loading={loading}
+                  onSelectListing={goToListing}
+                />
               </TiltCard>
             </motion.div>
           </div>
@@ -990,7 +1176,9 @@ export default function HeroSection({ listings = [], loading = false }) {
             transition={{ delay: 2.2 }}
             className="absolute bottom-7 left-1/2 z-3 flex -translate-x-1/2 flex-col items-center gap-1.5"
           >
-            <span className="text-[9px] uppercase tracking-[0.2em] text-[#999]">Scroll to explore</span>
+            <span className="text-[9px] uppercase tracking-[0.2em] text-[#999]">
+              Scroll to explore
+            </span>
             <motion.div
               animate={{ y: [0, 8, 0] }}
               transition={{ duration: 1.5, repeat: Infinity }}
@@ -1022,12 +1210,19 @@ export default function HeroSection({ listings = [], loading = false }) {
             transition={{ delay: i * 0.1 }}
             className="flex items-center gap-2.5"
           >
-            <span className={`${isMobile ? "text-base" : "text-lg"} font-semibold text-[#D4AF37]`}>{item.emoji}</span>
-            <span className={`${isMobile ? "text-[12px]" : "text-[13px]"} font-semibold tracking-[0.04em] text-white/85`}>{item.text}</span>
+            <span
+              className={`${isMobile ? "text-base" : "text-lg"} font-semibold text-[#D4AF37]`}
+            >
+              {item.emoji}
+            </span>
+            <span
+              className={`${isMobile ? "text-[12px]" : "text-[13px]"} font-semibold tracking-[0.04em] text-white/85`}
+            >
+              {item.text}
+            </span>
           </motion.div>
         ))}
       </motion.section>
     </div>
   );
 }
-
