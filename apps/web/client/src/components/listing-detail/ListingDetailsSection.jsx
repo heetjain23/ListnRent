@@ -1,43 +1,103 @@
 import React from 'react'
+import { motion } from 'motion/react'
 
 // ─── Category Badge ────────────────────────────────────────────────────────────
 const CategoryBadge = ({ category = 'Category' }) => (
-  <span
-    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-widest uppercase"
+  <motion.span
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold tracking-[0.18em] uppercase"
     style={{
-      backgroundColor: '#FFF8E1',
-      color: '#7D6B41',
-      border: `1px solid #D4AF37`,
+      backgroundColor: 'rgba(212,175,55,0.1)',
+      color: '#8B7340',
+      border: '1px solid rgba(212,175,55,0.4)',
     }}
   >
-    <span style={{ color: '#D4AF37' }}>◆</span>
+    <span style={{ color: '#D4AF37', fontSize: '8px' }}>◆</span>
     {category}
-  </span>
+  </motion.span>
+)
+
+// ─── Availability Badge ────────────────────────────────────────────────────────
+const AvailabilityBadge = ({ isActive }) => (
+  <motion.div
+    initial={{ opacity: 0, x: 8 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ duration: 0.4, delay: 0.15 }}
+    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+    style={{
+      backgroundColor: isActive ? 'rgba(0,77,64,0.1)' : 'rgba(200,98,42,0.1)',
+      color: isActive ? '#004D40' : '#C8622A',
+      border: `1px solid ${isActive ? 'rgba(0,77,64,0.25)' : 'rgba(200,98,42,0.25)'}`,
+    }}
+  >
+    <span
+      className="w-1.5 h-1.5 rounded-full"
+      style={{ backgroundColor: isActive ? '#004D40' : '#C8622A' }}
+    />
+    {isActive ? 'Available' : 'Unavailable'}
+  </motion.div>
 )
 
 const ListingDetailsSection = ({ listing }) => {
   return (
-    <div className="flex flex-col gap-4 md:gap-6 lg:gap-4">
-      {/* Category Badge - Top on mobile */}
-      <div className="flex items-start justify-start">
+    <div className="flex flex-col gap-4 md:gap-5">
+
+      {/* Top row: badge + availability */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <CategoryBadge category={listing.category} />
+        <AvailabilityBadge isActive={listing.isActive} />
       </div>
 
       {/* Title */}
-      <h1
-        className="text-2xl md:text-3xl lg:text-4xl font-black leading-tight"
-        style={{ color: '#1A1A14', fontFamily: 'Georgia, serif' }}
+      <motion.h1
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: 0.06 }}
+        className="text-2xl md:text-3xl lg:text-[2.1rem] font-black leading-tight"
+        style={{ color: '#1A1A14', fontFamily: 'Georgia, serif', letterSpacing: '-0.01em' }}
       >
         {listing.title}
-      </h1>
+      </motion.h1>
+
+      {/* Gold accent line */}
+      <motion.div
+        initial={{ scaleX: 0, originX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ delay: 0.3, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="h-0.5 w-16 rounded-sm"
+        style={{ background: 'linear-gradient(90deg, #D4AF37, #C8622A, transparent)' }}
+      />
 
       {/* Description */}
-      <p
-        className="text-xs md:text-sm leading-relaxed"
-        style={{ color: '#6A6A56', maxWidth: '440px' }}
+      <motion.p
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+        className="text-sm md:text-[0.92rem] leading-relaxed"
+        style={{ color: '#6A6A56', maxWidth: '420px' }}
       >
         {listing.description}
-      </p>
+      </motion.p>
+
+      {/* Location pill */}
+      {listing.location && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.2 }}
+          className="inline-flex items-center gap-2 w-fit"
+        >
+          <span className="text-sm">📍</span>
+          <span
+            className="text-xs font-semibold"
+            style={{ color: '#9E9E7A' }}
+          >
+            {listing.location.area}{listing.location.city ? `, ${listing.location.city}` : ''}
+          </span>
+        </motion.div>
+      )}
     </div>
   )
 }
