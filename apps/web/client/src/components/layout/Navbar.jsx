@@ -3,52 +3,140 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { AnimatePresence, motion } from 'motion/react'
 import { useAuth } from '../../hooks/useAuth'
-import { RiMenu3Fill } from "react-icons/ri";
-import { MdClose } from "react-icons/md";
+import { RiMenu3Fill } from 'react-icons/ri'
+import { MdClose } from 'react-icons/md'
 
+// ─── Animation variants ───────────────────────────────────────────────────────
 const shellVariants = {
-  hidden: {
-    opacity: 0,
-    y: -22,
-    filter: 'blur(10px)',
-  },
-  top: {
-    opacity: 1,
-    y: 0,
-    filter: 'blur(0px)',
-    transition: {
-      duration: 0.55,
-      ease: [0.16, 1, 0.3, 1],
-      when: 'beforeChildren',
-      staggerChildren: 0.04,
-      delayChildren: 0.05,
-    },
-  },
-  scrolled: {
-    opacity: 1,
-    y: 0,
-    filter: 'blur(0px)',
-    transition: {
-      duration: 0.35,
-      ease: [0.16, 1, 0.3, 1],
-      when: 'beforeChildren',
-      staggerChildren: 0.03,
-    },
-  },
+  hidden:   { opacity: 0, y: -22, filter: 'blur(10px)' },
+  top:      { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1], when: 'beforeChildren', staggerChildren: 0.04, delayChildren: 0.05 } },
+  scrolled: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1], when: 'beforeChildren', staggerChildren: 0.03 } },
 }
 
+const itemVariants = {
+  hidden:   { x: -12, opacity: 0 },
+  top:      { x: 0, opacity: 1 },
+  scrolled: { x: 0, opacity: 1 },
+}
+
+// ─── Nav Link ─────────────────────────────────────────────────────────────────
+function NavLink({ to, active, children }) {
+  return (
+    <Link
+      to={to}
+      className={`relative rounded-full px-4 py-2 text-sm font-semibold tracking-wide transition-all duration-300 ease-out ${
+        active
+          ? 'bg-[#00342B] text-[#FAF7F2] shadow-[0_6px_18px_rgba(0,52,43,0.25)]'
+          : 'text-[#5B5149] hover:bg-[rgba(0,52,43,0.08)] hover:text-[#00342B]'
+      }`}
+    >
+      {children}
+      {/* Active gold underline dot */}
+      {active && (
+        <motion.div
+          layoutId="nav-active-dot"
+          className="absolute -bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#D4AF37]"
+          transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+        />
+      )}
+    </Link>
+  )
+}
+
+// ─── CTA Button ──────────────────────────────────────────────────────────────
+function CTAButton({ onClick, children }) {
+  return (
+    <motion.button
+      onClick={onClick}
+      whileHover={{ y: -1 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ duration: 0.2 }}
+      className="relative overflow-hidden rounded-full border border-[#D4AF37] bg-[#00342B] px-5 py-2 text-sm font-bold tracking-[0.04em] text-[#FAF7F2] shadow-[0_8px_24px_rgba(0,52,43,0.22)]"
+    >
+      <span className="relative z-10">{children}</span>
+      {/* shimmer */}
+      <motion.div
+        className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(212,175,55,0.18),transparent)]"
+        style={{ x: '-100%' }}
+        whileHover={{ x: '100%' }}
+        transition={{ duration: 0.5 }}
+      />
+    </motion.button>
+  )
+}
+
+// ─── Profile Dropdown ─────────────────────────────────────────────────────────
+function ProfileDropdown({ user, onDashboard, onLogout, open, setOpen, dropdownRef }) {
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <motion.button
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-label="Open profile menu"
+        whileHover={{ y: -1, scale: 1.01 }}
+        whileTap={{ scale: 0.97 }}
+        transition={{ duration: 0.22 }}
+        className="flex items-center gap-2 rounded-full border border-[rgba(0,52,43,0.16)] bg-white/70 px-3.5 py-2 text-sm font-medium text-[#4A443D] backdrop-blur-sm transition-colors hover:border-[rgba(212,175,55,0.4)] hover:text-[#1A1A1A]"
+      >
+        {/* Avatar orb */}
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#00342B] text-xs font-bold text-[#FAF7F2]">
+          {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+        </span>
+        <span className="max-w-20 truncate">{user.displayName || 'Profile'}</span>
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.22 }}
+          className="text-[10px] text-[#999]"
+        >
+          ▼
+        </motion.span>
+      </motion.button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.97 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-xl border border-[#E8E0D5] bg-white/95 shadow-[0_16px_48px_rgba(0,0,0,0.12)] backdrop-blur-md"
+          >
+            {/* Top accent */}
+            <div className="h-0.5 w-full bg-[linear-gradient(90deg,#D4AF37,#C8622A,transparent)]" />
+            <button
+              onClick={onDashboard}
+              className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-[#555] transition-colors hover:bg-[#FAF7F2] hover:text-[#00342B]"
+            >
+              Dashboard
+            </button>
+            <div className="border-t border-[#E8E0D5]">
+              <button
+                onClick={onLogout}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-red-600 transition-colors hover:bg-[#FFF3EF]"
+              >
+                Log Out
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ─── Main Navbar ──────────────────────────────────────────────────────────────
 const Navbar = () => {
-  const [scrolled, setScrolled] = useState(false)
+  const [scrolled, setScrolled]                     = useState(false)
   const [hasPassedHeroSection, setHasPassedHeroSection] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpen]                     = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
-  const navRef = useRef(null)
-  const profileDropdownRef = useRef(null)
-  const location = useLocation()
-  const navigate = useNavigate()
+  const navRef              = useRef(null)
+  const profileDropdownRef  = useRef(null)
+  const location            = useLocation()
+  const navigate            = useNavigate()
   const { user, logout, loading } = useAuth()
   const isHomePage = location.pathname === '/'
-  const navState = scrolled || !isHomePage ? 'scrolled' : 'top'
+  const navState   = scrolled || !isHomePage ? 'scrolled' : 'top'
   const mobileShellState = menuOpen ? 'scrolled' : navState
 
   useEffect(() => {
@@ -58,30 +146,16 @@ const Navbar = () => {
   }, [])
 
   useEffect(() => {
-    const updateHeroProgress = () => {
-      if (!isHomePage) {
-        setHasPassedHeroSection(true)
-        return
-      }
-
-      const heroSection = document.getElementById('home-hero-section')
-      if (!heroSection) {
-        setHasPassedHeroSection(false)
-        return
-      }
-
-      const heroBottom = heroSection.getBoundingClientRect().bottom
-      setHasPassedHeroSection(heroBottom <= 80)
+    const update = () => {
+      if (!isHomePage) { setHasPassedHeroSection(true); return }
+      const hero = document.getElementById('home-hero-section')
+      if (!hero) { setHasPassedHeroSection(false); return }
+      setHasPassedHeroSection(hero.getBoundingClientRect().bottom <= 80)
     }
-
-    updateHeroProgress()
-    window.addEventListener('scroll', updateHeroProgress)
-    window.addEventListener('resize', updateHeroProgress)
-
-    return () => {
-      window.removeEventListener('scroll', updateHeroProgress)
-      window.removeEventListener('resize', updateHeroProgress)
-    }
+    update()
+    window.addEventListener('scroll', update)
+    window.addEventListener('resize', update)
+    return () => { window.removeEventListener('scroll', update); window.removeEventListener('resize', update) }
   }, [isHomePage])
 
   useEffect(() => {
@@ -90,43 +164,18 @@ const Navbar = () => {
   }, [location.pathname])
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
-        setProfileDropdownOpen(false)
-      }
-
-      if (menuOpen && navRef.current && !navRef.current.contains(event.target)) {
-        setMenuOpen(false)
-      }
+    const handleOutside = (e) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) setProfileDropdownOpen(false)
+      if (menuOpen && navRef.current && !navRef.current.contains(e.target)) setMenuOpen(false)
     }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('touchstart', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('touchstart', handleClickOutside)
-    }
+    document.addEventListener('mousedown', handleOutside)
+    document.addEventListener('touchstart', handleOutside)
+    return () => { document.removeEventListener('mousedown', handleOutside); document.removeEventListener('touchstart', handleOutside) }
   }, [menuOpen])
 
-  const handleDashboardClick = () => {
-    navigate('/dashboard')
-    window.scrollTo(0, 0)
-    setProfileDropdownOpen(false)
-    setMenuOpen(false)
-  }
-
-  const handleClickLogo = () => {
-    navigate('/')
-    window.scrollTo(0, 0)
-  }
-
-  const handleNavigate = (path) => {
-    navigate(path)
-    window.scrollTo(0, 0)
-    setMenuOpen(false)
-    setProfileDropdownOpen(false)
-  }
-
+  const handleNavigate = (path) => { navigate(path); window.scrollTo(0, 0); setMenuOpen(false); setProfileDropdownOpen(false) }
+  const handleDashboard = () => { navigate('/dashboard'); window.scrollTo(0, 0); setProfileDropdownOpen(false); setMenuOpen(false) }
+  const handleClickLogo = () => { navigate('/'); window.scrollTo(0, 0) }
   const handleLogout = async () => {
     try {
       await logout()
@@ -134,7 +183,7 @@ const Navbar = () => {
       navigate('/')
       setProfileDropdownOpen(false)
       setMenuOpen(false)
-    } catch (error) {
+    } catch {
       toast.error('Failed to logout. Please try again.')
     }
   }
@@ -148,28 +197,36 @@ const Navbar = () => {
       className="fixed top-0 left-0 right-0 z-50"
       style={{ willChange: 'transform, opacity, filter' }}
     >
+      {/* ── Scrolled background panel ── */}
       <motion.div
         aria-hidden="true"
         initial={false}
         animate={mobileShellState}
         variants={{
-          top: { opacity: 0, y: -8 },
+          top:     { opacity: 0, y: -8 },
           scrolled: { opacity: 1, y: 0 },
         }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute left-0 right-0 top-0 h-20 border-b border-[rgba(0,52,43,0.08)] bg-[linear-gradient(135deg,rgba(251,248,243,0.96)_0%,rgba(247,241,231,0.95)_52%,rgba(239,228,212,0.93)_100%)] shadow-[0_10px_30px_rgba(26,26,26,0.08)] backdrop-blur-md"
+        className="absolute inset-x-0 top-0 h-20 border-b border-[rgba(0,52,43,0.08)] bg-[linear-gradient(135deg,rgba(251,248,243,0.97)_0%,rgba(247,241,231,0.96)_52%,rgba(239,228,212,0.94)_100%)] shadow-[0_10px_30px_rgba(26,26,26,0.07)] backdrop-blur-md"
       />
 
+      {/* ── Scrolled top gold accent line ── */}
+      <motion.div
+        initial={false}
+        animate={mobileShellState}
+        variants={{ top: { opacity: 0 }, scrolled: { opacity: 1 } }}
+        transition={{ duration: 0.35 }}
+        className="absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,transparent,rgba(212,175,55,0.5),rgba(200,98,42,0.3),transparent)]"
+      />
+
+      {/* ── Main row ── */}
       <motion.div
         className="relative mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-5 sm:px-6"
-        variants={{
-          hidden: { opacity: 0 },
-          top: { opacity: 1 },
-          scrolled: { opacity: 1 },
-        }}
+        variants={{ hidden: { opacity: 0 }, top: { opacity: 1 }, scrolled: { opacity: 1 } }}
       >
-        <motion.div variants={{ hidden: { x: -12, opacity: 0 }, top: { x: 0, opacity: 1 }, scrolled: { x: 0, opacity: 1 } }}>
-          <Link to="/" onClick={handleClickLogo} className="group flex items-center gap-3">
+        {/* Logo */}
+        <motion.div variants={itemVariants}>
+          <button onClick={handleClickLogo} className="group flex items-center gap-3">
             <span
               className="text-[30px] font-black tracking-tight text-[#1A1A1A]"
               style={{ fontFamily: "'Georgia', serif" }}
@@ -179,148 +236,87 @@ const Navbar = () => {
             <span className="hidden rounded-full border border-[rgba(212,175,55,0.35)] bg-[rgba(212,175,55,0.12)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8B7340] sm:block">
               Ethnic Wear
             </span>
-          </Link>
+          </button>
         </motion.div>
 
+        {/* ── Desktop nav ── */}
         <motion.div
           className="hidden items-center gap-2 lg:flex"
           variants={{ hidden: { opacity: 0, x: 12 }, top: { opacity: 1, x: 0 }, scrolled: { opacity: 1, x: 0 } }}
         >
-          <Link
-            to="/"
-            className={`rounded-full px-4 py-2 text-sm font-semibold tracking-wide transition-all duration-300 ease-out ${
-              location.pathname === '/'
-                ? 'bg-[#00342B] text-[#FAF7F2] shadow-[0_6px_18px_rgba(0,52,43,0.25)]'
-                : 'text-[#5B5149] hover:bg-[rgba(0,52,43,0.08)] hover:text-[#00342B]'
-            }`}
-          >
-            Home
-          </Link>
-          <Link
-            to="/collection"
-            className={`rounded-full px-4 py-2 text-sm font-semibold tracking-wide transition-all duration-300 ease-out ${
-              location.pathname === '/collection'
-                ? 'bg-[#00342B] text-[#FAF7F2] shadow-[0_6px_18px_rgba(0,52,43,0.25)]'
-                : 'text-[#5B5149] hover:bg-[rgba(0,52,43,0.08)] hover:text-[#00342B]'
-            }`}
-          >
-            Collection
-          </Link>
+          <NavLink to="/" active={location.pathname === '/'}>Home</NavLink>
+          <NavLink to="/collection" active={location.pathname === '/collection'}>Collection</NavLink>
 
           <div className="ml-3 flex items-center gap-3 border-l border-[rgba(0,52,43,0.14)] pl-4">
             {!loading && user ? (
               <>
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.div
-                    key="list-outfit-desktop"
+                    key="list-cta"
                     initial={{ opacity: 0, x: 10, scale: 0.98 }}
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     exit={{ opacity: 0, x: 8, scale: 0.98 }}
                     transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <Link
-                      to="/create"
-                      className="rounded-full border border-[#D4AF37] bg-[#00342B] px-5 py-2 text-sm font-bold tracking-[0.04em] text-[#FAF7F2] shadow-[0_10px_24px_rgba(0,52,43,0.24)] transition-colors hover:bg-[#0B4A3F]"
-                    >
-                      + List Outfit
-                    </Link>
+                    <CTAButton onClick={() => handleNavigate('/create')}>+ List Outfit</CTAButton>
                   </motion.div>
                 </AnimatePresence>
 
-                <div className="relative" ref={profileDropdownRef}>
-                  <motion.button
-                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                    className="flex items-center gap-2 rounded-full border border-[rgba(0,52,43,0.16)] bg-white/70 px-3.5 py-2 text-sm font-medium text-[#4A443D] transition-colors hover:text-[#1A1A1A]"
-                    aria-expanded={profileDropdownOpen}
-                    aria-label="Open profile menu"
-                    whileHover={{ y: -1, scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ duration: 0.22, ease: 'easeOut' }}
-                  >
-                    <span className="h-6 w-6 rounded-full bg-[#00342B] text-center text-xs font-bold leading-6 text-[#FAF7F2]">
-                      {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
-                    </span>
-                    <span>{user.displayName || 'Profile'}</span>
-                    <motion.span
-                      animate={{ rotate: profileDropdownOpen ? 180 : 0 }}
-                      transition={{ duration: 0.22, ease: 'easeOut' }}
-                    >
-                      ▼
-                    </motion.span>
-                  </motion.button>
-
-                  <AnimatePresence>
-                    {profileDropdownOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                        transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-                        className="absolute right-0 z-50 mt-2 w-52 overflow-hidden rounded-xl border border-[#E8E0D5] bg-white shadow-lg"
-                      >
-                        <button
-                          onClick={handleDashboardClick}
-                          className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-[#555] transition-colors duration-200 ease-out hover:bg-[#FAF7F2]"
-                        >
-                          Dashboard
-                        </button>
-                        <div className="border-t border-[#E8E0D5]">
-                          <button
-                            onClick={handleLogout}
-                            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-red-600 transition-colors duration-200 ease-out hover:bg-[#FFE8E0]"
-                          >
-                            Log Out
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                <ProfileDropdown
+                  user={user}
+                  onDashboard={handleDashboard}
+                  onLogout={handleLogout}
+                  open={profileDropdownOpen}
+                  setOpen={setProfileDropdownOpen}
+                  dropdownRef={profileDropdownRef}
+                />
               </>
             ) : (
               <>
-                <a
-                  href="/login"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    handleNavigate('/login')
-                  }}
-                  className="text-sm font-semibold text-[#4A443D] transition-colors hover:text-[#1A1A1A]"
+                <button
+                  onClick={() => handleNavigate('/login')}
+                  className="text-sm font-semibold text-[#4A443D] transition-colors hover:text-[#00342B]"
                 >
                   {loading ? '...' : 'Sign In'}
-                </a>
-                {hasPassedHeroSection && (
-                  <motion.button
-                    onClick={() => handleNavigate('/create')}
-                    className="rounded-full border border-[#D4AF37] bg-[#00342B] px-5 py-2 text-sm font-bold tracking-[0.04em] text-[#FAF7F2] shadow-[0_10px_24px_rgba(0,52,43,0.24)] transition-colors hover:bg-[#0B4A3F]"
-                    initial={{ opacity: 0, x: 12, scale: 0.98 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 8, scale: 0.98 }}
-                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                    whileHover={{ y: -1 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    + List Outfit
-                  </motion.button>
-                )}
+                </button>
+
+                <AnimatePresence>
+                  {hasPassedHeroSection && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 12, scale: 0.98 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: 8, scale: 0.98 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      <CTAButton onClick={() => handleNavigate('/create')}>+ List Outfit</CTAButton>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </>
             )}
           </div>
         </motion.div>
 
+        {/* ── Mobile hamburger ── */}
         <motion.button
           className="mr-1 flex flex-col gap-1.5 overflow-visible p-2 lg:hidden"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
           aria-expanded={menuOpen}
-          whileTap={{ scale: 0.96 }}
+          whileTap={{ scale: 0.94 }}
           whileHover={{ y: -1 }}
-          transition={{ duration: 0.22, ease: 'easeOut' }}
+          transition={{ duration: 0.22 }}
         >
-          {menuOpen ? <MdClose size={28} /> : <RiMenu3Fill size={25} />}
+          <AnimatePresence mode="wait" initial={false}>
+            {menuOpen
+              ? <motion.span key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}><MdClose size={28} /></motion.span>
+              : <motion.span key="open"  initial={{ rotate: 90,  opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}><RiMenu3Fill size={25} /></motion.span>
+            }
+          </AnimatePresence>
         </motion.button>
       </motion.div>
 
+      {/* ── Mobile menu ── */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -328,18 +324,22 @@ const Navbar = () => {
             animate={{ opacity: 1, y: 0, height: 'auto' }}
             exit={{ opacity: 0, y: -8, height: 0 }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="lg:hidden overflow-hidden border-t border-[rgba(0,52,43,0.12)] bg-[linear-gradient(135deg,rgba(251,248,243,0.96)_0%,rgba(247,241,231,0.95)_52%,rgba(239,228,212,0.93)_100%)] px-4 pb-5 pt-4 sm:px-6"
+            className="overflow-hidden border-t border-[rgba(0,52,43,0.1)] bg-[linear-gradient(135deg,rgba(251,248,243,0.98)_0%,rgba(247,241,231,0.97)_52%,rgba(239,228,212,0.95)_100%)] px-4 pb-6 pt-4 backdrop-blur-md sm:px-6 lg:hidden"
           >
-            <div className="grid grid-cols-2 gap-2.5">
+            {/* Gold accent line at top of mobile menu */}
+            <div className="mb-4 h-0.5 w-full rounded-full bg-[linear-gradient(90deg,#D4AF37,#C8622A,transparent)]" />
+
+            {/* Primary CTA row */}
+            <div className="grid grid-cols-2 gap-2.5 mb-4">
               <button
                 onClick={() => handleNavigate('/create')}
-                className="rounded-full bg-[#00342B] px-4 py-2.5 text-sm font-bold text-[#FAF7F2] shadow-[0_8px_22px_rgba(0,52,43,0.26)]"
+                className="relative overflow-hidden rounded-full bg-[#00342B] px-4 py-2.5 text-sm font-bold text-[#FAF7F2] shadow-[0_8px_22px_rgba(0,52,43,0.26)]"
               >
                 + List Outfit
               </button>
               {!loading && user ? (
                 <button
-                  onClick={handleDashboardClick}
+                  onClick={handleDashboard}
                   className={`rounded-full px-4 py-2.5 text-sm font-bold transition-colors ${
                     location.pathname === '/dashboard'
                       ? 'bg-[#00342B] text-[#FAF7F2] shadow-[0_8px_22px_rgba(0,52,43,0.26)]'
@@ -358,36 +358,42 @@ const Navbar = () => {
               )}
             </div>
 
-            <div className="mt-4 space-y-2">
-              <Link
-                to="/"
-                className={`block rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                  location.pathname === '/'
-                    ? 'bg-[#00342B] text-[#FAF7F2]'
-                    : 'bg-white/75 text-[#4A443D] hover:bg-white'
-                }`}
-              >
-                Home
-              </Link>
-              <Link
-                to="/collection"
-                className={`block rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                  location.pathname === '/collection'
-                    ? 'bg-[#00342B] text-[#FAF7F2]'
-                    : 'bg-white/75 text-[#4A443D] hover:bg-white'
-                }`}
-              >
-                Collection
-              </Link>
-
+            {/* Nav links */}
+            <div className="space-y-2">
+              {[
+                { label: 'Home',       path: '/' },
+                { label: 'Collection', path: '/collection' },
+              ].map(({ label, path }) => (
+                <Link
+                  key={path}
+                  to={path}
+                  className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                    location.pathname === path
+                      ? 'bg-[#00342B] text-[#FAF7F2]'
+                      : 'bg-white/75 text-[#4A443D] hover:bg-white hover:text-[#00342B]'
+                  }`}
+                >
+                  {label}
+                  {location.pathname === path && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#D4AF37]" />
+                  )}
+                </Link>
+              ))}
             </div>
 
+            {/* Logged-in footer */}
             {!loading && user && (
-              <div className="mt-4 border-t border-[rgba(0,52,43,0.12)] pt-4">
-                <p className="mb-2 text-xs text-[#7A7068]">Signed in as {user.email}</p>
+              <div className="mt-4 border-t border-[rgba(0,52,43,0.1)] pt-4">
+                {/* User badge */}
+                <div className="mb-3 flex items-center gap-2.5 rounded-xl bg-white/60 px-3 py-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#00342B] text-xs font-bold text-[#FAF7F2]">
+                    {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                  </span>
+                  <span className="truncate text-xs text-[#7A7068]">{user.email}</span>
+                </div>
                 <button
                   onClick={handleLogout}
-                  className="w-full rounded-xl border border-[#F0D7CF] bg-[#FFF3EF] px-4 py-2.5 text-left text-sm font-medium text-red-700"
+                  className="w-full rounded-xl border border-[#F0D7CF] bg-[#FFF3EF] px-4 py-2.5 text-left text-sm font-medium text-red-700 transition-colors hover:bg-[#FFE8E0]"
                 >
                   Log Out
                 </button>
