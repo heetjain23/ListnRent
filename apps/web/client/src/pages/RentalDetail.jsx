@@ -108,15 +108,6 @@ const RentalDetail = () => {
       const data = await response.json()
       const bookingData = data.data?.booking || data.data
 
-      console.log('[RentalDetail] Details fetched:', bookingData)
-      console.log('[RentalDetail] Payment data:', {
-        rentalAmount: bookingData?.rentalAmount,
-        depositAmount: bookingData?.depositAmount,
-        bookingFee: bookingData?.bookingFee,
-        totalAmount: bookingData?.totalAmount,
-        pendingAmount: bookingData?.pendingAmount,
-      })
-
       setRentalDetails(bookingData)
 
       setRental((prev) => ({
@@ -137,8 +128,6 @@ const RentalDetail = () => {
         pendingAmount: bookingData?.pendingAmount || prev?.pendingAmount,
       }))
     } catch (err) {
-      console.error('[RentalDetail] Error fetching details:', err)
-      // If API fetch fails but we have data from location state, continue
       if (!rental) {
         setError(err.message)
       }

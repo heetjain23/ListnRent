@@ -13,6 +13,7 @@ import ListingDetailsSection  from '../components/listing-detail/ListingDetailsS
 import BookingSection         from '../components/listing-detail/BookingSection'
 import HostMetadataSection    from '../components/listing-detail/HostMetadataSection'
 import { HostCard }           from '../components/listing-detail/HostMetadataSection'
+import ListingCard            from '../components/collection/ListingCard'
 
 const parseLocalDate = (value) => {
   if (!value) return null
@@ -223,6 +224,8 @@ const ListingDetail = () => {
   const [activeImage,  setActiveImage]  = useState(0)
   const [eventDate,    setEventDate]    = useState('')
   const [durationDays, setDurationDays] = useState(1)
+  const [similarListings, setSimilarListings] = useState([])
+  const [similarLoading, setSimilarLoading] = useState(false)
 
   useEffect(() => { window.scrollTo(0, 0) }, [id, listing])
 
@@ -231,6 +234,48 @@ const ListingDetail = () => {
     if (!shouldTrackListingView(id)) return
     listingsApi.trackView(id).catch(() => {})
   }, [id])
+
+  useEffect(() => {
+    if (!listing?.category || !listing?.gender) {
+      setSimilarListings([])
+      return
+    }
+
+    let isCancelled = false
+
+    const fetchSimilarListings = async () => {
+      try {
+        setSimilarLoading(true)
+        const res = await listingsApi.getAll({
+          category: [listing.category],
+          gender: [listing.gender],
+          limit: 12,
+        })
+
+        if (isCancelled) return
+
+        const currentId = listing._id || listing.id
+        const related = (res?.data?.listings || [])
+          .filter((item) => {
+            const itemId = item._id || item.id
+            return itemId !== currentId
+          })
+          .slice(0, 4)
+
+        setSimilarListings(related)
+      } catch {
+        if (!isCancelled) setSimilarListings([])
+      } finally {
+        if (!isCancelled) setSimilarLoading(false)
+      }
+    }
+
+    fetchSimilarListings()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [listing])
 
   if (loading)           return <LoadingSkeleton />
   if (error || !listing) return <NotFoundScreen error={error} />
@@ -386,6 +431,59 @@ const ListingDetail = () => {
                 </div>
               </motion.div>
             </motion.div>
+          </div>
+
+          {/* Similar products */}
+          <div className="mt-12 md:mt-16">
+            <div className="flex items-center gap-3 mb-4 md:mb-6">
+              <div className="h-4 w-0.5 rounded-sm" style={{ background: 'linear-gradient(180deg, #D4AF37, #C8622A)' }} />
+              <h2
+                className="text-lg md:text-2xl font-black"
+                style={{ color: '#1A1A14', fontFamily: 'Georgia, serif' }}
+              >
+                Similar Products
+              </h2>
+            </div>
+
+            <p className="text-xs md:text-sm mb-5" style={{ color: '#7D6B41' }}>
+              More picks from the same category and gender.
+            </p>
+
+            {similarLoading && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+                {[...Array(4)].map((_, index) => (
+                  <div
+                    key={index}
+                    className="rounded-2xl animate-pulse"
+                    style={{
+                      backgroundColor: '#E8E4D4',
+                      height: 280,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {!similarLoading && similarListings.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+                {similarListings.map((item) => (
+                  <ListingCard key={item._id || item.id} listing={item} />
+                ))}
+              </div>
+            )}
+
+            {!similarLoading && similarListings.length === 0 && (
+              <div
+                className="rounded-2xl px-4 py-5 text-sm"
+                style={{
+                  backgroundColor: 'rgba(0,77,64,0.04)',
+                  border: '1px solid rgba(0,77,64,0.12)',
+                  color: '#5F5A4E',
+                }}
+              >
+                No similar products available right now.
+              </div>
+            )}
           </div>
         </div>
       </div>
