@@ -100,6 +100,7 @@ export const createListing = async (userId, data) => {
 export const getAllListings = async (filters = {}) => {
   const query = { isActive: true, isDraft: { $ne: true } };
   const limit = Math.min(Math.max(Number(filters.limit) || 0, 0), 60);
+  const sortBy = filters.sortBy === "trending" ? "trending" : "newest";
 
   // Handle filters - convert to array if string for consistent $in usage
   if (filters.category) {
@@ -118,7 +119,7 @@ export const getAllListings = async (filters = {}) => {
 
   let listingsQuery = Listing.find(query)
     .select("-bookings -rentalHistory -__v")
-    .sort({ createdAt: -1 })
+    .sort(sortBy === "trending" ? { viewCount: -1, createdAt: -1 } : { createdAt: -1 })
     .lean();
 
   if (limit > 0) {
@@ -128,6 +129,18 @@ export const getAllListings = async (filters = {}) => {
   const listings = await listingsQuery;
 
   return enrichListingsWithOwnerData(listings);
+};
+
+export const incrementListingViewCount = async (id) => {
+  const listing = await Listing.findOneAndUpdate(
+    { _id: id, isActive: true, isDraft: { $ne: true } },
+    { $inc: { viewCount: 1 } },
+    { new: true }
+  )
+    .select("_id viewCount")
+    .lean();
+
+  return listing;
 };
 
 // ----------------------------

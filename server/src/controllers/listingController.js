@@ -7,6 +7,7 @@ import {
   deleteListing,
   getRentedListings,
   markListingAsAvailable,
+  incrementListingViewCount,
 } from "../services/listingService.js";
 import { successResponse, errorResponse } from "../utils/helper.js";
 
@@ -45,17 +46,36 @@ export const handleCreateListing = async (req, res) => {
 
 export const handleGetAllListings = async (req, res) => {
   try {
-    const { category, occasion, gender, city, limit } = req.query;
+    const { category, occasion, gender, city, limit, sortBy } = req.query;
     const listings = await getAllListings({
       category,
       occasion,
       gender,
       city,
       limit,
+      sortBy,
     });
     return successResponse(res, { listings });
   } catch (error) {
     return errorResponse(res, error.message || "Failed to fetch listings", 500);
+  }
+};
+
+export const handleTrackListingView = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const listing = await incrementListingViewCount(id);
+
+    if (!listing) {
+      return errorResponse(res, "Listing not found", 404);
+    }
+
+    return successResponse(res, {
+      listingId: listing._id,
+      viewCount: listing.viewCount,
+    });
+  } catch (error) {
+    return errorResponse(res, error.message || "Failed to track listing view", 500);
   }
 };
 

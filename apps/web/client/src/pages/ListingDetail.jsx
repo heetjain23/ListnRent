@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useListing } from '../hooks/useListings'
 import { useSEO } from '../hooks/useSEO'
+import { listingsApi } from '../services/api'
 
 // Section components
 import ImageGallerySection    from '../components/listing-detail/ImageGallerySection'
@@ -36,6 +37,27 @@ const formatLocalDate = (dateObj) => {
   const month = String(dateObj.getMonth() + 1).padStart(2, '0')
   const day = String(dateObj.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+const VIEW_TRACK_TTL_MS = 10 * 60 * 1000
+
+const shouldTrackListingView = (listingId) => {
+  if (!listingId || typeof window === 'undefined') return false
+
+  const storageKey = `listing_view_tracked_${listingId}`
+  const now = Date.now()
+
+  try {
+    const lastTracked = Number(sessionStorage.getItem(storageKey) || 0)
+    if (lastTracked && now - lastTracked < VIEW_TRACK_TTL_MS) {
+      return false
+    }
+
+    sessionStorage.setItem(storageKey, String(now))
+    return true
+  } catch {
+    return true
+  }
 }
 
 // ─── Breadcrumb ────────────────────────────────────────────────────────────────
@@ -198,6 +220,15 @@ const ListingDetail = () => {
   useEffect(() => { 
     window.scrollTo(0, 0)
   }, [id, listing])
+
+  useEffect(() => {
+    if (!id) return
+    if (!shouldTrackListingView(id)) return
+
+    listingsApi.trackView(id).catch(() => {
+      // Ignore analytics failures so listing detail UX is never blocked.
+    })
+  }, [id])
 
   if (loading)           return <LoadingSkeleton />
   if (error || !listing) return <NotFoundScreen error={error} />

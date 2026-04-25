@@ -196,9 +196,16 @@ export const listingsApi = {
 
     if (filters.city) params.append("city", filters.city);
     if (filters.limit) params.append("limit", filters.limit);
+    if (filters.sortBy) params.append("sortBy", filters.sortBy);
     const query = params.toString() ? `?${params.toString()}` : "";
     return api(`/api/listings${query}`, { signal: options.signal });
   },
+
+  // POST /api/listings/:id/view
+  trackView: (id) =>
+    api(`/api/listings/${id}/view`, {
+      method: "POST",
+    }),
 
   // GET /api/listings/:id
   getById: (id, bypassCache = false) => {

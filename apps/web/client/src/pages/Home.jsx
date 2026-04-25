@@ -21,8 +21,8 @@ const Home = () => {
   // Fetch from real API — pass category filter (skip 'All')
   const { listings, loading } = useListings(
     activeCategory !== "All"
-      ? { category: activeCategory, limit: 4 }
-      : { limit: 4 },
+      ? { category: activeCategory, limit: 4, sortBy: "trending" }
+      : { limit: 4, sortBy: "trending" },
   );
 
   return (

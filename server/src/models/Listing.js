@@ -79,6 +79,11 @@ const listingSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    viewCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     bookings: [
       {
         bookingId: {
@@ -146,6 +151,7 @@ const listingSchema = new mongoose.Schema(
 );
 
 listingSchema.index({ isActive: 1, isDraft: 1, createdAt: -1 });
+listingSchema.index({ isActive: 1, isDraft: 1, viewCount: -1, createdAt: -1 });
 listingSchema.index({ category: 1, occasion: 1, gender: 1, "location.city": 1, createdAt: -1 });
 listingSchema.index({ userId: 1, createdAt: -1 });
 
