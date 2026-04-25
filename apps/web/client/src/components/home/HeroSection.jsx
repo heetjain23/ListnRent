@@ -595,50 +595,6 @@ function TrustBadge({ icon, label, delay }) {
   );
 }
 
-// ─── Cursor Follower ──────────────────────────────────────────────────────────
-function CursorFollower() {
-  const x = useMotionValue(-100);
-  const y = useMotionValue(-100);
-  const sx = useSpring(x, { stiffness: 80, damping: 15 });
-  const sy = useSpring(y, { stiffness: 80, damping: 15 });
-  const [active, setActive] = useState(false);
-
-  useEffect(() => {
-    const move = (e) => {
-      x.set(e.clientX);
-      y.set(e.clientY);
-    };
-    const down = () => setActive(true);
-    const up = () => setActive(false);
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mousedown", down);
-    window.addEventListener("mouseup", up);
-    return () => {
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mousedown", down);
-      window.removeEventListener("mouseup", up);
-    };
-  }, []);
-
-  return (
-    <>
-      <motion.div
-        className="pointer-events-none fixed -left-5 -top-5 z-9999 h-10 w-10 rounded-full border-[1.5px] border-[rgba(212,175,55,0.5)]"
-        style={{
-          x: sx,
-          y: sy,
-          scale: active ? 0.6 : 1,
-          transition: "scale 0.15s",
-        }}
-      />
-      <motion.div
-        className="pointer-events-none fixed -left-0.75 -top-0.75 z-9999 h-1.5 w-1.5 rounded-full bg-[#D4AF37]"
-        style={{ x, y }}
-      />
-    </>
-  );
-}
-
 // ─── Stacked Outfit Images (SVG placeholder visualization) ────────────────────
 const FALLBACK_SHOWCASE = [
   {
@@ -948,6 +904,8 @@ function OutfitShowcase({
 }
 
 // ─── MAIN HERO ────────────────────────────────────────────────────────────────
+// NOTE: CursorFollower has been removed from here — it is now mounted globally
+// in App.jsx so it persists across all pages and sections.
 export default function HeroSection({ listings = [], loading = false }) {
   const navigate = useNavigate();
   const heroRef = useRef(null);
@@ -976,23 +934,13 @@ export default function HeroSection({ listings = [], loading = false }) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const goToCollection = () => {
-    navigate("/collection");
-  };
-
-  const goToCreateListing = () => {
-    navigate("/create");
-  };
-
-  const goToListing = (listingId) => {
+  const goToCollection = () => navigate("/collection");
+  const goToCreateListing = () => navigate("/create");
+  const goToListing = (listingId) =>
     navigate(listingId ? `/listing/${listingId}` : "/collection");
-  };
 
   return (
     <div className="overflow-hidden bg-[#FAF7F2] font-sans">
-      {/* Custom cursor */}
-      {!isMobile && <CursorFollower />}
-
       {/* ── MAIN HERO SECTION ─────────────────────────────── */}
       <section
         ref={heroRef}

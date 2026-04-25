@@ -8,6 +8,7 @@ import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import PageLoadAnimation from './components/animations/PageLoadAnimation'
 import AnimatedRoutes from './components/animations/AnimatedRoutes'
+import CursorFollower from './components/ui/CursorFollower'
 import { useSEO } from './hooks/useSEO'
 
 const CompleteMagicLink = () => {
@@ -31,11 +32,9 @@ const CompleteMagicLink = () => {
           return
         }
 
-        // Complete the magic link sign-in
         await completeMagicLinkSignIn(savedEmail)
         setStatus('success')
 
-        // Redirect to dashboard after 2 seconds
         setTimeout(() => {
           window.location.href = '/dashboard'
         }, 2000)
@@ -86,10 +85,21 @@ const CompleteMagicLink = () => {
 }
 
 const App = () => {
+  const [isMobile, setIsMobile] = useState(
+    typeof window === 'undefined' ? false : window.innerWidth < 768
+  )
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
   return (
     <ErrorBoundary>
       <AuthProvider>
         <Router>
+          {!isMobile && <CursorFollower />}
           <Toaster
             position="top-center"
             richColors
