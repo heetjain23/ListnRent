@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useUserListings } from '../hooks/useUserListings'
 import { useEarnings } from '../hooks/useEarnings'
@@ -47,6 +47,7 @@ const Dashboard = () => {
   const [userData, setUserData] = useState(user)
 
   // Separate listings into live and drafts
+  const location = useLocation()
   const liveListings = listings.filter((l) => !l.isDraft)
   const draftListings = listings.filter((l) => l.isDraft)
 
@@ -100,6 +101,22 @@ const Dashboard = () => {
   }, [user, authLoading, navigate])
 
   // Fetch user listings when user is available
+  useEffect(() => {
+    const incomingTab = location.state?.activeTab
+    const incomingListingsSubTab = location.state?.listingsSubTab
+
+    if (incomingTab) {
+      setActiveTab(incomingTab)
+    }
+
+    if (incomingListingsSubTab) {
+      setListingsSubTab(incomingListingsSubTab)
+    }
+
+    if (incomingTab || incomingListingsSubTab) {
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state])
   useEffect(() => {
     if (user) {
       fetchUserListings()
