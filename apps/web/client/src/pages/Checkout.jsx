@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../hooks/useAuth";
@@ -22,6 +22,14 @@ const Checkout = () => {
 
   // Get booking details from navigation state
   const bookingData = location.state;
+  const cartItems = bookingData?.cartItems || [];
+  const isCartCheckout = Array.isArray(cartItems) && cartItems.length > 0;
+  const listing = isCartCheckout ? cartItems[0]?.listing : bookingData?.listing;
+  const renterId = isCartCheckout ? cartItems[0]?.renterId : bookingData?.renterId;
+  const eventDate = isCartCheckout ? cartItems[0]?.eventDate : bookingData?.eventDate;
+  const startDate = isCartCheckout ? cartItems[0]?.startDate : bookingData?.startDate;
+  const endDate = isCartCheckout ? cartItems[0]?.endDate : bookingData?.endDate;
+  const durationDays = isCartCheckout ? cartItems[0]?.durationDays : bookingData?.durationDays;
 
   const [formData, setFormData] = useState({
     mobileNumber: "",
@@ -33,6 +41,26 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pageLoading, setPageLoading] = useState(true);
+
+  const cartTotals = useMemo(() => {
+    if (!isCartCheckout) return null;
+
+    return cartItems.reduce(
+      (acc, item) => {
+        const itemListing = item.listing || {};
+        const itemDays = Number(item.durationDays) || 1;
+        const itemRental = itemDays * (Number(itemListing.pricePerDay) || 0);
+
+        acc.totalDays += itemDays;
+        acc.rentalAmount += itemRental;
+        acc.depositAmount += Number(itemListing.deposit) || 0;
+        acc.cleaningFee += BILLING_FEES.CLEANING_FEE;
+        acc.deliveryFee += BILLING_FEES.DELIVERY_FEE;
+        return acc;
+      },
+      { totalDays: 0, rentalAmount: 0, depositAmount: 0, cleaningFee: 0, deliveryFee: 0 }
+    );
+  }, [isCartCheckout, cartItems]);
 
   // Redirect if no booking data and scroll to top
   useEffect(() => {
@@ -81,18 +109,16 @@ const Checkout = () => {
     }
   };
 
-  if (!bookingData) {
+  if (!bookingData || (isCartCheckout && !cartTotals)) {
     return null;
   }
 
-  const { listing, renterId, eventDate, startDate, endDate, durationDays } = bookingData;
-
   // Calculate days and amount using durationDays (actual rental duration)
-  const totalDays = durationDays || 1;
-  const rentalAmount = totalDays * listing.pricePerDay;
-  const depositAmount = listing.deposit;
-  const cleaningFee = BILLING_FEES.CLEANING_FEE;
-  const deliveryFee = BILLING_FEES.DELIVERY_FEE;
+  const totalDays = isCartCheckout ? cartTotals.totalDays || 1 : durationDays || 1;
+  const rentalAmount = isCartCheckout ? cartTotals.rentalAmount : totalDays * listing.pricePerDay;
+  const depositAmount = isCartCheckout ? cartTotals.depositAmount : listing.deposit;
+  const cleaningFee = isCartCheckout ? cartTotals.cleaningFee : BILLING_FEES.CLEANING_FEE;
+  const deliveryFee = isCartCheckout ? cartTotals.deliveryFee : BILLING_FEES.DELIVERY_FEE;
   const feesTotal = cleaningFee + deliveryFee;
   const totalAmount = rentalAmount + depositAmount + feesTotal;
 
@@ -174,38 +200,64 @@ const Checkout = () => {
         currency: "INR",
         order_id: orderId,
         name: "ListnRent",
-        description: `Rent: ${listing.title}`,
-        image: listing.images?.[0] || null,
+        description: isCartCheckout
+          ? `Rent: ${cartItems.length} outfits`
+          : `Rent: ${listing.title}`,
+        image: listing?.images?.[0] || null,
         handler: async (response) => {
           try {
             console.log("[Checkout] Payment handler called with response:", response);
             console.log("[Checkout] Sending delivery details:", formData);
-            
-            const verifyResponse = await fetch(`${getApiBaseUrl()}/api/payments/verify-payment`, {
+            const verifyUrl = isCartCheckout
+              ? `${getApiBaseUrl()}/api/payments/verify-cart-payment`
+              : `${getApiBaseUrl()}/api/payments/verify-payment`;
+
+            const verifyPayload = isCartCheckout
+              ? {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  cartItems: cartItems.map((item) => ({
+                    listingId: item.listing._id,
+                    renterId: item.renterId,
+                    eventDate: item.eventDate,
+                    startDate: item.startDate,
+                    endDate: item.endDate,
+                    totalDays: item.durationDays || 1,
+                    pricePerDay: item.listing.pricePerDay,
+                    depositAmount: item.listing.deposit,
+                    cleaningFee: BILLING_FEES.CLEANING_FEE,
+                    deliveryFee: BILLING_FEES.DELIVERY_FEE,
+                  })),
+                  deliveryDetails: formData,
+                }
+              : {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  listingId: listing._id,
+                  userId: user.uid,
+                  renterId,
+                  eventDate,
+                  startDate,
+                  endDate,
+                  totalDays,
+                  pricePerDay: listing.pricePerDay,
+                  rentalAmount,
+                  depositAmount: listing.deposit,
+                  cleaningFee,
+                  deliveryFee,
+                  totalAmount,
+                  deliveryDetails: formData,
+                };
+
+            const verifyResponse = await fetch(verifyUrl, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${idToken}`,
               },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                listingId: listing._id,
-                userId: user.uid,
-                renterId,
-                eventDate,
-                startDate,
-                endDate,
-                totalDays,
-                pricePerDay: listing.pricePerDay,
-                rentalAmount,
-                depositAmount: listing.deposit,
-                cleaningFee,
-                deliveryFee,
-                totalAmount,
-                deliveryDetails: formData,
-              }),
+              body: JSON.stringify(verifyPayload),
               credentials: "include",
             });
 
@@ -223,7 +275,12 @@ const Checkout = () => {
             toast.success('🎉 Payment successful! 50% rental charged. Balance & deposit due at pickup.')
             
             // Navigate to success page or dashboard
-            navigate("/dashboard", { state: { bookingData: verifyData.data.booking } });
+            navigate("/dashboard", {
+              state: {
+                activeTab: "orders",
+                bookingData: verifyData.data.booking || verifyData.data.bookings,
+              },
+            });
             setLoading(false);
           } catch (err) {
             toast.error(err.message || "Payment verification failed");
@@ -272,24 +329,46 @@ const Checkout = () => {
       const idToken = await currentUser.getIdToken();
 
       // Step 1: Create order on backend
-      const orderResponse = await fetch(`${getApiBaseUrl()}/api/payments/create-order`, {
+      const orderUrl = isCartCheckout
+        ? `${getApiBaseUrl()}/api/payments/create-cart-order`
+        : `${getApiBaseUrl()}/api/payments/create-order`;
+
+      const orderBody = isCartCheckout
+        ? {
+            cartItems: cartItems.map((item) => ({
+              listingId: item.listing._id,
+              renterId: item.renterId,
+              eventDate: item.eventDate,
+              startDate: item.startDate,
+              endDate: item.endDate,
+              durationDays: item.durationDays || 1,
+              pricePerDay: item.listing.pricePerDay,
+              depositAmount: item.listing.deposit,
+              cleaningFee: BILLING_FEES.CLEANING_FEE,
+              deliveryFee: BILLING_FEES.DELIVERY_FEE,
+            })),
+            deliveryDetails: formData,
+          }
+        : {
+            listingId: listing._id,
+            renterId,
+            startDate,
+            endDate,
+            durationDays: durationDays || 1,
+            pricePerDay: listing.pricePerDay,
+            depositAmount: listing.deposit,
+            cleaningFee,
+            deliveryFee,
+            deliveryDetails: formData,
+          };
+
+      const orderResponse = await fetch(orderUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({
-          listingId: listing._id,
-          renterId,
-          startDate,
-          endDate,
-          durationDays: durationDays || 1,
-          pricePerDay: listing.pricePerDay,
-          depositAmount: listing.deposit,
-          cleaningFee,
-          deliveryFee,
-          deliveryDetails: formData,
-        }),
+        body: JSON.stringify(orderBody),
         credentials: "include",
       });
 

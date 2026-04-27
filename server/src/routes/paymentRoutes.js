@@ -1,7 +1,9 @@
 import express from "express";
 import {
   handleCreateOrder,
+  handleCreateCartOrder,
   handleVerifyPayment,
+  handleVerifyCartPayment,
   handleGetBooking,
   handleGetUserBookings,
   handleGetRenterBookings,
@@ -40,8 +42,14 @@ router.get("/test/razorpay", (req, res) => {
 // Create a new order
 router.post("/create-order", verifyFirebaseToken, handleCreateOrder);
 
+// Create a cart order
+router.post("/create-cart-order", verifyFirebaseToken, handleCreateCartOrder);
+
 // Verify payment
 router.post("/verify-payment", verifyFirebaseToken, handleVerifyPayment);
+
+// Verify cart payment
+router.post("/verify-cart-payment", verifyFirebaseToken, handleVerifyCartPayment);
 
 // Mark payment as failed (when user dismisses payment modal)
 router.post("/mark-failed", verifyFirebaseToken, handleMarkPaymentFailed);

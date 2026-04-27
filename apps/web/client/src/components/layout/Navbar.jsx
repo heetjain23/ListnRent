@@ -243,6 +243,7 @@ const Navbar = () => {
         >
           <NavLink to="/" active={location.pathname === '/'}>Home</NavLink>
           <NavLink to="/collection" active={location.pathname === '/collection'}>Collection</NavLink>
+          <NavLink to="/cart" active={location.pathname === '/cart'}>Cart</NavLink>
 
           <div className="ml-3 flex items-center gap-3 border-l border-[rgba(0,52,43,0.14)] pl-4">
             {!loading && user ? (

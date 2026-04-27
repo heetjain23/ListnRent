@@ -20,7 +20,7 @@ const PlusIcon = () => (
   <FaPlus size={20} color="white" />
 )
 
-const OrdersIcon = ({ active }) => (
+const CartIcon = ({ active }) => (
   <MdOutlineShoppingCart size={22} className={active ? 'opacity-100' : 'opacity-90'} />
 )
 
@@ -185,14 +185,10 @@ const BottomNav = () => {
 
             {/* Cart */}
             <NavItem
-              to="/dashboard"
+              to="/cart"
               label="Cart"
-              active={isActive('/dashboard') && false} // cart is a tab in dashboard
-              onClick={() => {
-                navigate('/dashboard', { state: { activeTab: 'orders' } })
-                window.scrollTo(0, 0)
-              }}
-              icon={<OrdersIcon active={false} />}
+              active={isActive('/cart')}
+              icon={<CartIcon active={isActive('/cart')} />}
             />
 
             {/* Profile / Dashboard */}

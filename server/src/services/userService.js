@@ -1,6 +1,7 @@
 import User from '../models/User.js'
 import Listing from '../models/Listing.js'
 import Booking from '../models/Booking.js'
+import CartItem from '../models/CartItem.js'
 
 // Initialize user - ensure user exists in database (without overwriting existing data)
 export const initializeUser = async (uid, email, additionalData = {}) => {
@@ -56,6 +57,12 @@ export const initializeUser = async (uid, email, additionalData = {}) => {
         
         // Migrate all bookings from old uid to new uid
         await Booking.updateMany(
+          { userId: oldUid },
+          { userId: uid }
+        )
+
+        // Migrate all cart items from old uid to new uid
+        await CartItem.updateMany(
           { userId: oldUid },
           { userId: uid }
         )
@@ -166,6 +173,9 @@ export const deleteUserAccount = async (uid) => {
     // Delete all listings by this user
     await Listing.deleteMany({ userId: uid })
     
+    // Delete any cart items before deleting the user
+    await CartItem.deleteMany({ userId: uid })
+
     // Delete the user
     const user = await User.findOneAndDelete({ uid })
     if (!user) throw new Error('User not found')

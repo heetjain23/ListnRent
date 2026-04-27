@@ -286,6 +286,45 @@ export const usersApi = {
     }),
 };
 
+// Cart API calls
+export const cartApi = {
+  // GET /api/cart (protected)
+  getItems: () =>
+    api("/api/cart", {
+      auth: true,
+      method: "GET",
+    }),
+
+  // POST /api/cart (protected)
+  addItem: (data) =>
+    api("/api/cart", {
+      auth: true,
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // POST /api/cart/reserve (protected)
+  reserveAll: () =>
+    api("/api/cart/reserve", {
+      auth: true,
+      method: "POST",
+    }),
+
+  // DELETE /api/cart/:listingId (protected)
+  removeItem: (listingId) =>
+    api(`/api/cart/${listingId}`, {
+      auth: true,
+      method: "DELETE",
+    }),
+
+  // DELETE /api/cart (protected)
+  clear: () =>
+    api("/api/cart", {
+      auth: true,
+      method: "DELETE",
+    }),
+};
+
 // Payments API calls
 export const paymentsApi = {
   // GET /api/payments/renter-bookings (protected) - Get bookings where user is the owner

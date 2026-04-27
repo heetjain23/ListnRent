@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
+import { toast } from 'sonner'
 import { useAuth } from '../hooks/useAuth'
 import { useListing } from '../hooks/useListings'
 import { useSEO } from '../hooks/useSEO'
-import { listingsApi } from '../services/api'
+import { cartApi, listingsApi } from '../services/api'
 
 // Section components
 import ImageGallerySection    from '../components/listing-detail/ImageGallerySection'
@@ -226,6 +227,7 @@ const ListingDetail = () => {
   const [durationDays, setDurationDays] = useState(1)
   const [similarListings, setSimilarListings] = useState([])
   const [similarLoading, setSimilarLoading] = useState(false)
+  const [cartSaving, setCartSaving] = useState(false)
 
   useEffect(() => { window.scrollTo(0, 0) }, [id, listing])
 
@@ -307,6 +309,26 @@ const ListingDetail = () => {
   const handleEditClick = () => {
     navigate(`/edit/${listing._id}`)
     window.scrollTo(0, 0)
+  }
+
+  const handleAddToCart = async () => {
+    try {
+      setCartSaving(true)
+
+      await cartApi.addItem({
+        listingId: listing._id,
+        eventDate: eventDate || null,
+        startDate: startDate || null,
+        endDate: endDate || null,
+        durationDays: durationDays || 1,
+      })
+
+      toast.success('Added to cart')
+    } catch (error) {
+      toast.error(error.message || 'Failed to add item to cart')
+    } finally {
+      setCartSaving(false)
+    }
   }
 
   return (
@@ -393,6 +415,8 @@ const ListingDetail = () => {
                 onDurationChange={setDurationDays}
                 onRentClick={handleRentClick}
                 available={available}
+                onAddToCart={!isOwner ? handleAddToCart : null}
+                isAddingToCart={cartSaving}
               />
 
               {/* ── Image Detail Section — sm/md: below booking on right col ── */}

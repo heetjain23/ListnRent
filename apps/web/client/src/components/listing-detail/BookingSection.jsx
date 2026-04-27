@@ -14,6 +14,8 @@ const BookingSection = ({
   onDurationChange,
   onRentClick,
   available,
+  onAddToCart,
+  isAddingToCart = false,
 }) => {
   const { isDateRangeAvailable, getUnavailableDatesInPeriod } = useDateAvailability(
     listing?.bookings || []
@@ -318,6 +320,31 @@ const BookingSection = ({
             </span>
           </motion.button>
         </ProtectedAction>
+
+        {onAddToCart && (
+          <ProtectedAction onConfirm={onAddToCart} actionName="add to cart">
+            <motion.button
+              disabled={!available || isAddingToCart}
+              whileHover={available && !isAddingToCart ? { y: -2, scale: 1.005 } : {}}
+              whileTap={available && !isAddingToCart ? { scale: 0.98 } : {}}
+              transition={{ duration: 0.2 }}
+              className="relative mt-3 w-full py-3.5 md:py-4 rounded-2xl font-bold text-sm md:text-base tracking-wide overflow-hidden transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                background: 'linear-gradient(135deg, #F5F2E8 0%, #EFE7D9 100%)',
+                color: '#00342B',
+                fontFamily: 'Georgia, serif',
+                letterSpacing: '0.05em',
+                boxShadow: '0 6px 20px rgba(0,52,43,0.08)',
+                border: '1px solid rgba(0,52,43,0.08)',
+              }}
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                <span>🛍️</span>
+                {isAddingToCart ? 'Adding to Cart...' : 'Add to Cart'}
+              </span>
+            </motion.button>
+          </ProtectedAction>
+        )}
 
         {grandTotal && (
           <p className="text-center text-[11px] mt-2.5 flex items-center justify-center gap-1.5" style={{ color: '#9E9E7A' }}>
