@@ -3,8 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { AnimatePresence, motion } from 'motion/react'
 import { useAuth } from '../../hooks/useAuth'
-import { RiMenu3Fill } from 'react-icons/ri'
-import { MdClose } from 'react-icons/md'
 
 // ─── Animation variants ───────────────────────────────────────────────────────
 const shellVariants = {
@@ -128,7 +126,6 @@ function ProfileDropdown({ user, onDashboard, onLogout, open, setOpen, dropdownR
 const Navbar = () => {
   const [scrolled, setScrolled]                     = useState(false)
   const [hasPassedHeroSection, setHasPassedHeroSection] = useState(false)
-  const [menuOpen, setMenuOpen]                     = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const navRef              = useRef(null)
   const profileDropdownRef  = useRef(null)
@@ -137,7 +134,6 @@ const Navbar = () => {
   const { user, logout, loading } = useAuth()
   const isHomePage = location.pathname === '/'
   const navState   = scrolled || !isHomePage ? 'scrolled' : 'top'
-  const mobileShellState = menuOpen ? 'scrolled' : navState
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12)
@@ -159,22 +155,24 @@ const Navbar = () => {
   }, [isHomePage])
 
   useEffect(() => {
-    setMenuOpen(false)
     setProfileDropdownOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
   }, [location.pathname])
 
   useEffect(() => {
     const handleOutside = (e) => {
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) setProfileDropdownOpen(false)
-      if (menuOpen && navRef.current && !navRef.current.contains(e.target)) setMenuOpen(false)
     }
     document.addEventListener('mousedown', handleOutside)
     document.addEventListener('touchstart', handleOutside)
     return () => { document.removeEventListener('mousedown', handleOutside); document.removeEventListener('touchstart', handleOutside) }
-  }, [menuOpen])
+  }, [])
 
-  const handleNavigate = (path) => { navigate(path); window.scrollTo(0, 0); setMenuOpen(false); setProfileDropdownOpen(false) }
-  const handleDashboard = () => { navigate('/dashboard'); window.scrollTo(0, 0); setProfileDropdownOpen(false); setMenuOpen(false) }
+  const handleNavigate = (path) => { navigate(path); window.scrollTo(0, 0); setProfileDropdownOpen(false) }
+  const handleDashboard = () => { navigate('/dashboard'); window.scrollTo(0, 0); setProfileDropdownOpen(false) }
   const handleClickLogo = () => { navigate('/'); window.scrollTo(0, 0) }
   const handleLogout = async () => {
     try {
@@ -182,7 +180,6 @@ const Navbar = () => {
       toast.success('You have been logged out successfully')
       navigate('/')
       setProfileDropdownOpen(false)
-      setMenuOpen(false)
     } catch {
       toast.error('Failed to logout. Please try again.')
     }
@@ -201,7 +198,7 @@ const Navbar = () => {
       <motion.div
         aria-hidden="true"
         initial={false}
-        animate={mobileShellState}
+        animate={navState}
         variants={{
           top:     { opacity: 0, y: -8 },
           scrolled: { opacity: 1, y: 0 },
@@ -213,7 +210,7 @@ const Navbar = () => {
       {/* ── Scrolled top gold accent line ── */}
       <motion.div
         initial={false}
-        animate={mobileShellState}
+        animate={navState}
         variants={{ top: { opacity: 0 }, scrolled: { opacity: 1 } }}
         transition={{ duration: 0.35 }}
         className="absolute inset-x-0 top-0 h-0.5 bg-[linear-gradient(90deg,transparent,rgba(212,175,55,0.5),rgba(200,98,42,0.3),transparent)]"
@@ -297,111 +294,19 @@ const Navbar = () => {
           </div>
         </motion.div>
 
-        {/* ── Mobile hamburger ── */}
-        <motion.button
-          className="mr-1 flex flex-col gap-1.5 overflow-visible p-2 lg:hidden"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Toggle menu"
-          aria-expanded={menuOpen}
-          whileTap={{ scale: 0.94 }}
-          whileHover={{ y: -1 }}
-          transition={{ duration: 0.22 }}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            {menuOpen
-              ? <motion.span key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}><MdClose size={28} /></motion.span>
-              : <motion.span key="open"  initial={{ rotate: 90,  opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}><RiMenu3Fill size={25} /></motion.span>
-            }
-          </AnimatePresence>
-        </motion.button>
+        {/* ── Mobile: Sign In pill (shown when not logged in) ── */}
+        <div className="flex items-center gap-3 lg:hidden">
+          {!loading && !user && (
+            <motion.button
+              onClick={() => handleNavigate('/login')}
+              whileTap={{ scale: 0.95 }}
+              className="rounded-full border border-[rgba(212,175,55,0.4)] bg-[rgba(212,175,55,0.08)] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#8B7340]"
+            >
+              Sign In
+            </motion.button>
+          )}
+        </div>
       </motion.div>
-
-      {/* ── Mobile menu ── */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: 'auto' }}
-            exit={{ opacity: 0, y: -8, height: 0 }}
-            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="overflow-hidden border-t border-[rgba(0,52,43,0.1)] bg-[linear-gradient(135deg,rgba(251,248,243,0.98)_0%,rgba(247,241,231,0.97)_52%,rgba(239,228,212,0.95)_100%)] px-4 pb-6 pt-4 backdrop-blur-md sm:px-6 lg:hidden"
-          >
-            {/* Gold accent line at top of mobile menu */}
-            <div className="mb-4 h-0.5 w-full rounded-full bg-[linear-gradient(90deg,#D4AF37,#C8622A,transparent)]" />
-
-            {/* Primary CTA row */}
-            <div className="grid grid-cols-2 gap-2.5 mb-4">
-              <button
-                onClick={() => handleNavigate('/create')}
-                className="relative overflow-hidden rounded-full bg-[#00342B] px-4 py-2.5 text-sm font-bold text-[#FAF7F2] shadow-[0_8px_22px_rgba(0,52,43,0.26)]"
-              >
-                + List Outfit
-              </button>
-              {!loading && user ? (
-                <button
-                  onClick={handleDashboard}
-                  className={`rounded-full px-4 py-2.5 text-sm font-bold transition-colors ${
-                    location.pathname === '/dashboard'
-                      ? 'bg-[#00342B] text-[#FAF7F2] shadow-[0_8px_22px_rgba(0,52,43,0.26)]'
-                      : 'border border-[#D4AF37] bg-white/80 text-[#00342B]'
-                  }`}
-                >
-                  Dashboard
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleNavigate('/login')}
-                  className="rounded-full border border-[#D4AF37] bg-white/80 px-4 py-2.5 text-sm font-bold text-[#00342B]"
-                >
-                  Sign In
-                </button>
-              )}
-            </div>
-
-            {/* Nav links */}
-            <div className="space-y-2">
-              {[
-                { label: 'Home',       path: '/' },
-                { label: 'Collection', path: '/collection' },
-              ].map(({ label, path }) => (
-                <Link
-                  key={path}
-                  to={path}
-                  className={`flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                    location.pathname === path
-                      ? 'bg-[#00342B] text-[#FAF7F2]'
-                      : 'bg-white/75 text-[#4A443D] hover:bg-white hover:text-[#00342B]'
-                  }`}
-                >
-                  {label}
-                  {location.pathname === path && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#D4AF37]" />
-                  )}
-                </Link>
-              ))}
-            </div>
-
-            {/* Logged-in footer */}
-            {!loading && user && (
-              <div className="mt-4 border-t border-[rgba(0,52,43,0.1)] pt-4">
-                {/* User badge */}
-                <div className="mb-3 flex items-center gap-2.5 rounded-xl bg-white/60 px-3 py-2.5">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#00342B] text-xs font-bold text-[#FAF7F2]">
-                    {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
-                  </span>
-                  <span className="truncate text-xs text-[#7A7068]">{user.email}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="w-full rounded-xl border border-[#F0D7CF] bg-[#FFF3EF] px-4 py-2.5 text-left text-sm font-medium text-red-700 transition-colors hover:bg-[#FFE8E0]"
-                >
-                  Log Out
-                </button>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.nav>
   )
 }

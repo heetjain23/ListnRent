@@ -6,6 +6,7 @@ import { completeMagicLinkSignIn } from './services/firebase'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
+import BottomNav from './components/layout/BottomNav'
 import PageLoadAnimation from './components/animations/PageLoadAnimation'
 import AnimatedRoutes from './components/animations/AnimatedRoutes'
 import CursorFollower from './components/ui/CursorFollower'
@@ -116,6 +117,8 @@ const App = () => {
             </main>
             <Footer />
           </div>
+          {/* Bottom navigation — mobile only (lg:hidden handled inside component) */}
+          <BottomNav />
         </Router>
       </AuthProvider>
     </ErrorBoundary>
