@@ -7,6 +7,13 @@ import { useEarnings } from '../hooks/useEarnings'
 import { api } from '../services/api'
 import { useSEO } from '../hooks/useSEO'
 
+import { PiSquaresFourBold } from "react-icons/pi";
+import { FaIndianRupeeSign } from "react-icons/fa6";
+import { MdOutlineShoppingBag } from "react-icons/md";
+import { CiShoppingBasket } from "react-icons/ci";
+import { TiMessage } from "react-icons/ti";
+import { IoSettingsOutline } from "react-icons/io5";
+
 // Sub-section components
 import ListingsTable from '../components/dashboard/ListingsTable'
 import MobileListingCard from '../components/dashboard/MobileListingCard'
@@ -19,36 +26,22 @@ import MyEarnings from '../components/dashboard/MyEarnings'
 
 const icons = {
   listings: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-      <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
-      <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
-    </svg>
+    <PiSquaresFourBold size={22}/>
   ),
   earnings: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-    </svg>
+    <FaIndianRupeeSign size={18} style={{ marginBottom: -2 }} />
   ),
   orders: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
-      <path d="M16 10a4 4 0 0 1-8 0"/>
-    </svg>
+    <MdOutlineShoppingBag size={20} />
   ),
   rentals: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-    </svg>
+    <CiShoppingBasket size={20} />
   ),
   messages: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
+    <TiMessage size={20} />
   ),
   settings: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    </svg>
+    <IoSettingsOutline size={20} />
   ),
   plus: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
@@ -211,6 +204,25 @@ const MobileNav = ({ activeTab, onTabChange, user, onLogout, onAddNew }) => {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const activeLabel = NAV_ITEMS.find(n => n.id === activeTab)?.label || 'Dashboard'
 
+  useEffect(() => {
+    if (!drawerOpen) return
+
+    const { body, documentElement } = document
+    const previousBodyOverflow = body.style.overflow
+    const previousHtmlOverflow = documentElement.style.overflow
+    const previousBodyTouchAction = body.style.touchAction
+
+    body.style.overflow = 'hidden'
+    body.style.touchAction = 'none'
+    documentElement.style.overflow = 'hidden'
+
+    return () => {
+      body.style.overflow = previousBodyOverflow
+      body.style.touchAction = previousBodyTouchAction
+      documentElement.style.overflow = previousHtmlOverflow
+    }
+  }, [drawerOpen])
+
   return (
     <>
       {/* Top strip */}
@@ -260,7 +272,7 @@ const MobileNav = ({ activeTab, onTabChange, user, onLogout, onAddNew }) => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 w-72 bg-white z-50 lg:hidden flex flex-col shadow-2xl"
+              className="fixed inset-y-0 right-0 w-72 h-dvh max-h-dvh bg-white z-50 lg:hidden flex flex-col shadow-2xl"
             >
               <div className="flex items-center justify-between p-5 border-b border-[#E8E0D5]">
                 <div className="flex items-center gap-3">
@@ -302,7 +314,7 @@ const MobileNav = ({ activeTab, onTabChange, user, onLogout, onAddNew }) => {
                 })}
               </nav>
 
-              <div className="p-4 border-t border-[#E8E0D5]">
+              <div className="p-4 pb-[calc(env(safe-area-inset-bottom)+5.75rem)] border-t border-[#E8E0D5] bg-white">
                 <button
                   onClick={() => { onLogout(); setDrawerOpen(false) }}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-all"
