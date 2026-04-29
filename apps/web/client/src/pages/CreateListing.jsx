@@ -2,6 +2,8 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
+import Cropper from "react-cropper";
+import "cropperjs/dist/cropper.css";
 import ConfirmationModal from "../components/ui/ConfirmationModal";
 import { listingsApi } from "../services/api";
 import { uploadMultipleImages } from "../services/cloudinary";
@@ -59,6 +61,17 @@ const getLocationLabel = async (lat, lng) => {
   } catch {
     return "";
   }
+};
+
+const revokePreviewUrl = (url) => {
+  if (typeof url === "string" && url.startsWith("blob:")) {
+    URL.revokeObjectURL(url);
+  }
+};
+
+const getCroppedFileName = (file) => {
+  const baseName = file.name.replace(/\.[^.]+$/, "");
+  return `${baseName || "cropped-image"}-cropped.jpg`;
 };
 
 // ── Step config ───────────────────────────────────────────────────────────────
@@ -229,31 +242,68 @@ function StepIndicator({ currentStep, completedSteps, onStepClick }) {
 }
 
 // ── Drag-and-drop photo upload ─────────────────────────────────────────────────
-function PhotoUploadStep({ images, onImagesChange }) {
+function PhotoUploadStep({ images, onImagesChange, onCropStateChange }) {
   const [isDragging, setIsDragging] = useState(false);
-  const [dragIndex, setDragIndex] = useState(null);
+  const [cropQueue, setCropQueue] = useState([]);
+  const [isProcessingCrop, setIsProcessingCrop] = useState(false);
   const fileInputRef = useRef(null);
+  const cropperRef = useRef(null);
+  const activeCrop = cropQueue[0] ?? null;
+
+  useEffect(() => {
+    onCropStateChange?.(cropQueue.length > 0);
+  }, [cropQueue.length, onCropStateChange]);
+
+  const addImage = useCallback(
+    (file) => {
+      const url = URL.createObjectURL(file);
+      onImagesChange((prev) =>
+        [...prev, { url, file, id: Math.random().toString(36) }].slice(0, 5),
+      );
+    },
+    [onImagesChange],
+  );
 
   const handleFiles = useCallback(
     (files) => {
       const validFiles = Array.from(files).filter(
         (f) => f instanceof File && f.type.startsWith("image/"),
       );
-      const previews = validFiles.map((f) => ({
-        url: URL.createObjectURL(f),
-        file: f,
-        id: Math.random().toString(36),
-      }));
-      onImagesChange((prev) => [...prev, ...previews].slice(0, 5));
+
+      if (!validFiles.length) return;
+
+      setCropQueue((prev) => {
+        const remainingSlots = 5 - images.length - prev.length;
+
+        if (remainingSlots <= 0) {
+          toast.error("You can add up to 5 photos.");
+          return prev;
+        }
+
+        if (validFiles.length > remainingSlots) {
+          toast.info(
+            `Only the first ${remainingSlots} photo${remainingSlots === 1 ? "" : "s"} will be added.`,
+          );
+        }
+
+        const nextQueue = validFiles.slice(0, remainingSlots).map((file) => ({
+          file,
+          previewUrl: URL.createObjectURL(file),
+        }));
+
+        return [...prev, ...nextQueue];
+      });
     },
-    [onImagesChange],
+    [images.length],
   );
 
   const handleDragOver = (e) => {
     e.preventDefault();
     setIsDragging(true);
   };
+
   const handleDragLeave = () => setIsDragging(false);
+
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
@@ -261,7 +311,80 @@ function PhotoUploadStep({ images, onImagesChange }) {
   };
 
   const removeImage = (id) =>
-    onImagesChange((prev) => prev.filter((img) => img.id !== id));
+    onImagesChange((prev) => {
+      const removed = prev.find((img) => img.id === id);
+      if (removed) revokePreviewUrl(removed.url);
+      return prev.filter((img) => img.id !== id);
+    });
+
+  const clearCropQueue = useCallback(() => {
+    setCropQueue((prev) => {
+      prev.forEach((item) => revokePreviewUrl(item.previewUrl));
+      return [];
+    });
+  }, []);
+
+  const finalizeCrop = useCallback(
+    async (useOriginal = false) => {
+      if (!activeCrop || isProcessingCrop) return;
+
+      setIsProcessingCrop(true);
+
+      try {
+        let fileToUpload = activeCrop.file;
+
+        if (!useOriginal) {
+          const cropper = cropperRef.current?.cropper;
+
+          if (!cropper) {
+            throw new Error("Cropper is still loading.");
+          }
+
+          const canvas = cropper.getCroppedCanvas({
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: "high",
+          });
+
+          if (!canvas) {
+            throw new Error("Unable to crop this image.");
+          }
+
+          fileToUpload = await new Promise((resolve, reject) => {
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  reject(new Error("Unable to crop this image."));
+                  return;
+                }
+
+                resolve(
+                  new File([blob], getCroppedFileName(activeCrop.file), {
+                    type: blob.type || "image/jpeg",
+                    lastModified: Date.now(),
+                  }),
+                );
+              },
+              "image/jpeg",
+              0.92,
+            );
+          });
+        }
+
+        addImage(fileToUpload);
+        revokePreviewUrl(activeCrop.previewUrl);
+        setCropQueue((prev) => prev.slice(1));
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Unable to process the photo.",
+        );
+      } finally {
+        setIsProcessingCrop(false);
+      }
+    },
+    [activeCrop, addImage, isProcessingCrop],
+  );
 
   const slots = [
     { label: "Front View", required: true, hint: "Main shot" },
@@ -273,7 +396,6 @@ function PhotoUploadStep({ images, onImagesChange }) {
 
   return (
     <div className="space-y-8">
-      {/* Section header */}
       <div>
         <div className="inline-flex items-center gap-2 mb-3 rounded-full border border-[rgba(212,175,55,0.3)] bg-[rgba(212,175,55,0.08)] py-1 pl-2 pr-4">
           <span className="rounded-full bg-[#D4AF37] px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.15em] text-[#1A1A1A]">
@@ -300,7 +422,6 @@ function PhotoUploadStep({ images, onImagesChange }) {
         </p>
       </div>
 
-      {/* Main drop zone */}
       <motion.div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -309,7 +430,7 @@ function PhotoUploadStep({ images, onImagesChange }) {
           borderColor: isDragging ? "#D4AF37" : "rgba(212,175,55,0.25)",
           background: isDragging ? "rgba(212,175,55,0.06)" : "transparent",
         }}
-        className="relative rounded-2xl border-2 border-dashed p-8 text-center transition-colors cursor-pointer"
+        className="relative cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-colors"
         onClick={() => fileInputRef.current?.click()}
       >
         <input
@@ -318,14 +439,17 @@ function PhotoUploadStep({ images, onImagesChange }) {
           accept="image/*"
           multiple
           className="hidden"
-          onChange={(e) => handleFiles(e.target.files)}
+          onChange={(e) => {
+            handleFiles(e.target.files);
+            e.target.value = "";
+          }}
         />
         <motion.div
           animate={{ y: isDragging ? -8 : 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="text-4xl mb-3">📷</div>
-          <p className="text-sm font-bold text-[#1A1A1A] mb-1">
+          <div className="mb-3 text-4xl">📷</div>
+          <p className="mb-1 text-sm font-bold text-[#1A1A1A]">
             Drag & drop your photos here
           </p>
           <p className="text-xs text-[#999]">
@@ -336,12 +460,131 @@ function PhotoUploadStep({ images, onImagesChange }) {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="absolute inset-0 rounded-2xl border-2 border-[#D4AF37] pointer-events-none"
+            className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-[#D4AF37]"
           />
         )}
       </motion.div>
 
-      {/* Structured slots */}
+      {activeCrop && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-5xl overflow-hidden rounded-3xl bg-[#FAF7F2] shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+            <div className="flex items-start justify-between gap-4 border-b border-[#E8E0D5] px-5 py-4 md:px-6">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#C8622A]">
+                  Crop photo
+                </p>
+                <h3
+                  className="mt-1 text-xl font-black text-[#1A1A1A]"
+                  style={{ fontFamily: "'Georgia', serif" }}
+                >
+                  Adjust the outfit frame before upload
+                </h3>
+                <p className="mt-1 text-sm text-[#888]">
+                  Drag any edge or corner to crop, then continue.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={clearCropQueue}
+                disabled={isProcessingCrop}
+                className="rounded-full border border-[#E8E0D5] px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#666] transition-colors hover:border-[#C8622A] hover:text-[#C8622A] disabled:opacity-50"
+              >
+                Discard all
+              </button>
+            </div>
+
+            <div className="grid gap-0 md:grid-cols-[1.6fr_0.9fr]">
+              <div className="min-h-105 bg-[#111] p-3 md:min-h-140 md:p-4">
+                <div className="h-full overflow-hidden rounded-2xl bg-black">
+                  <Cropper
+                    ref={cropperRef}
+                    src={activeCrop.previewUrl}
+                    style={{ height: "100%", width: "100%" }}
+                    viewMode={1}
+                    dragMode="move"
+                    guides={true}
+                    background={false}
+                    responsive={true}
+                    autoCropArea={0.92}
+                    checkOrientation={false}
+                    cropBoxMovable={true}
+                    cropBoxResizable={true}
+                    toggleDragModeOnDblclick={false}
+                    minCropBoxWidth={120}
+                    minCropBoxHeight={120}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-between gap-5 px-5 py-5 md:px-6 md:py-6">
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-[#E8E0D5] bg-white p-4">
+                    <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#888]">
+                      Selected file
+                    </p>
+                    <p className="mt-2 break-all text-sm font-semibold text-[#1A1A1A]">
+                      {activeCrop.file.name}
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-[#888]">
+                      Use the handles on any side to tighten the frame around
+                      the outfit. Your crop will be uploaded as the listing
+                      image.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-[#8B7340] sm:grid-cols-3 sm:gap-2">
+                    <div className="flex min-h-16 items-center justify-center rounded-2xl bg-[rgba(212,175,55,0.08)] px-4 py-4 leading-tight">
+                      Drag edges
+                    </div>
+                    <div className="flex min-h-16 items-center justify-center rounded-2xl bg-[rgba(0,52,43,0.06)] px-4 py-4 leading-tight">
+                      Move frame
+                    </div>
+                    <div className="flex min-h-16 items-center justify-center rounded-2xl bg-[rgba(200,98,42,0.08)] px-4 py-4 leading-tight">
+                      Crop & upload
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={() => finalizeCrop(false)}
+                    disabled={isProcessingCrop}
+                    className="w-full rounded-xl bg-[#00342B] px-4 py-3 text-sm font-bold tracking-[0.08em] text-white shadow-[0_8px_24px_rgba(0,52,43,0.22)] transition-opacity disabled:opacity-60"
+                  >
+                    {isProcessingCrop ? "Processing…" : "Apply crop"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => finalizeCrop(true)}
+                    disabled={isProcessingCrop}
+                    className="w-full rounded-xl border border-[#E8E0D5] px-4 py-3 text-sm font-semibold text-[#555] transition-colors hover:border-[#D4AF37] hover:text-[#1A1A1A] disabled:opacity-50"
+                  >
+                    Keep original
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      revokePreviewUrl(activeCrop.previewUrl);
+                      setCropQueue((prev) => prev.slice(1));
+                    }}
+                    disabled={isProcessingCrop}
+                    className="text-xs font-bold uppercase tracking-[0.14em] text-[#C8622A] transition-colors hover:text-[#8C3F15] disabled:opacity-50"
+                  >
+                    Skip this photo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-5 gap-3">
         {slots.map((slot, i) => {
           const img = images[i];
@@ -354,36 +597,33 @@ function PhotoUploadStep({ images, onImagesChange }) {
                     initial={{ opacity: 0, scale: 0.85 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.85 }}
-                    className="relative group rounded-xl overflow-hidden"
+                    className="relative group overflow-hidden rounded-xl"
                     style={{ aspectRatio: "3/4", background: "#F0EBE3" }}
                   >
                     <img
                       src={img.url}
                       alt={slot.label}
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           removeImage(img.id);
                         }}
-                        className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm flex items-center justify-center hover:bg-red-500/80 transition-colors"
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-sm text-white backdrop-blur-sm transition-colors hover:bg-red-500/80"
                       >
                         ×
                       </button>
                     </div>
-                    {/* Label chip */}
                     <div className="absolute bottom-0 left-0 right-0 p-2">
-                      <span className="text-[9px] font-bold text-white/80 uppercase tracking-wide bg-black/30 px-1.5 py-0.5 rounded">
+                      <span className="rounded bg-black/30 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white/80">
                         {slot.label}
                       </span>
                     </div>
-                    {/* Required tick */}
                     {slot.required && (
-                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#00342B] flex items-center justify-center">
-                        <span className="text-white text-[8px]">✓</span>
+                      <div className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#00342B]">
+                        <span className="text-[8px] text-white">✓</span>
                       </div>
                     )}
                   </motion.div>
@@ -394,18 +634,18 @@ function PhotoUploadStep({ images, onImagesChange }) {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.85 }}
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full rounded-xl border-2 border-dashed border-[#E8E0D5] hover:border-[#D4AF37] transition-colors flex flex-col items-center justify-center gap-1 text-[#CCC] hover:text-[#D4AF37]"
+                    className="flex w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#E8E0D5] text-[#CCC] transition-colors hover:border-[#D4AF37] hover:text-[#D4AF37]"
                     style={{ aspectRatio: "3/4", background: "#FAFAF8" }}
                   >
                     <span className="text-lg">+</span>
                     <span
-                      className="text-[9px] font-semibold uppercase tracking-wide text-center px-1"
+                      className="px-1 text-center text-[9px] font-semibold uppercase tracking-wide"
                       style={{ color: "inherit" }}
                     >
                       {slot.label}
                     </span>
                     {slot.required && (
-                      <span className="text-[8px] text-[#C8622A] font-bold">
+                      <span className="text-[8px] font-bold text-[#C8622A]">
                         Required
                       </span>
                     )}
@@ -417,24 +657,23 @@ function PhotoUploadStep({ images, onImagesChange }) {
         })}
       </div>
 
-      {/* Progress indicator */}
       <div className="flex items-center gap-3">
-        <div className="flex-1 h-1.5 rounded-full bg-[#E8E0D5] overflow-hidden">
+        <div className="flex-1 overflow-hidden rounded-full bg-[#E8E0D5]">
           <motion.div
-            className="h-full rounded-full bg-[linear-gradient(90deg,#00342B,#D4AF37)]"
+            className="h-1.5 rounded-full bg-[linear-gradient(90deg,#00342B,#D4AF37)]"
             animate={{ width: `${(images.length / 3) * 100}%` }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             style={{ maxWidth: "100%" }}
           />
         </div>
-        <span className="text-xs font-semibold text-[#999] tabular-nums">
+        <span className="tabular-nums text-xs font-semibold text-[#999]">
           {images.length}/5
         </span>
         {images.length >= 3 && (
           <motion.span
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-[10px] font-bold text-[#00342B] uppercase tracking-widest"
+            className="text-[10px] font-bold uppercase tracking-widest text-[#00342B]"
           >
             ✓ Ready
           </motion.span>
@@ -1024,6 +1263,7 @@ const CreateListing = () => {
   const [locationLoading, setLocationLoading] = useState(false);
   const [isLocationVerified, setIsLocationVerified] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [hasPendingImageCrop, setHasPendingImageCrop] = useState(false);
 
   const [form, setForm] = useState({
     title: "",
@@ -1138,6 +1378,11 @@ const CreateListing = () => {
   };
 
   const handleNext = () => {
+    if (hasPendingImageCrop) {
+      toast.error("Finish cropping the selected photo before continuing.");
+      return;
+    }
+
     const errs = validateStep(currentStep);
     if (Object.keys(errs).length) {
       setErrors(errs);
@@ -1154,8 +1399,19 @@ const CreateListing = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const handleStepClick = (step) => {
+    if (hasPendingImageCrop) {
+      toast.error("Finish cropping the selected photo before changing steps.");
+      return;
+    }
+
+    setCurrentStep(step);
+  };
+
   const getFinalMaterial = () =>
-    form.material === "Other" ? form.customMaterial.trim() : form.material.trim();
+    form.material === "Other"
+      ? form.customMaterial.trim()
+      : form.material.trim();
 
   const uploadListingImages = async () => {
     const files = images
@@ -1187,19 +1443,23 @@ const CreateListing = () => {
     const payload = { isDraft, isActive: !isDraft };
 
     const setIfPresent = (key, value) => {
-      if (value !== undefined && value !== null && String(value).trim() !== '') {
+      if (
+        value !== undefined &&
+        value !== null &&
+        String(value).trim() !== ""
+      ) {
         payload[key] = value;
       }
     };
 
-    setIfPresent('title', form.title.trim());
-    setIfPresent('category', form.category);
-    setIfPresent('occasion', form.occasion);
-    setIfPresent('size', form.size);
-    setIfPresent('gender', form.gender);
-    setIfPresent('condition', form.condition);
-    setIfPresent('material', finalMaterial);
-    setIfPresent('description', form.description.trim());
+    setIfPresent("title", form.title.trim());
+    setIfPresent("category", form.category);
+    setIfPresent("occasion", form.occasion);
+    setIfPresent("size", form.size);
+    setIfPresent("gender", form.gender);
+    setIfPresent("condition", form.condition);
+    setIfPresent("material", finalMaterial);
+    setIfPresent("description", form.description.trim());
 
     if (pricePerDay > 0) {
       payload.pricePerDay = pricePerDay;
@@ -1209,7 +1469,7 @@ const CreateListing = () => {
     if (form.area.trim()) {
       payload.location = {
         area: form.area.trim(),
-        city: 'Mumbai',
+        city: "Mumbai",
       };
     }
 
@@ -1221,6 +1481,11 @@ const CreateListing = () => {
   };
 
   const handlePublish = async () => {
+    if (hasPendingImageCrop) {
+      toast.error("Finish cropping the selected photo before publishing.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       const payload = await buildListingPayload(false);
@@ -1235,6 +1500,13 @@ const CreateListing = () => {
   };
 
   const handleSaveDraft = async () => {
+    if (hasPendingImageCrop) {
+      toast.error(
+        "Finish cropping the selected photo before saving the draft.",
+      );
+      return;
+    }
+
     try {
       setSubmitting(true);
       const payload = await buildListingPayload(true);
@@ -1346,7 +1618,7 @@ const CreateListing = () => {
             <StepIndicator
               currentStep={currentStep}
               completedSteps={completedSteps}
-              onStepClick={setCurrentStep}
+              onStepClick={handleStepClick}
             />
           </motion.div>
 
@@ -1360,7 +1632,11 @@ const CreateListing = () => {
             className="bg-white rounded-3xl shadow-[0_4px_32px_rgba(0,52,43,0.07),0_0_0_1px_rgba(232,224,213,0.6)] p-6 md:p-10 mb-6"
           >
             {currentStep === 1 && (
-              <PhotoUploadStep images={images} onImagesChange={setImages} />
+              <PhotoUploadStep
+                images={images}
+                onImagesChange={setImages}
+                onCropStateChange={setHasPendingImageCrop}
+              />
             )}
             {currentStep === 2 && (
               <DetailsStep
@@ -1398,7 +1674,7 @@ const CreateListing = () => {
             {/* Next / Publish */}
             <motion.button
               onClick={currentStep < 4 ? handleNext : handlePublish}
-              disabled={submitting}
+              disabled={submitting || hasPendingImageCrop}
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.97 }}
               className="w-full relative overflow-hidden py-3.5 rounded-xl bg-[#00342B] text-white text-sm font-bold tracking-[0.08em] shadow-[0_8px_24px_rgba(0,52,43,0.28)] disabled:opacity-60"
@@ -1435,7 +1711,7 @@ const CreateListing = () => {
               {showSaveDraft && (
                 <button
                   onClick={handleSaveDraft}
-                  disabled={submitting}
+                  disabled={submitting || hasPendingImageCrop}
                   className="px-5 py-3.5 rounded-xl border border-[#E8E0D5] text-sm font-semibold text-[#888] hover:border-[#D4AF37] hover:text-[#1A1A1A] transition-all disabled:opacity-50"
                 >
                   Save Draft
