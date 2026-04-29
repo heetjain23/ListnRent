@@ -118,15 +118,18 @@ const UserListingItem = ({ listing, onEdit, onDelete, onToggleActive }) => {
           Edit
         </Button>
 
-        <Button
-          onClick={handleToggleActive}
-          disabled={isTogglingActive}
-          variant={listing.isActive ? 'outline' : 'primary'}
-          size="sm"
-          className="flex-1"
-        >
-          {isTogglingActive ? '...' : listing.isActive ? 'Hide' : 'Show'}
-        </Button>
+        {/* Hide activate/deactivate control for drafts (it has no effect while draft) */}
+        {!listing.isDraft && (
+          <Button
+            onClick={handleToggleActive}
+            disabled={isTogglingActive}
+            variant={listing.isActive ? 'outline' : 'primary'}
+            size="sm"
+            className="flex-1"
+          >
+            {isTogglingActive ? '...' : listing.isActive ? 'Hide' : 'Show'}
+          </Button>
+        )}
 
         <Button
           onClick={() => setShowDeleteConfirm(true)}
