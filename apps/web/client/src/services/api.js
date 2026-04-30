@@ -246,6 +246,39 @@ export const listingsApi = {
     }),
 };
 
+// Category video API calls
+export const categoryVideosApi = {
+  // GET /api/category-videos
+  getAll: () => api("/api/category-videos"),
+
+  // GET /api/category-videos/:category
+  getByCategory: (category) =>
+    api(`/api/category-videos/${encodeURIComponent(category)}`),
+
+  // POST /api/category-videos (protected)
+  create: (data) =>
+    api("/api/category-videos", {
+      auth: true,
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // PATCH /api/category-videos/:id (protected)
+  update: (id, data) =>
+    api(`/api/category-videos/${id}`, {
+      auth: true,
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  // DELETE /api/category-videos/:id (protected)
+  delete: (id) =>
+    api(`/api/category-videos/${id}`, {
+      auth: true,
+      method: "DELETE",
+    }),
+};
+
 // Users API calls
 export const usersApi = {
   // POST /api/users/init (protected) - Initialize user in database

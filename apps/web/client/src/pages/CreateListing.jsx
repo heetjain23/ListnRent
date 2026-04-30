@@ -1,11 +1,11 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+﻿import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import Cropper from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import ConfirmationModal from "../components/ui/ConfirmationModal";
-import { listingsApi } from "../services/api";
+import { categoryVideosApi, listingsApi } from "../services/api";
 import { uploadMultipleImages } from "../services/cloudinary";
 import {
   CATEGORIES,
@@ -723,6 +723,74 @@ function DetailsChipSelect({ name, options, value, onChange, error }) {
   );
 }
 
+function CategoryVideoCard({ category, loading, video, error }) {
+  const hasCategory = Boolean(category);
+
+  return (
+    <div className="rounded-3xl border border-[rgba(232,224,213,0.9)] bg-[linear-gradient(180deg,#1A1A1A,#00342B)] p-4 md:p-5 text-white shadow-[0_20px_45px_rgba(0,52,43,0.16)]">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#D4AF37]">
+            Measurement guide
+          </p>
+          <h3 className="mt-1 text-lg font-black leading-tight">
+            {hasCategory ? `${category} measurement guide` : "Select a category to load its Size guide"}
+          </h3>
+        </div>
+        <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/85">
+          {hasCategory ? "Ready" : "Waiting"}
+        </span>
+      </div>
+
+      {!hasCategory ? (
+        <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/5 px-5 text-center text-sm leading-6 text-white/72">
+          Pick a category on the left and the matching measurement guide will appear here.
+        </div>
+      ) : loading ? (
+        <div className="flex h-64 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-sm text-white/70">
+          Loading the measurement guide...
+        </div>
+      ) : video?.videoUrl ? (
+        <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+          <video
+            key={video.videoUrl}
+            className="h-64 w-full object-cover"
+            controls
+            playsInline
+            preload="metadata"
+            poster={video.thumbnailUrl || undefined}
+          >
+            <source src={video.videoUrl} />
+            Your browser does not support the video tag.
+          </video>
+          <div className="space-y-2 border-t border-white/10 bg-black/20 p-4">
+            <p className="text-sm font-semibold text-white">
+              {video.title || category}
+            </p>
+            <p className="text-xs leading-5 text-white/70">
+              This guide explains how to measure this outfit category and is matched to the exact category name.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3 rounded-2xl border border-dashed border-white/15 bg-white/5 px-5 py-6 text-sm text-white/76">
+          <p className="font-semibold text-white">No measurement guide uploaded for this category yet.</p>
+          <p>
+            The admin team should upload a matching measurement guide in the admin panel using the exact category name.
+          </p>
+          {error && <p className="text-xs text-[#F8C7B4]">{error}</p>}
+        </div>
+      )}
+
+      {video?.instructions && (
+        <p className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs leading-5 text-white/70">
+          {video.instructions}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function DetailsStep({
   form,
   onChange,
@@ -1264,6 +1332,9 @@ const CreateListing = () => {
   const [isLocationVerified, setIsLocationVerified] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [hasPendingImageCrop, setHasPendingImageCrop] = useState(false);
+  const [categoryVideo, setCategoryVideo] = useState(null);
+  const [categoryVideoLoading, setCategoryVideoLoading] = useState(false);
+  const [categoryVideoError, setCategoryVideoError] = useState("");
 
   const [form, setForm] = useState({
     title: "",
@@ -1289,6 +1360,42 @@ const CreateListing = () => {
     if (name === "area" && isLocationVerified) setIsLocationVerified(false);
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadCategoryVideo = async () => {
+      if (currentStep !== 2 || !form.category) {
+        setCategoryVideo(null);
+        setCategoryVideoError("");
+        setCategoryVideoLoading(false);
+        return;
+      }
+
+      setCategoryVideoLoading(true);
+      setCategoryVideoError("");
+
+      try {
+        const response = await categoryVideosApi.getByCategory(form.category);
+        if (!isActive) return;
+        setCategoryVideo(response?.video || null);
+      } catch (error) {
+        if (!isActive) return;
+        setCategoryVideo(null);
+        setCategoryVideoError(
+          error.message || "Failed to load the category video.",
+        );
+      } finally {
+        if (isActive) setCategoryVideoLoading(false);
+      }
+    };
+
+    loadCategoryVideo();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentStep, form.category]);
 
   const handleUseCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -1587,7 +1694,7 @@ const CreateListing = () => {
 
       {/* Page content */}
       <div className="relative z-10 pt-24 pb-20 px-4 sm:px-6">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -16 }}
@@ -1623,51 +1730,83 @@ const CreateListing = () => {
           </motion.div>
 
           {/* Step Content Card */}
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, x: 20, filter: "blur(4px)" }}
-            animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="bg-white rounded-3xl shadow-[0_4px_32px_rgba(0,52,43,0.07),0_0_0_1px_rgba(232,224,213,0.6)] p-6 md:p-10 mb-6"
-          >
-            {currentStep === 1 && (
-              <PhotoUploadStep
-                images={images}
-                onImagesChange={setImages}
-                onCropStateChange={setHasPendingImageCrop}
-              />
-            )}
-            {currentStep === 2 && (
-              <DetailsStep
-                form={form}
-                onChange={handleChange}
-                errors={errors}
-                onUseCurrentLocation={handleUseCurrentLocation}
-                locationLoading={locationLoading}
-                isLocationVerified={isLocationVerified}
-              />
-            )}
-            {currentStep === 3 && (
-              <PricingStep
-                form={form}
-                onChange={handleChange}
-                errors={errors}
-              />
-            )}
-            {currentStep === 4 && <ReviewStep images={images} form={form} />}
-
-            {/* Step 1 error */}
-            {currentStep === 1 && errors.images && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-xs text-[#C8622A] font-medium mt-4 text-center"
+          {currentStep === 2 ? (
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.85fr)] xl:items-start mb-6">
+              <motion.div
+                key={`${currentStep}-details`}
+                initial={{ opacity: 0, x: 20, filter: "blur(4px)" }}
+                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full bg-white rounded-3xl shadow-[0_4px_32px_rgba(0,52,43,0.07),0_0_0_1px_rgba(232,224,213,0.6)] p-6 md:p-10"
               >
-                {errors.images}
-              </motion.p>
-            )}
-          </motion.div>
+                <DetailsStep
+                  form={form}
+                  onChange={handleChange}
+                  errors={errors}
+                  onUseCurrentLocation={handleUseCurrentLocation}
+                  locationLoading={locationLoading}
+                  isLocationVerified={isLocationVerified}
+                />
+              </motion.div>
+
+              <motion.div
+                key={`${currentStep}-video`}
+                initial={{ opacity: 0, x: 20, filter: "blur(4px)" }}
+                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+                className="w-full self-start"
+              >
+                <CategoryVideoCard
+                  category={form.category}
+                  loading={categoryVideoLoading}
+                  video={categoryVideo}
+                  error={categoryVideoError}
+                />
+              </motion.div>
+            </div>
+          ) : (
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 20, filter: "blur(4px)" }}
+              animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white rounded-3xl shadow-[0_4px_32px_rgba(0,52,43,0.07),0_0_0_1px_rgba(232,224,213,0.6)] p-6 md:p-10 mb-6"
+            >
+              {currentStep === 1 && (
+                <PhotoUploadStep
+                  images={images}
+                  onImagesChange={setImages}
+                  onCropStateChange={setHasPendingImageCrop}
+                />
+              )}
+              {currentStep === 3 && (
+                <PricingStep
+                  form={form}
+                  onChange={handleChange}
+                  errors={errors}
+                />
+              )}
+              {currentStep === 4 && <ReviewStep images={images} form={form} />}
+
+              {/* Step 1 error */}
+              {currentStep === 1 && errors.images && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-xs text-[#C8622A] font-medium mt-4 text-center"
+                >
+                  {errors.images}
+                </motion.p>
+              )}
+            </motion.div>
+          )}
+
+          {currentStep === 2 && (
+            null
+          )}
 
           {/* Navigation */}
           <div className="space-y-3">

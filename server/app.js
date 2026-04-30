@@ -14,6 +14,7 @@ import cartRoutes from "./src/routes/cartRoutes.js";
 import newsletterRoutes from "./src/routes/newsletterRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
+import categoryVideoRoutes from "./src/routes/categoryVideoRoutes.js";
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/category-videos", categoryVideoRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
