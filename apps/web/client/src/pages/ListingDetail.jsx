@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { toast } from 'sonner'
 import { useAuth } from '../hooks/useAuth'
@@ -179,8 +179,10 @@ const NotFoundScreen = ({ error }) => (
 const ListingDetail = () => {
   const { id }       = useParams()
   const navigate     = useNavigate()
+  const location     = useLocation()
   const { user }     = useAuth()
   const { listing, loading, error, refetch } = useListing(id)
+  const initialBookingState = location.state || {}
 
   const productSchema = useMemo(() => {
     if (!listing) return null
@@ -223,13 +225,18 @@ const ListingDetail = () => {
   })
 
   const [activeImage,  setActiveImage]  = useState(0)
-  const [eventDate,    setEventDate]    = useState('')
-  const [durationDays, setDurationDays] = useState(1)
+  const [eventDate,    setEventDate]    = useState(initialBookingState.eventDate || '')
+  const [durationDays, setDurationDays] = useState(Number(initialBookingState.durationDays) || 1)
   const [similarListings, setSimilarListings] = useState([])
   const [similarLoading, setSimilarLoading] = useState(false)
   const [cartSaving, setCartSaving] = useState(false)
 
   useEffect(() => { window.scrollTo(0, 0) }, [id, listing])
+
+  useEffect(() => {
+    setEventDate(location.state?.eventDate || '')
+    setDurationDays(Number(location.state?.durationDays) || 1)
+  }, [id, location.state])
 
   useEffect(() => {
     if (!id) return
