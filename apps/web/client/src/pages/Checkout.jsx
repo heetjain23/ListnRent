@@ -818,36 +818,59 @@ const Checkout = () => {
               )}
             </AnimatePresence>
 
-            {/* 3. Payment split explanation — shown BEFORE the button so user understands what they're paying */}
-            <Section delay={0.26}>
-              <PaymentSplitCard rentalAmount={rentalAmount} depositAmount={depositAmount} feesTotal={feesTotal} />
+            {/* Mobile: Order Summary (placed after delivery address) */}
+            <Section delay={0.26} className="lg:hidden">
+              <div
+                className="rounded-3xl overflow-hidden mb-4"
+                style={{
+                  background: "linear-gradient(145deg, rgba(255,255,255,0.94) 0%, rgba(250,247,242,0.9) 100%)",
+                  border: "1px solid rgba(232,224,213,0.7)",
+                  backdropFilter: "blur(6px)",
+                }}
+              >
+                <div className="h-0.5 w-full bg-[linear-gradient(90deg,#D4AF37,#C8622A,transparent)]" />
+                <div className="p-5">
+                  <div className="inline-flex items-center gap-2 mb-4 rounded-full border border-[rgba(212,175,55,0.3)] bg-[rgba(212,175,55,0.08)] py-1 pl-2 pr-3.5">
+                    <span className="rounded-full bg-[#D4AF37] px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.15em] text-[#1A1A1A]">Review</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#8B7340]">Order Summary</span>
+                  </div>
+
+                  <div className="mb-4 pb-4 border-b border-[#F0E8DB]">
+                    <ItemPreviewCard listing={listing} dateRange={dateRange} totalDays={totalDays} />
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    <PriceRow label={`Rental fee · ${totalDays} day${totalDays > 1 ? "s" : ""}`} value={fmt(rentalAmount)} />
+                    <PriceRow label="Refundable deposit" value={fmt(depositAmount)} sub="100% back on return" />
+                    <PriceRow label="Cleaning fee" value={cleaningFee === 0 ? "Free" : fmt(cleaningFee)} muted={cleaningFee === 0} />
+                    <PriceRow label="Delivery fee" value={deliveryFee === 0 ? "Free" : fmt(deliveryFee)} muted={deliveryFee === 0} />
+                  </div>
+
+                  <div className="rounded-2xl px-4 py-3.5 mb-4" style={{ background: "linear-gradient(135deg, rgba(0,52,43,0.07), rgba(0,52,43,0.04))", border: "1px solid rgba(0,52,43,0.14)" }}>
+                    <PriceRow label="Full order value" value={fmt(totalAmount)} highlight large />
+                  </div>
+
+                  <motion.button
+                    onClick={handleConfirmAndPay}
+                    disabled={loading}
+                    whileHover={{ scale: loading ? 1 : 1.01, y: loading ? 0 : -1 }}
+                    whileTap={{ scale: loading ? 1 : 0.98 }}
+                    className="relative w-full overflow-hidden rounded-2xl py-4 text-sm font-bold tracking-[0.08em] text-[#1A1A1A] shadow-[0_8px_28px_rgba(212,175,55,0.28)] disabled:opacity-50 disabled:cursor-not-allowed mb-2"
+                    style={{ background: loading ? "rgba(212,175,55,0.5)" : "#D4AF37" }}
+                  >
+                    <span className="relative z-10">{loading ? "Processing…" : `Confirm & Pay ${fmt(payNow)}`}</span>
+                    {!loading && (
+                      <motion.div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.22),transparent)]" style={{ x: "-100%" }} whileHover={{ x: "100%" }} transition={{ duration: 0.5 }} />
+                    )}
+                  </motion.button>
+                  <p className="mt-1 text-center text-[10px] text-[#AAA] tracking-wide">Balance + deposit collected at pickup · 100% refundable deposit</p>
+                </div>
+              </div>
             </Section>
 
-            {/* 4. CTA — mobile only (desktop CTA is sticky in summary panel) */}
-            <Section delay={0.32} className="lg:hidden">
-              <motion.button
-                onClick={handleConfirmAndPay}
-                disabled={loading}
-                whileHover={{ scale: loading ? 1 : 1.01, y: loading ? 0 : -1 }}
-                whileTap={{ scale: loading ? 1 : 0.98 }}
-                className="relative w-full overflow-hidden rounded-2xl py-4 text-sm font-bold tracking-[0.08em] text-[#1A1A1A] shadow-[0_8px_28px_rgba(212,175,55,0.28)] disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: loading ? "rgba(212,175,55,0.5)" : "#D4AF37" }}
-              >
-                <span className="relative z-10">
-                  {loading ? "Processing…" : `Confirm & Pay ${fmt(payNow)} Now`}
-                </span>
-                {!loading && (
-                  <motion.div
-                    className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.22),transparent)]"
-                    style={{ x: "-100%" }}
-                    whileHover={{ x: "100%" }}
-                    transition={{ duration: 0.5 }}
-                  />
-                )}
-              </motion.button>
-              <p className="mt-2 text-center text-[10px] text-[#AAA] tracking-wide">
-                Balance + deposit collected at pickup · 100% refundable deposit
-              </p>
+            {/* 3. Payment split explanation — shown AFTER the mobile CTA so user sees order then payment flow */}
+            <Section delay={0.32}>
+              <PaymentSplitCard rentalAmount={rentalAmount} depositAmount={depositAmount} feesTotal={feesTotal} />
             </Section>
 
             {/* Trust strip — bottom of form */}
