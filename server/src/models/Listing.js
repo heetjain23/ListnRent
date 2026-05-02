@@ -31,6 +31,46 @@ const listingSchema = new mongoose.Schema(
       type: String,
       enum: ['XS(34)','S(36)','M(38)','L(40)','XL(42)','XXL(44)','3XL(46)','4XL(48)','5XL(50)'],
     },
+    measurements: {
+      base: {
+        type: Map,
+        of: Number,
+        default: null,
+      },
+      extra: {
+        type: Map,
+        of: Number,
+        default: null,
+      },
+      derivedSize: {
+        type: String,
+        enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+        default: null,
+      },
+      confidence: {
+        type: Number,
+        min: 0,
+        max: 1,
+        default: null,
+      },
+      isBetween: {
+        type: Boolean,
+        default: false,
+      },
+      ruleSetVersion: {
+        type: String,
+        default: '1.0.0',
+      },
+      fitNotes: {
+        type: String,
+        trim: true,
+        default: null,
+      },
+      classification: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null,
+      },
+    },
     description: {
       type: String,
       trim: true,

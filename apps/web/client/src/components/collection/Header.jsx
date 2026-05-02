@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'motion/react'
-import { CATEGORIES } from '../../constants'
+import { CATEGORIES } from '@listnrent/shared/constants'
 import { FaFilter } from 'react-icons/fa6'
 
 const Header = ({

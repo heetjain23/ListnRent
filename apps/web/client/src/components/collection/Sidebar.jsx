@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { CATEGORIES, SIZES, OCCASIONS, GENDER } from '../../constants'
+import { CATEGORIES, SIZES, OCCASIONS, GENDER } from '@listnrent/shared/constants'
 
 // ── Collapsible section wrapper ─────────────────────────────────────────────
 const SidebarSection = ({ title, children }) => {

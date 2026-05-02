@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { CATEGORIES, SIZES, OCCASIONS } from '../../constants'
+import { CATEGORIES, SIZES, OCCASIONS } from '@listnrent/shared/constants'
 
 // ── Filter chip button ──────────────────────────────────────────────────────
 const FilterChip = ({ label, active, onClick }) => (

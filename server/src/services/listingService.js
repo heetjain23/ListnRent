@@ -184,6 +184,7 @@ export const updateListing = async (id, userId, data) => {
     "category",
     "occasion",
     "size",
+    "measurements",
     "description",
     "pricePerDay",
     "deposit",

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../hooks/useAuth";
 import { auth } from "../services/firebase";
 import { getOptimizedImageUrl } from "../services/cloudinary";
-import { BILLING_FEES } from "../constants";
+import { BILLING_FEES } from "@listnrent/shared/constants";
 import Button from "../components/ui/Button";
 import { useSEO } from "../hooks/useSEO";
 

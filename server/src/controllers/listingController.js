@@ -9,6 +9,7 @@ import {
   markListingAsAvailable,
   incrementListingViewCount,
 } from "../services/listingService.js";
+import { buildMeasurementPayload } from "../services/sizeClassificationService.js";
 import { successResponse, errorResponse } from "../utils/helper.js";
 
 export const handleCreateListing = async (req, res) => {
@@ -19,7 +20,7 @@ export const handleCreateListing = async (req, res) => {
     // For drafts, no fields are required
     if (!isDraft) {
       const required = [
-        "title", "category", "occasion", "size",
+        "title", "category", "occasion",
         "description", "pricePerDay", "deposit", "condition", "gender", "material",
       ];
 
@@ -31,6 +32,26 @@ export const handleCreateListing = async (req, res) => {
 
       if (!data.location?.area) {
         return errorResponse(res, "location.area is required", 400);
+      }
+
+      // Handle measurements if provided
+      if (data.measurements) {
+        const measurementResult = buildMeasurementPayload(
+          data.category,
+          data.measurements,
+          data.measurementNotes
+        );
+
+        if (!measurementResult.valid) {
+          return errorResponse(res, "Invalid measurements", 400, measurementResult.errors);
+        }
+
+        data.measurements = measurementResult.measurements;
+        // Set derived size from measurements
+        data.size = `${measurementResult.measurements.derivedSize}`;
+      } else if (!data.size) {
+        // Fallback: require either measurements or size for backward compatibility
+        return errorResponse(res, "Either measurements or size is required", 400);
       }
     }
 

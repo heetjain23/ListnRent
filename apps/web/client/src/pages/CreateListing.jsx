@@ -14,7 +14,21 @@ import {
   GENDER as GENDERS,
   CONDITIONS,
   MATERIALS,
-} from "../constants";
+} from "@listnrent/shared/constants";
+import {
+  MeasurementGroup,
+  SizePreview,
+  MeasurementHelp,
+} from "../components/measurements/MeasurementInputs";
+import {
+  MEASUREMENT_FIELDS,
+  getMeasurementFieldsUI,
+} from "@listnrent/shared/measurements";
+import {
+  calculateSizeFromMeasurements,
+  hasEnoughMeasurementsForSize,
+  validateAllMeasurements,
+} from "../services/sizeService";
 
 const normalizeOptions = (items) => items.filter((item) => item !== "All");
 
@@ -734,7 +748,9 @@ function CategoryVideoCard({ category, loading, video, error }) {
             Measurement guide
           </p>
           <h3 className="mt-1 text-lg font-black leading-tight">
-            {hasCategory ? `${category} measurement guide` : "Select a category to load its Size guide"}
+            {hasCategory
+              ? `${category} measurement guide`
+              : "Select a category to load its Size guide"}
           </h3>
         </div>
         <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/85">
@@ -744,7 +760,8 @@ function CategoryVideoCard({ category, loading, video, error }) {
 
       {!hasCategory ? (
         <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/5 px-5 text-center text-sm leading-6 text-white/72">
-          Pick a category on the left and the matching measurement guide will appear here.
+          Pick a category on the left and the matching measurement guide will
+          appear here.
         </div>
       ) : loading ? (
         <div className="flex h-64 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-sm text-white/70">
@@ -768,15 +785,19 @@ function CategoryVideoCard({ category, loading, video, error }) {
               {video.title || category}
             </p>
             <p className="text-xs leading-5 text-white/70">
-              This guide explains how to measure this outfit category and is matched to the exact category name.
+              This guide explains how to measure this outfit category and is
+              matched to the exact category name.
             </p>
           </div>
         </div>
       ) : (
         <div className="space-y-3 rounded-2xl border border-dashed border-white/15 bg-white/5 px-5 py-6 text-sm text-white/76">
-          <p className="font-semibold text-white">No measurement guide uploaded for this category yet.</p>
+          <p className="font-semibold text-white">
+            No measurement guide uploaded for this category yet.
+          </p>
           <p>
-            The admin team should upload a matching measurement guide in the admin panel using the exact category name.
+            The admin team should upload a matching measurement guide in the
+            admin panel using the exact category name.
           </p>
           {error && <p className="text-xs text-[#F8C7B4]">{error}</p>}
         </div>
@@ -798,6 +819,10 @@ function DetailsStep({
   onUseCurrentLocation,
   locationLoading,
   isLocationVerified,
+  measurementErrors,
+  calculatedSize,
+  handleMeasurementChange,
+  handleMeasurementNotesChange,
 }) {
   const inputCls = (err) =>
     `w-full px-4 py-3 text-sm bg-white border rounded-xl focus:outline-none placeholder:text-[#CCC] text-[#1A1A1A] transition-all ${err ? "border-[#C8622A] focus:border-[#C8622A] focus:ring-1 focus:ring-[rgba(200,98,42,0.2)]" : "border-[#E8E0D5] focus:border-[#D4AF37] focus:ring-1 focus:ring-[rgba(212,175,55,0.15)]"}`;
@@ -864,17 +889,66 @@ function DetailsStep({
         </DetailsField>
       </div>
 
-      {/* Size + Gender + Condition */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <DetailsField label="Size" error={errors.size} required>
-          <DetailsChipSelect
-            name="size"
-            options={SIZE_OPTIONS}
-            value={form.size}
-            onChange={onChange}
-            error={errors.size}
-          />
-        </DetailsField>
+      {/* Measurements Section */}
+      {form.category &&
+        (() => {
+          const { baseFields, extraFields } = getMeasurementFieldsUI(
+            form.category,
+          );
+          return (
+            <div className="space-y-4">
+              <MeasurementGroup
+                title="📏 Base Measurements (cm)"
+                fields={baseFields}
+                measurements={form.measurements}
+                errors={measurementErrors}
+                onChange={handleMeasurementChange}
+              />
+
+              {extraFields.length > 0 && (
+                <MeasurementGroup
+                  title="Additional Details"
+                  fields={extraFields}
+                  measurements={form.measurements}
+                  errors={measurementErrors}
+                  onChange={handleMeasurementChange}
+                />
+              )}
+
+              {/* Size Preview */}
+              {calculatedSize && (
+                <SizePreview
+                  size={calculatedSize.size}
+                  confidence={calculatedSize.confidence}
+                  isBetween={calculatedSize.isBetween}
+                  note={calculatedSize.note}
+                />
+              )}
+
+              {/* Fit Notes */}
+              <DetailsField label="Fit Notes" error={errors.measurementNotes}>
+                <textarea
+                  name="measurementNotes"
+                  value={form.measurementNotes}
+                  onChange={handleMeasurementNotesChange}
+                  placeholder="e.g., Runs slightly large in chest"
+                  className={`w-full px-4 py-3 text-sm bg-white border rounded-xl focus:outline-none placeholder:text-[#CCC] text-[#1A1A1A] transition-all resize-none leading-relaxed ${
+                    errors.measurementNotes
+                      ? "border-[#C8622A] focus:border-[#C8622A]"
+                      : "border-[#E8E0D5] focus:border-[#D4AF37]"
+                  }`}
+                  rows={2}
+                />
+              </DetailsField>
+
+              {/* Help Card */}
+              <MeasurementHelp category={form.category} />
+            </div>
+          );
+        })()}
+
+      {/* Gender + Condition */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <DetailsField label="Gender" error={errors.gender} required>
           <DetailsChipSelect
             name="gender"
@@ -1291,7 +1365,11 @@ function ReviewStep({ images, form }) {
           <div className="h-0.5 bg-[linear-gradient(90deg,#D4AF37,rgba(212,175,55,0.2),transparent)] mb-4" />
           <Row label="Category" value={form.category} />
           <Row label="Occasion" value={form.occasion} />
-          <Row label="Size" value={form.size} />
+          {calculatedSize ? (
+            <Row label="Size" value={calculatedSize.size} />
+          ) : form.size ? (
+            <Row label="Size" value={form.size} />
+          ) : null}
           <Row label="Gender" value={form.gender} />
           <Row
             label="Material"
@@ -1341,6 +1419,8 @@ const CreateListing = () => {
     category: "",
     occasion: "",
     size: "",
+    measurements: {},
+    measurementNotes: "",
     gender: "",
     condition: "",
     material: "",
@@ -1349,6 +1429,8 @@ const CreateListing = () => {
     description: "",
     area: "",
   });
+  const [measurementErrors, setMeasurementErrors] = useState({});
+  const [calculatedSize, setCalculatedSize] = useState(null);
   const [errors, setErrors] = useState({});
   const showSaveDraft = !(currentStep === 1 && images.length === 0);
 
@@ -1360,6 +1442,39 @@ const CreateListing = () => {
     if (name === "area" && isLocationVerified) setIsLocationVerified(false);
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
+
+  const handleMeasurementChange = (key, value) => {
+    setForm((prev) => ({
+      ...prev,
+      measurements: {
+        ...prev.measurements,
+        [key]: value ? parseFloat(value) : null,
+      },
+    }));
+    if (measurementErrors[key]) {
+      setMeasurementErrors((prev) => ({ ...prev, [key]: "" }));
+    }
+  };
+
+  const handleMeasurementNotesChange = (e) => {
+    const { value } = e.target;
+    setForm((prev) => ({ ...prev, measurementNotes: value }));
+  };
+
+  useEffect(() => {
+    if (
+      form.category &&
+      hasEnoughMeasurementsForSize(form.category, form.measurements)
+    ) {
+      const sizeData = calculateSizeFromMeasurements(
+        form.category,
+        form.measurements,
+      );
+      setCalculatedSize(sizeData);
+    } else {
+      setCalculatedSize(null);
+    }
+  }, [form.category, form.measurements]);
 
   useEffect(() => {
     let isActive = true;
@@ -1466,7 +1581,22 @@ const CreateListing = () => {
       if (!form.title.trim()) errs.title = "Title is required";
       if (!form.category) errs.category = "Select a category";
       if (!form.occasion) errs.occasion = "Select an occasion";
-      if (!form.size) errs.size = "Select a size";
+
+      // Validate measurements if provided
+      if (Object.keys(form.measurements).length > 0) {
+        const measurementValidationErrors = validateAllMeasurements(
+          form.category,
+          form.measurements,
+        );
+        if (Object.keys(measurementValidationErrors).length > 0) {
+          setMeasurementErrors(measurementValidationErrors);
+          errs.measurements = "Please fix measurement errors";
+        }
+      } else if (!form.size) {
+        // Fallback: require size if no measurements provided
+        errs.size = "Either measurements or size is required";
+      }
+
       if (!form.gender) errs.gender = "Select gender";
       if (!form.condition) errs.condition = "Select condition";
       if (!form.material) errs.material = "Select material";
@@ -1562,7 +1692,15 @@ const CreateListing = () => {
     setIfPresent("title", form.title.trim());
     setIfPresent("category", form.category);
     setIfPresent("occasion", form.occasion);
-    setIfPresent("size", form.size);
+
+    // Send measurements if provided, otherwise fall back to size
+    if (Object.keys(form.measurements).length > 0) {
+      payload.measurements = form.measurements;
+      setIfPresent("measurementNotes", form.measurementNotes.trim());
+    } else {
+      setIfPresent("size", form.size);
+    }
+
     setIfPresent("gender", form.gender);
     setIfPresent("condition", form.condition);
     setIfPresent("material", finalMaterial);
@@ -1747,6 +1885,10 @@ const CreateListing = () => {
                   onUseCurrentLocation={handleUseCurrentLocation}
                   locationLoading={locationLoading}
                   isLocationVerified={isLocationVerified}
+                  measurementErrors={measurementErrors}
+                  calculatedSize={calculatedSize}
+                  handleMeasurementChange={handleMeasurementChange}
+                  handleMeasurementNotesChange={handleMeasurementNotesChange}
                 />
               </motion.div>
 
@@ -1755,7 +1897,11 @@ const CreateListing = () => {
                 initial={{ opacity: 0, x: 20, filter: "blur(4px)" }}
                 animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
                 exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+                transition={{
+                  duration: 0.35,
+                  ease: [0.16, 1, 0.3, 1],
+                  delay: 0.05,
+                }}
                 className="w-full self-start"
               >
                 <CategoryVideoCard
@@ -1804,9 +1950,7 @@ const CreateListing = () => {
             </motion.div>
           )}
 
-          {currentStep === 2 && (
-            null
-          )}
+          {currentStep === 2 && null}
 
           {/* Navigation */}
           <div className="space-y-3">

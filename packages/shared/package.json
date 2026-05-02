@@ -1,0 +1,12 @@
+{
+  "name": "@listnrent/shared",
+  "version": "1.0.0",
+  "description": "Shared constants and utilities for ListnRent",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./constants": "./constants/index.js",
+    "./measurements": "./measurements/index.js"
+  }
+}

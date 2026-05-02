@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import PageHeader from '../../shared/PageHeader'
 import { adminApi } from '../../../services/api'
 import { uploadVideo } from '../../../services/cloudinary'
-import { CATEGORY_VIDEO_GUIDANCE, CATEGORIES } from '../../../constants'
+import { CATEGORY_VIDEO_GUIDANCE, CATEGORIES } from '@listnrent/shared/constants'
 
 const DEFAULT_FORM = {
   category: CATEGORIES[0] || '',
