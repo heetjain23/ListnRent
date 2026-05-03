@@ -485,114 +485,116 @@ function PhotoUploadStep({ images, onImagesChange, onCropStateChange }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm overflow-y-auto"
         >
-          <div className="w-full max-w-5xl overflow-hidden rounded-3xl bg-[#FAF7F2] shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
-            <div className="flex items-start justify-between gap-4 border-b border-[#E8E0D5] px-5 py-4 md:px-6">
-              <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#C8622A]">
-                  Crop photo
-                </p>
-                <h3
-                  className="mt-1 text-xl font-black text-[#1A1A1A]"
-                  style={{ fontFamily: "'Georgia', serif" }}
+          <div className="flex items-center justify-center min-h-screen px-4 py-6 sm:py-8">
+            <div className="w-full max-w-5xl rounded-3xl bg-[#FAF7F2] shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+              <div className="flex items-start justify-between gap-4 border-b border-[#E8E0D5] px-4 py-3 sm:px-5 sm:py-4 md:px-6">
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#C8622A]">
+                    Crop photo
+                  </p>
+                  <h3
+                    className="mt-1 text-lg sm:text-xl font-black text-[#1A1A1A]"
+                    style={{ fontFamily: "'Georgia', serif" }}
+                  >
+                    Adjust the outfit frame before upload
+                  </h3>
+                  <p className="mt-1 text-xs sm:text-sm text-[#888]">
+                    Drag any edge or corner to crop, then continue.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearCropQueue}
+                  disabled={isProcessingCrop}
+                  className="rounded-full border border-[#E8E0D5] px-2.5 sm:px-3 py-1.5 text-[9px] sm:text-xs font-bold uppercase tracking-widest text-[#666] transition-colors hover:border-[#C8622A] hover:text-[#C8622A] disabled:opacity-50 whitespace-nowrap"
                 >
-                  Adjust the outfit frame before upload
-                </h3>
-                <p className="mt-1 text-sm text-[#888]">
-                  Drag any edge or corner to crop, then continue.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={clearCropQueue}
-                disabled={isProcessingCrop}
-                className="rounded-full border border-[#E8E0D5] px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-[#666] transition-colors hover:border-[#C8622A] hover:text-[#C8622A] disabled:opacity-50"
-              >
-                Discard all
-              </button>
-            </div>
-
-            <div className="grid gap-0 md:grid-cols-[1.6fr_0.9fr]">
-              <div className="min-h-105 bg-[#111] p-3 md:min-h-140 md:p-4">
-                <div className="h-full overflow-hidden rounded-2xl bg-black">
-                  <Cropper
-                    ref={cropperRef}
-                    src={activeCrop.previewUrl}
-                    style={{ height: "100%", width: "100%" }}
-                    viewMode={1}
-                    dragMode="move"
-                    guides={true}
-                    background={false}
-                    responsive={true}
-                    autoCropArea={0.92}
-                    checkOrientation={false}
-                    cropBoxMovable={true}
-                    cropBoxResizable={true}
-                    toggleDragModeOnDblclick={false}
-                    minCropBoxWidth={120}
-                    minCropBoxHeight={120}
-                  />
-                </div>
+                  Discard all
+                </button>
               </div>
 
-              <div className="flex flex-col justify-between gap-5 px-5 py-5 md:px-6 md:py-6">
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-[#E8E0D5] bg-white p-4">
-                    <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#888]">
-                      Selected file
-                    </p>
-                    <p className="mt-2 break-all text-sm font-semibold text-[#1A1A1A]">
-                      {activeCrop.file.name}
-                    </p>
-                    <p className="mt-2 text-xs leading-relaxed text-[#888]">
-                      Use the handles on any side to tighten the frame around
-                      the outfit. Your crop will be uploaded as the listing
-                      image.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-[#8B7340] sm:grid-cols-3 sm:gap-2">
-                    <div className="flex min-h-16 items-center justify-center rounded-2xl bg-[rgba(212,175,55,0.08)] px-4 py-4 leading-tight">
-                      Drag edges
-                    </div>
-                    <div className="flex min-h-16 items-center justify-center rounded-2xl bg-[rgba(0,52,43,0.06)] px-4 py-4 leading-tight">
-                      Move frame
-                    </div>
-                    <div className="flex min-h-16 items-center justify-center rounded-2xl bg-[rgba(200,98,42,0.08)] px-4 py-4 leading-tight">
-                      Crop & upload
-                    </div>
+              <div className="grid gap-0 md:grid-cols-[1.6fr_0.9fr]">
+                <div className="bg-[#111] p-2 sm:p-3 md:p-4 overflow-hidden">
+                  <div className="h-72 sm:h-80 md:h-96 overflow-hidden rounded-2xl bg-black">
+                    <Cropper
+                      ref={cropperRef}
+                      src={activeCrop.previewUrl}
+                      style={{ height: "100%", width: "100%" }}
+                      viewMode={1}
+                      dragMode="move"
+                      guides={true}
+                      background={false}
+                      responsive={true}
+                      autoCropArea={0.92}
+                      checkOrientation={false}
+                      cropBoxMovable={true}
+                      cropBoxResizable={true}
+                      toggleDragModeOnDblclick={false}
+                      minCropBoxWidth={120}
+                      minCropBoxHeight={120}
+                    />
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3">
-                  <button
-                    type="button"
-                    onClick={() => finalizeCrop(false)}
-                    disabled={isProcessingCrop}
-                    className="w-full rounded-xl bg-[#00342B] px-4 py-3 text-sm font-bold tracking-[0.08em] text-white shadow-[0_8px_24px_rgba(0,52,43,0.22)] transition-opacity disabled:opacity-60"
-                  >
-                    {isProcessingCrop ? "Processing…" : "Apply crop"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => finalizeCrop(true)}
-                    disabled={isProcessingCrop}
-                    className="w-full rounded-xl border border-[#E8E0D5] px-4 py-3 text-sm font-semibold text-[#555] transition-colors hover:border-[#D4AF37] hover:text-[#1A1A1A] disabled:opacity-50"
-                  >
-                    Keep original
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      revokePreviewUrl(activeCrop.previewUrl);
-                      setCropQueue((prev) => prev.slice(1));
-                    }}
-                    disabled={isProcessingCrop}
-                    className="text-xs font-bold uppercase tracking-[0.14em] text-[#C8622A] transition-colors hover:text-[#8C3F15] disabled:opacity-50"
-                  >
-                    Skip this photo
-                  </button>
+                <div className="flex flex-col justify-between gap-3 sm:gap-5 px-4 py-4 sm:px-5 sm:py-5 md:px-6 md:py-6">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="rounded-2xl border border-[#E8E0D5] bg-white p-3 sm:p-4">
+                      <p className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#888]">
+                        Selected file
+                      </p>
+                      <p className="mt-1.5 sm:mt-2 break-all text-xs sm:text-sm font-semibold text-[#1A1A1A]">
+                        {activeCrop.file.name}
+                      </p>
+                      <p className="mt-1.5 sm:mt-2 text-[11px] sm:text-xs leading-relaxed text-[#888]">
+                        Use the handles on any side to tighten the frame around
+                        the outfit. Your crop will be uploaded as the listing
+                        image.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2 sm:gap-3 text-center text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.12em] text-[#8B7340] md:grid-cols-3 md:gap-2">
+                      <div className="flex min-h-14 sm:min-h-16 items-center justify-center rounded-2xl bg-[rgba(212,175,55,0.08)] px-3 sm:px-4 py-3 sm:py-4 leading-tight">
+                        Drag edges
+                      </div>
+                      <div className="flex min-h-14 sm:min-h-16 items-center justify-center rounded-2xl bg-[rgba(0,52,43,0.06)] px-3 sm:px-4 py-3 sm:py-4 leading-tight">
+                        Move frame
+                      </div>
+                      <div className="flex min-h-14 sm:min-h-16 items-center justify-center rounded-2xl bg-[rgba(200,98,42,0.08)] px-3 sm:px-4 py-3 sm:py-4 leading-tight">
+                        Crop & upload
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:gap-3">
+                    <button
+                      type="button"
+                      onClick={() => finalizeCrop(false)}
+                      disabled={isProcessingCrop}
+                      className="w-full rounded-xl bg-[#00342B] px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-bold tracking-[0.08em] text-white shadow-[0_8px_24px_rgba(0,52,43,0.22)] transition-opacity disabled:opacity-60"
+                    >
+                      {isProcessingCrop ? "Processing…" : "Apply crop"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => finalizeCrop(true)}
+                      disabled={isProcessingCrop}
+                      className="w-full rounded-xl border border-[#E8E0D5] px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-[#555] transition-colors hover:border-[#D4AF37] hover:text-[#1A1A1A] disabled:opacity-50"
+                    >
+                      Keep original
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        revokePreviewUrl(activeCrop.previewUrl);
+                        setCropQueue((prev) => prev.slice(1));
+                      }}
+                      disabled={isProcessingCrop}
+                      className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.14em] text-[#C8622A] transition-colors hover:text-[#8C3F15] disabled:opacity-50"
+                    >
+                      Skip this photo
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -796,7 +798,6 @@ function DetailPromptCard({
   );
 }
 
-
 function CategoryVideoCard({ category, loading, video, error }) {
   const hasCategory = Boolean(category);
 
@@ -966,10 +967,7 @@ function DetailsStep({
 }) {
   const inputCls = (err) =>
     `w-full px-4 py-3 text-sm bg-white border rounded-xl focus:outline-none placeholder:text-[#CCC] text-[#1A1A1A] transition-all ${err ? "border-[#C8622A] focus:border-[#C8622A] focus:ring-1 focus:ring-[rgba(200,98,42,0.2)]" : "border-[#E8E0D5] focus:border-[#D4AF37] focus:ring-1 focus:ring-[rgba(212,175,55,0.15)]"}`;
-  const { flowSteps } = getDetailsFlowState(
-    form,
-    isLocationVerified,
-  );
+  const { flowSteps } = getDetailsFlowState(form, isLocationVerified);
   const currentFlowKey = flowSteps[currentFlowIndex]?.key;
   const isCurrent = (key) => key === currentFlowKey;
   const activeStepComplete = Boolean(flowSteps[currentFlowIndex]?.complete);
@@ -1023,23 +1021,24 @@ function DetailsStep({
           {flowSteps.map((step, index) => {
             const canVisit = index === currentFlowIndex || step.complete;
             return (
-            <button
-              type="button"
-              key={step.key}
-              onClick={() => canVisit && onFlowStepChange(index)}
-              disabled={!canVisit}
-              className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] ${
-                index === currentFlowIndex
-                  ? "border-[#D4AF37] bg-white text-[#1A1A1A]"
-                  : step.complete
-                    ? "border-[#DDE9E3] bg-[#EEF7F1] text-[#00342B]"
-                    : "border-[#E8E0D5] bg-white/60 text-[#A9A196]"
-              } ${canVisit ? "cursor-pointer hover:border-[#D4AF37]" : "cursor-not-allowed"}`}
-            >
-              <span>{index + 1}</span>
-              <span>{step.label}</span>
-            </button>
-          )})}
+              <button
+                type="button"
+                key={step.key}
+                onClick={() => canVisit && onFlowStepChange(index)}
+                disabled={!canVisit}
+                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] ${
+                  index === currentFlowIndex
+                    ? "border-[#D4AF37] bg-white text-[#1A1A1A]"
+                    : step.complete
+                      ? "border-[#DDE9E3] bg-[#EEF7F1] text-[#00342B]"
+                      : "border-[#E8E0D5] bg-white/60 text-[#A9A196]"
+                } ${canVisit ? "cursor-pointer hover:border-[#D4AF37]" : "cursor-not-allowed"}`}
+              >
+                <span>{index + 1}</span>
+                <span>{step.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -1741,8 +1740,7 @@ const CreateListing = () => {
   );
   const isMeasurementDetailsStep =
     currentStep === 2 &&
-    detailsFlowState.flowSteps[currentDetailsFlowIndex]?.key ===
-      "measurements";
+    detailsFlowState.flowSteps[currentDetailsFlowIndex]?.key === "measurements";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -1773,7 +1771,10 @@ const CreateListing = () => {
 
   useEffect(() => {
     const firstIncompleteIndex = detailsFlowState.firstIncompleteIndex;
-    if (firstIncompleteIndex !== -1 && detailsFlowIndex > firstIncompleteIndex) {
+    if (
+      firstIncompleteIndex !== -1 &&
+      detailsFlowIndex > firstIncompleteIndex
+    ) {
       setDetailsFlowIndex(firstIncompleteIndex);
     }
   }, [detailsFlowState.firstIncompleteIndex, detailsFlowIndex]);
@@ -2030,7 +2031,10 @@ const CreateListing = () => {
       setIfPresent("size", form.size);
     }
 
-    setIfPresent("gender", getEffectiveMeasurementGender(form.category, form.gender));
+    setIfPresent(
+      "gender",
+      getEffectiveMeasurementGender(form.category, form.gender),
+    );
     setIfPresent("condition", form.condition);
     setIfPresent("material", finalMaterial);
     setIfPresent("description", form.description.trim());
