@@ -6,24 +6,21 @@
  * - Store and retrieve measurement data
  */
 
-import { 
+import {
   BASE_MEASUREMENTS,
-  CATEGORY_FAMILIES,
+  MEASUREMENT_FIELDS,
   getCategoryFamily,
   validateMeasurement
 } from '@listnrent/shared/measurements';
 
-import { 
-  classifyMeasurements, 
-  getFamilyRules 
-} from '../config/sizeRules.js';
+import { classifyMeasurements } from '../config/sizeRules.js';
 
 /**
  * Normalize and validate all measurements for a category
  * Returns { valid, measurements, errors }
  */
-export const normalizeMeasurements = (categoryId, rawMeasurements) => {
-  const family = getCategoryFamily(categoryId);
+export const normalizeMeasurements = (categoryId, rawMeasurements, gender) => {
+  const family = getCategoryFamily(categoryId, gender);
   const measurements = {};
   const errors = {};
 
@@ -77,10 +74,9 @@ export const normalizeMeasurements = (categoryId, rawMeasurements) => {
 /**
  * Calculate derived size from measurements
  */
-export const calculateSize = (categoryId, measurements) => {
-  const family = getCategoryFamily(categoryId);
-  const familyRules = getFamilyRules(family.id);
-  
+export const calculateSize = (categoryId, measurements, gender) => {
+  const family = getCategoryFamily(categoryId, gender);
+
   const result = classifyMeasurements(
     measurements,
     family.id,
@@ -93,7 +89,7 @@ export const calculateSize = (categoryId, measurements) => {
     isBetween: result.isBetween,
     note: result.note,
     allScores: result.allScores,
-    ruleSetVersion: '1.0.0',
+    ruleSetVersion: '1.1.0',
   };
 };
 
@@ -103,12 +99,14 @@ export const calculateSize = (categoryId, measurements) => {
 export const buildMeasurementPayload = (
   categoryId,
   rawMeasurements,
-  fitNotes = ''
+  fitNotes = '',
+  gender
 ) => {
   // Normalize and validate
   const { valid, measurements, errors } = normalizeMeasurements(
     categoryId,
-    rawMeasurements
+    rawMeasurements,
+    gender
   );
 
   if (!valid) {
@@ -119,9 +117,8 @@ export const buildMeasurementPayload = (
   }
 
   // Calculate derived size
-  const family = getCategoryFamily(categoryId);
-  const family_rules = getFamilyRules(family.id);
-  
+  const family = getCategoryFamily(categoryId, gender);
+
   const sizeData = classifyMeasurements(
     measurements,
     family.id,
@@ -148,7 +145,7 @@ export const buildMeasurementPayload = (
       derivedSize: sizeData.size,
       confidence: sizeData.confidence,
       isBetween: sizeData.isBetween,
-      ruleSetVersion: sizeData.ruleSetVersion,
+      ruleSetVersion: '1.1.0',
       fitNotes: fitNotes || undefined,
       classification: sizeData,
     },
@@ -176,15 +173,14 @@ export const formatMeasurementsForDisplay = (measurements) => {
   }
 
   if (measurements.extra && Object.keys(measurements.extra).length > 0) {
-    const family = getCategoryFamily(measurements._category || 'KURTA');
-    for (const extraField of (family.additionalFields || [])) {
-      if (extraField.key in measurements.extra) {
-        formatted.push({
-          label: extraField.label,
-          value: `${measurements.extra[extraField.key]} cm`,
-          type: 'extra',
-        });
-      }
+    for (const [key, value] of Object.entries(measurements.extra)) {
+      const def = MEASUREMENT_FIELDS[key];
+      if (!def) continue;
+      formatted.push({
+        label: def.label,
+        value: `${value} cm`,
+        type: 'extra',
+      });
     }
   }
 

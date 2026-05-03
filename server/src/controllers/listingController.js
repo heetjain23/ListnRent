@@ -39,7 +39,8 @@ export const handleCreateListing = async (req, res) => {
         const measurementResult = buildMeasurementPayload(
           data.category,
           data.measurements,
-          data.measurementNotes
+          data.measurementNotes,
+          data.gender
         );
 
         if (!measurementResult.valid) {

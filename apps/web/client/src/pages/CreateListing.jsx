@@ -21,8 +21,9 @@ import {
   MeasurementHelp,
 } from "../components/measurements/MeasurementInputs";
 import {
-  MEASUREMENT_FIELDS,
   getMeasurementFieldsUI,
+  getEffectiveMeasurementGender,
+  isFemaleDefaultCategory,
 } from "@listnrent/shared/measurements";
 import {
   calculateSizeFromMeasurements,
@@ -874,9 +875,17 @@ function CategoryVideoCard({ category, loading, video, error }) {
 const getDetailsFlowState = (form, isLocationVerified) => {
   const hasMaterial =
     form.material && (form.material !== "Other" || form.customMaterial?.trim());
+  const effectiveGender = getEffectiveMeasurementGender(
+    form.category,
+    form.gender,
+  );
   const hasMeasurements =
     form.category &&
-    hasEnoughMeasurementsForSize(form.category, form.measurements);
+    hasEnoughMeasurementsForSize(
+      form.category,
+      form.measurements,
+      effectiveGender,
+    );
   const remainingComplete =
     form.occasion &&
     form.condition &&
@@ -885,7 +894,12 @@ const getDetailsFlowState = (form, isLocationVerified) => {
     isLocationVerified;
   const flowSteps = [
     { key: "category", label: "Category", complete: Boolean(form.category) },
-    { key: "gender", label: "Gender", complete: Boolean(form.gender) },
+    {
+      key: "gender",
+      label: "Gender",
+      complete: isFemaleDefaultCategory(form.category) || Boolean(form.gender),
+      hidden: isFemaleDefaultCategory(form.category),
+    },
     { key: "title", label: "Title", complete: Boolean(form.title.trim()) },
     { key: "material", label: "Material", complete: Boolean(hasMaterial) },
     {
@@ -895,9 +909,12 @@ const getDetailsFlowState = (form, isLocationVerified) => {
     },
     { key: "remaining", label: "Finish", complete: Boolean(remainingComplete) },
   ];
-  const firstIncompleteIndex = flowSteps.findIndex((step) => !step.complete);
+  const visibleFlowSteps = flowSteps.filter((step) => !step.hidden);
+  const firstIncompleteIndex = visibleFlowSteps.findIndex(
+    (step) => !step.complete,
+  );
 
-  return { flowSteps, firstIncompleteIndex };
+  return { flowSteps: visibleFlowSteps, firstIncompleteIndex };
 };
 
 function DetailsFlowControls({
@@ -953,7 +970,8 @@ function DetailsStep({
     form,
     isLocationVerified,
   );
-  const isCurrent = (index) => index === currentFlowIndex;
+  const currentFlowKey = flowSteps[currentFlowIndex]?.key;
+  const isCurrent = (key) => key === currentFlowKey;
   const activeStepComplete = Boolean(flowSteps[currentFlowIndex]?.complete);
   const goPrevious = () => onFlowStepChange(Math.max(0, currentFlowIndex - 1));
   const goNext = () => {
@@ -1027,7 +1045,7 @@ function DetailsStep({
 
       <div className="space-y-4">
         <AnimatePresence initial={false}>
-          {isCurrent(0) && (
+          {isCurrent("category") && (
             <DetailPromptCard
               key="category"
               number="1"
@@ -1050,7 +1068,7 @@ function DetailsStep({
             </DetailPromptCard>
           )}
 
-          {isCurrent(1) && (
+          {isCurrent("gender") && (
             <DetailPromptCard
               key="gender"
               number="2"
@@ -1073,7 +1091,7 @@ function DetailsStep({
             </DetailPromptCard>
           )}
 
-          {isCurrent(2) && (
+          {isCurrent("title") && (
             <DetailPromptCard
               key="title"
               number="3"
@@ -1096,7 +1114,7 @@ function DetailsStep({
             </DetailPromptCard>
           )}
 
-          {isCurrent(3) && (
+          {isCurrent("material") && (
             <DetailPromptCard
               key="material"
               number="4"
@@ -1159,11 +1177,12 @@ function DetailsStep({
             </DetailPromptCard>
           )}
 
-          {isCurrent(4) &&
+          {isCurrent("measurements") &&
             form.category &&
             (() => {
-              const { baseFields, extraFields } = getMeasurementFieldsUI(
+              const { groups, extraFields } = getMeasurementFieldsUI(
                 form.category,
+                getEffectiveMeasurementGender(form.category, form.gender),
               );
               return (
                 <DetailPromptCard
@@ -1176,17 +1195,20 @@ function DetailsStep({
                   complete={flowSteps[4].complete}
                 >
                   <div className="space-y-4">
-                    <MeasurementGroup
-                      title="Base Measurements (cm)"
-                      fields={baseFields}
-                      measurements={form.measurements}
-                      errors={measurementErrors}
-                      onChange={handleMeasurementChange}
-                    />
+                    {groups.map((group) => (
+                      <MeasurementGroup
+                        key={group.id}
+                        title={`${group.label} (cm)`}
+                        fields={group.fields}
+                        measurements={form.measurements}
+                        errors={measurementErrors}
+                        onChange={handleMeasurementChange}
+                      />
+                    ))}
 
                     {extraFields.length > 0 && (
                       <MeasurementGroup
-                        title="Additional Details"
+                        title="Blouse Measurements (cm)"
                         fields={extraFields}
                         measurements={form.measurements}
                         errors={measurementErrors}
@@ -1228,7 +1250,7 @@ function DetailsStep({
               );
             })()}
 
-          {isCurrent(5) && (
+          {isCurrent("remaining") && (
             <DetailPromptCard
               key="remaining"
               number="6"
@@ -1645,7 +1667,10 @@ function ReviewStep({ images, form }) {
           ) : form.size ? (
             <Row label="Size" value={form.size} />
           ) : null}
-          <Row label="Gender" value={form.gender} />
+          <Row
+            label="Gender"
+            value={getEffectiveMeasurementGender(form.category, form.gender)}
+          />
           <Row
             label="Material"
             value={
@@ -1754,19 +1779,28 @@ const CreateListing = () => {
   }, [detailsFlowState.firstIncompleteIndex, detailsFlowIndex]);
 
   useEffect(() => {
+    const effectiveGender = getEffectiveMeasurementGender(
+      form.category,
+      form.gender,
+    );
     if (
       form.category &&
-      hasEnoughMeasurementsForSize(form.category, form.measurements)
+      hasEnoughMeasurementsForSize(
+        form.category,
+        form.measurements,
+        effectiveGender,
+      )
     ) {
       const sizeData = calculateSizeFromMeasurements(
         form.category,
         form.measurements,
+        effectiveGender,
       );
       setCalculatedSize(sizeData);
     } else {
       setCalculatedSize(null);
     }
-  }, [form.category, form.measurements]);
+  }, [form.category, form.gender, form.measurements]);
 
   useEffect(() => {
     let isActive = true;
@@ -1879,6 +1913,7 @@ const CreateListing = () => {
         const measurementValidationErrors = validateAllMeasurements(
           form.category,
           form.measurements,
+          getEffectiveMeasurementGender(form.category, form.gender),
         );
         if (Object.keys(measurementValidationErrors).length > 0) {
           setMeasurementErrors(measurementValidationErrors);
@@ -1889,7 +1924,9 @@ const CreateListing = () => {
         errs.size = "Either measurements or size is required";
       }
 
-      if (!form.gender) errs.gender = "Select gender";
+      if (!isFemaleDefaultCategory(form.category) && !form.gender) {
+        errs.gender = "Select gender";
+      }
       if (!form.condition) errs.condition = "Select condition";
       if (!form.material) errs.material = "Select material";
       if (form.material === "Other" && !form.customMaterial.trim())
@@ -1993,7 +2030,7 @@ const CreateListing = () => {
       setIfPresent("size", form.size);
     }
 
-    setIfPresent("gender", form.gender);
+    setIfPresent("gender", getEffectiveMeasurementGender(form.category, form.gender));
     setIfPresent("condition", form.condition);
     setIfPresent("material", finalMaterial);
     setIfPresent("description", form.description.trim());

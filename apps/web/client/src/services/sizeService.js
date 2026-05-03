@@ -5,27 +5,19 @@
  */
 
 import {
-  CATEGORY_FAMILIES_UI,
   MEASUREMENT_FIELDS,
   classifyMeasurements,
   getFamilyRules,
-  FAMILY_WEIGHTINGS,
+  getMeasurementFieldsUI,
+  getCategoryFamily,
 } from '@listnrent/shared/measurements';
 
 /**
  * Calculate size from measurements
  * Returns { size, confidence, note }
  */
-export const calculateSizeFromMeasurements = (category, measurements) => {
-  // Get family
-  let family = null;
-  for (const fam of Object.values(CATEGORY_FAMILIES_UI)) {
-    if (fam.categories.includes(category)) {
-      family = fam;
-      break;
-    }
-  }
-  if (!family) family = CATEGORY_FAMILIES_UI['general-ethnic'];
+export const calculateSizeFromMeasurements = (category, measurements, gender) => {
+  const family = getCategoryFamily(category, gender);
 
   const familyRules = getFamilyRules(family.id);
 
@@ -33,8 +25,7 @@ export const calculateSizeFromMeasurements = (category, measurements) => {
     return { size: null, confidence: 0, note: 'Unable to calculate size' };
   }
 
-  const weightings = FAMILY_WEIGHTINGS[family.id] || FAMILY_WEIGHTINGS['general-ethnic'];
-  const result = classifyMeasurements(measurements, family.id, weightings);
+  const result = classifyMeasurements(measurements, family.id, family.weightings);
 
   return {
     size: result.size,
@@ -65,18 +56,20 @@ export const validateMeasurementValue = (key, value) => {
 /**
  * Validate all measurements for a category
  */
-export const validateAllMeasurements = (category, measurements) => {
-  const family = CATEGORY_FAMILIES_UI[
-    Object.keys(CATEGORY_FAMILIES_UI).find((id) =>
-      CATEGORY_FAMILIES_UI[id].categories.includes(category)
-    )
-  ] || CATEGORY_FAMILIES_UI['general-ethnic'];
-
+export const validateAllMeasurements = (category, measurements, gender) => {
   const errors = {};
-  const allFields = [...family.fields, ...(family.extraFields || [])];
+  const { baseFields, extraFields } = getMeasurementFieldsUI(category, gender);
+  const allFields = [
+    ...baseFields.map((field) => field.key),
+    ...extraFields.map((field) => field.key),
+  ];
 
   for (const fieldKey of allFields) {
     const value = measurements[fieldKey];
+    if (!value) {
+      errors[fieldKey] = 'Required';
+      continue;
+    }
     const error = validateMeasurementValue(fieldKey, value);
     if (error) {
       errors[fieldKey] = error;
@@ -98,15 +91,12 @@ export const formatMeasurement = (key, value) => {
 /**
  * Check if enough measurements are provided for size calculation
  */
-export const hasEnoughMeasurementsForSize = (category, measurements) => {
-  const family = CATEGORY_FAMILIES_UI[
-    Object.keys(CATEGORY_FAMILIES_UI).find((id) =>
-      CATEGORY_FAMILIES_UI[id].categories.includes(category)
-    )
-  ] || CATEGORY_FAMILIES_UI['general-ethnic'];
-
-  // Need at least 50% of base fields to calculate a size
-  const requiredFields = family.fields;
+export const hasEnoughMeasurementsForSize = (category, measurements, gender) => {
+  const { baseFields, extraFields } = getMeasurementFieldsUI(category, gender);
+  const requiredFields = [
+    ...baseFields.map((field) => field.key),
+    ...extraFields.map((field) => field.key),
+  ];
   const providedCount = requiredFields.filter((key) => measurements[key]).length;
-  return providedCount >= Math.ceil(requiredFields.length * 0.5);
+  return providedCount === requiredFields.length;
 };
