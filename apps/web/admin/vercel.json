@@ -1,4 +1,6 @@
 {
+  "buildCommand": "node apps/web/admin/scripts/patch-rollup-native.mjs && npm run build:admin",
+  "installCommand": "npm install",
   "rewrites": [
     {
       "source": "/(.*)",
