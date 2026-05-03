@@ -7,7 +7,7 @@
 export const BASE_MEASUREMENTS = {
   chest: {
     key: 'chest',
-    label: 'Chest (Bust)',
+    label: 'Chest',
     description: 'Measure around the fullest part of the chest',
     unit: 'cm',
     required: true,

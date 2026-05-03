@@ -737,6 +737,65 @@ function DetailsChipSelect({ name, options, value, onChange, error }) {
   );
 }
 
+function DetailPromptCard({
+  number,
+  eyebrow,
+  title,
+  description,
+  active,
+  complete,
+  children,
+}) {
+  return (
+    <motion.section
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+      className={`relative overflow-hidden rounded-2xl border p-4 transition-colors md:p-5 ${
+        active
+          ? "border-[#D4AF37] bg-[#FFFCF6] shadow-[0_12px_34px_rgba(212,175,55,0.12)]"
+          : complete
+            ? "border-[#DDE9E3] bg-[#F8FBF8]"
+            : "border-[#E8E0D5] bg-white"
+      }`}
+    >
+      <div className="flex gap-4">
+        <div
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-black ${
+            complete
+              ? "bg-[#00342B] text-white"
+              : active
+                ? "bg-[#D4AF37] text-[#1A1A1A]"
+                : "bg-[#F3EDE4] text-[#8B806F]"
+          }`}
+        >
+          {complete ? "✓" : number}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#9A8A72]">
+            {eyebrow}
+          </p>
+          <h3
+            className="mt-1 text-lg font-black leading-tight text-[#1A1A1A]"
+            style={{ fontFamily: "'Georgia', serif" }}
+          >
+            {title}
+          </h3>
+          {description && (
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-[#7A756D]">
+              {description}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-5 md:pl-13">{children}</div>
+    </motion.section>
+  );
+}
+
+
 function CategoryVideoCard({ category, loading, video, error }) {
   const hasCategory = Boolean(category);
 
@@ -812,6 +871,68 @@ function CategoryVideoCard({ category, loading, video, error }) {
   );
 }
 
+const getDetailsFlowState = (form, isLocationVerified) => {
+  const hasMaterial =
+    form.material && (form.material !== "Other" || form.customMaterial?.trim());
+  const hasMeasurements =
+    form.category &&
+    hasEnoughMeasurementsForSize(form.category, form.measurements);
+  const remainingComplete =
+    form.occasion &&
+    form.condition &&
+    form.description.trim() &&
+    form.area.trim() &&
+    isLocationVerified;
+  const flowSteps = [
+    { key: "category", label: "Category", complete: Boolean(form.category) },
+    { key: "gender", label: "Gender", complete: Boolean(form.gender) },
+    { key: "title", label: "Title", complete: Boolean(form.title.trim()) },
+    { key: "material", label: "Material", complete: Boolean(hasMaterial) },
+    {
+      key: "measurements",
+      label: "Measurements",
+      complete: Boolean(hasMeasurements),
+    },
+    { key: "remaining", label: "Finish", complete: Boolean(remainingComplete) },
+  ];
+  const firstIncompleteIndex = flowSteps.findIndex((step) => !step.complete);
+
+  return { flowSteps, firstIncompleteIndex };
+};
+
+function DetailsFlowControls({
+  currentIndex,
+  totalSteps,
+  canContinue,
+  onPrevious,
+  onNext,
+}) {
+  const isLastStep = currentIndex >= totalSteps - 1;
+
+  return (
+    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8E0D5] pt-4">
+      <button
+        type="button"
+        onClick={onPrevious}
+        disabled={currentIndex === 0}
+        className="rounded-xl border border-[#E8E0D5] bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[#666] transition-all hover:border-[#D4AF37] hover:text-[#1A1A1A] disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Back
+      </button>
+      {!isLastStep && (
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={!canContinue}
+          className="rounded-xl bg-[#00342B] px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white shadow-[0_8px_20px_rgba(0,52,43,0.18)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          Continue
+        </button>
+      )}
+    </div>
+  );
+}
+
 function DetailsStep({
   form,
   onChange,
@@ -823,9 +944,32 @@ function DetailsStep({
   calculatedSize,
   handleMeasurementChange,
   handleMeasurementNotesChange,
+  currentFlowIndex,
+  onFlowStepChange,
 }) {
   const inputCls = (err) =>
     `w-full px-4 py-3 text-sm bg-white border rounded-xl focus:outline-none placeholder:text-[#CCC] text-[#1A1A1A] transition-all ${err ? "border-[#C8622A] focus:border-[#C8622A] focus:ring-1 focus:ring-[rgba(200,98,42,0.2)]" : "border-[#E8E0D5] focus:border-[#D4AF37] focus:ring-1 focus:ring-[rgba(212,175,55,0.15)]"}`;
+  const { flowSteps } = getDetailsFlowState(
+    form,
+    isLocationVerified,
+  );
+  const isCurrent = (index) => index === currentFlowIndex;
+  const activeStepComplete = Boolean(flowSteps[currentFlowIndex]?.complete);
+  const goPrevious = () => onFlowStepChange(Math.max(0, currentFlowIndex - 1));
+  const goNext = () => {
+    if (!activeStepComplete) return;
+    onFlowStepChange(Math.min(flowSteps.length - 1, currentFlowIndex + 1));
+  };
+
+  const renderFlowControls = () => (
+    <DetailsFlowControls
+      currentIndex={currentFlowIndex}
+      totalSteps={flowSteps.length}
+      canContinue={activeStepComplete}
+      onPrevious={goPrevious}
+      onNext={goNext}
+    />
+  );
 
   return (
     <div className="space-y-8">
@@ -850,224 +994,355 @@ function DetailsStep({
           animate={{ scaleX: 1 }}
           transition={{ delay: 0.2, duration: 0.6 }}
         />
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-[#777]">
+          A gentle step at a time: category, gender, title, material,
+          measurements, then the last listing details.
+        </p>
       </div>
 
-      {/* Title */}
-      <DetailsField label="Outfit Name" error={errors.title} required>
-        <input
-          name="title"
-          value={form.title}
-          onChange={onChange}
-          placeholder="e.g. Vintage Emerald Banarasi Lehenga with Zari Work"
-          className={inputCls(errors.title)}
-        />
-      </DetailsField>
-
-      {/* Category + Occasion */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <DetailsField label="Category" error={errors.category} required>
-          <DetailsChipSelect
-            name="category"
-            options={CATEGORY_OPTIONS}
-            value={form.category}
-            onChange={onChange}
-            error={errors.category}
-          />
-        </DetailsField>
-        <DetailsField
-          label="Best For (Occasion)"
-          error={errors.occasion}
-          required
-        >
-          <DetailsChipSelect
-            name="occasion"
-            options={OCCASION_OPTIONS}
-            value={form.occasion}
-            onChange={onChange}
-            error={errors.occasion}
-          />
-        </DetailsField>
+      <div className="rounded-2xl border border-[#E8E0D5] bg-[#FBF9F5] p-3">
+        <div className="flex flex-wrap gap-2">
+          {flowSteps.map((step, index) => {
+            const canVisit = index === currentFlowIndex || step.complete;
+            return (
+            <button
+              type="button"
+              key={step.key}
+              onClick={() => canVisit && onFlowStepChange(index)}
+              disabled={!canVisit}
+              className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] ${
+                index === currentFlowIndex
+                  ? "border-[#D4AF37] bg-white text-[#1A1A1A]"
+                  : step.complete
+                    ? "border-[#DDE9E3] bg-[#EEF7F1] text-[#00342B]"
+                    : "border-[#E8E0D5] bg-white/60 text-[#A9A196]"
+              } ${canVisit ? "cursor-pointer hover:border-[#D4AF37]" : "cursor-not-allowed"}`}
+            >
+              <span>{index + 1}</span>
+              <span>{step.label}</span>
+            </button>
+          )})}
+        </div>
       </div>
 
-      {/* Measurements Section */}
-      {form.category &&
-        (() => {
-          const { baseFields, extraFields } = getMeasurementFieldsUI(
-            form.category,
-          );
-          return (
-            <div className="space-y-4">
-              <MeasurementGroup
-                title="📏 Base Measurements (cm)"
-                fields={baseFields}
-                measurements={form.measurements}
-                errors={measurementErrors}
-                onChange={handleMeasurementChange}
-              />
-
-              {extraFields.length > 0 && (
-                <MeasurementGroup
-                  title="Additional Details"
-                  fields={extraFields}
-                  measurements={form.measurements}
-                  errors={measurementErrors}
-                  onChange={handleMeasurementChange}
-                />
-              )}
-
-              {/* Size Preview */}
-              {calculatedSize && (
-                <SizePreview
-                  size={calculatedSize.size}
-                  confidence={calculatedSize.confidence}
-                  isBetween={calculatedSize.isBetween}
-                  note={calculatedSize.note}
-                />
-              )}
-
-              {/* Fit Notes */}
-              <DetailsField label="Fit Notes" error={errors.measurementNotes}>
-                <textarea
-                  name="measurementNotes"
-                  value={form.measurementNotes}
-                  onChange={handleMeasurementNotesChange}
-                  placeholder="e.g., Runs slightly large in chest"
-                  className={`w-full px-4 py-3 text-sm bg-white border rounded-xl focus:outline-none placeholder:text-[#CCC] text-[#1A1A1A] transition-all resize-none leading-relaxed ${
-                    errors.measurementNotes
-                      ? "border-[#C8622A] focus:border-[#C8622A]"
-                      : "border-[#E8E0D5] focus:border-[#D4AF37]"
-                  }`}
-                  rows={2}
+      <div className="space-y-4">
+        <AnimatePresence initial={false}>
+          {isCurrent(0) && (
+            <DetailPromptCard
+              key="category"
+              number="1"
+              eyebrow="Start simple"
+              title="Choose the category"
+              description="This decides the right measurement guide and keeps the next steps focused."
+              active
+              complete={flowSteps[0].complete}
+            >
+              <DetailsField label="Category" error={errors.category} required>
+                <DetailsChipSelect
+                  name="category"
+                  options={CATEGORY_OPTIONS}
+                  value={form.category}
+                  onChange={onChange}
+                  error={errors.category}
                 />
               </DetailsField>
+              {renderFlowControls()}
+            </DetailPromptCard>
+          )}
 
-              {/* Help Card */}
-              <MeasurementHelp category={form.category} />
-            </div>
-          );
-        })()}
+          {isCurrent(1) && (
+            <DetailPromptCard
+              key="gender"
+              number="2"
+              eyebrow="Who it suits"
+              title="Select gender"
+              description="One clear choice is enough here."
+              active
+              complete={flowSteps[1].complete}
+            >
+              <DetailsField label="Gender" error={errors.gender} required>
+                <DetailsChipSelect
+                  name="gender"
+                  options={GENDER_OPTIONS}
+                  value={form.gender}
+                  onChange={onChange}
+                  error={errors.gender}
+                />
+              </DetailsField>
+              {renderFlowControls()}
+            </DetailPromptCard>
+          )}
 
-      {/* Gender + Condition */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <DetailsField label="Gender" error={errors.gender} required>
-          <DetailsChipSelect
-            name="gender"
-            options={GENDER_OPTIONS}
-            value={form.gender}
-            onChange={onChange}
-            error={errors.gender}
-          />
-        </DetailsField>
-        <DetailsField label="Condition" error={errors.condition} required>
-          <DetailsChipSelect
-            name="condition"
-            options={CONDITION_OPTIONS}
-            value={form.condition}
-            onChange={onChange}
-            error={errors.condition}
-          />
-        </DetailsField>
+          {isCurrent(2) && (
+            <DetailPromptCard
+              key="title"
+              number="3"
+              eyebrow="Name it"
+              title="Add a short title"
+              description="A simple, descriptive name works best."
+              active
+              complete={flowSteps[2].complete}
+            >
+              <DetailsField label="Outfit Name" error={errors.title} required>
+                <input
+                  name="title"
+                  value={form.title}
+                  onChange={onChange}
+                  placeholder="e.g. Vintage Emerald Banarasi Lehenga"
+                  className={inputCls(errors.title)}
+                />
+              </DetailsField>
+              {renderFlowControls()}
+            </DetailPromptCard>
+          )}
+
+          {isCurrent(3) && (
+            <DetailPromptCard
+              key="material"
+              number="4"
+              eyebrow="Feel and fabric"
+              title="Pick the material"
+              description="Choose the closest match, or add your own."
+              active
+              complete={flowSteps[3].complete}
+            >
+              <DetailsField
+                label="Material / Fabric"
+                error={errors.material}
+                required
+              >
+                <div className="flex flex-wrap gap-2">
+                  {MATERIAL_OPTIONS.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() =>
+                        onChange({
+                          target: {
+                            name: "material",
+                            value: form.material === m ? "" : m,
+                          },
+                        })
+                      }
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition-all ${form.material === m ? "bg-[#1A1A1A] text-white border-[#1A1A1A]" : "bg-white text-[#666] border-[#E8E0D5] hover:border-[#D4AF37]"}`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                {form.material === "Other" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="mt-3"
+                  >
+                    <input
+                      name="customMaterial"
+                      value={form.customMaterial || ""}
+                      onChange={onChange}
+                      placeholder="e.g. Handloom Kantha"
+                      className={inputCls(errors.customMaterial)}
+                    />
+                    {errors.customMaterial && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-xs text-[#C8622A] mt-1.5 font-medium"
+                      >
+                        {errors.customMaterial}
+                      </motion.p>
+                    )}
+                  </motion.div>
+                )}
+              </DetailsField>
+              {renderFlowControls()}
+            </DetailPromptCard>
+          )}
+
+          {isCurrent(4) &&
+            form.category &&
+            (() => {
+              const { baseFields, extraFields } = getMeasurementFieldsUI(
+                form.category,
+              );
+              return (
+                <DetailPromptCard
+                  key="measurements"
+                  number="5"
+                  eyebrow="Fit check"
+                  title="Add measurements"
+                  description="Fill the key centimeter values first. The size preview appears automatically."
+                  active
+                  complete={flowSteps[4].complete}
+                >
+                  <div className="space-y-4">
+                    <MeasurementGroup
+                      title="Base Measurements (cm)"
+                      fields={baseFields}
+                      measurements={form.measurements}
+                      errors={measurementErrors}
+                      onChange={handleMeasurementChange}
+                    />
+
+                    {extraFields.length > 0 && (
+                      <MeasurementGroup
+                        title="Additional Details"
+                        fields={extraFields}
+                        measurements={form.measurements}
+                        errors={measurementErrors}
+                        onChange={handleMeasurementChange}
+                      />
+                    )}
+
+                    {calculatedSize && (
+                      <SizePreview
+                        size={calculatedSize.size}
+                        confidence={calculatedSize.confidence}
+                        isBetween={calculatedSize.isBetween}
+                        note={calculatedSize.note}
+                      />
+                    )}
+
+                    <DetailsField
+                      label="Fit Notes"
+                      error={errors.measurementNotes}
+                    >
+                      <textarea
+                        name="measurementNotes"
+                        value={form.measurementNotes}
+                        onChange={handleMeasurementNotesChange}
+                        placeholder="e.g., Runs slightly large in chest"
+                        className={`w-full px-4 py-3 text-sm bg-white border rounded-xl focus:outline-none placeholder:text-[#CCC] text-[#1A1A1A] transition-all resize-none leading-relaxed ${
+                          errors.measurementNotes
+                            ? "border-[#C8622A] focus:border-[#C8622A]"
+                            : "border-[#E8E0D5] focus:border-[#D4AF37]"
+                        }`}
+                        rows={2}
+                      />
+                    </DetailsField>
+
+                    <MeasurementHelp category={form.category} />
+                    {renderFlowControls()}
+                  </div>
+                </DetailPromptCard>
+              );
+            })()}
+
+          {isCurrent(5) && (
+            <DetailPromptCard
+              key="remaining"
+              number="6"
+              eyebrow="Last details"
+              title="Finish the listing details"
+              description="Add where it shines, its condition, a short description, and your serviceable location."
+              active
+              complete={flowSteps[5].complete}
+            >
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <DetailsField
+                    label="Best For (Occasion)"
+                    error={errors.occasion}
+                    required
+                  >
+                    <DetailsChipSelect
+                      name="occasion"
+                      options={OCCASION_OPTIONS}
+                      value={form.occasion}
+                      onChange={onChange}
+                      error={errors.occasion}
+                    />
+                  </DetailsField>
+                  <DetailsField
+                    label="Condition"
+                    error={errors.condition}
+                    required
+                  >
+                    <DetailsChipSelect
+                      name="condition"
+                      options={CONDITION_OPTIONS}
+                      value={form.condition}
+                      onChange={onChange}
+                      error={errors.condition}
+                    />
+                  </DetailsField>
+                </div>
+
+                <DetailsField
+                  label="Description"
+                  error={errors.description}
+                  required
+                >
+                  <textarea
+                    name="description"
+                    value={form.description}
+                    onChange={onChange}
+                    rows={5}
+                    placeholder="Share the fabric texture, embroidery, occasions it suits, and what's included."
+                    className={`${inputCls(errors.description)} resize-none leading-relaxed`}
+                  />
+                  <div className="flex justify-between mt-1.5">
+                    <span className="text-xs text-[#CCC]">
+                      Help renters fall in love with it
+                    </span>
+                    <span className="text-xs text-[#CCC] tabular-nums">
+                      {form.description.length}/500
+                    </span>
+                  </div>
+                </DetailsField>
+
+                <DetailsField
+                  label="Your Area / Locality"
+                  error={errors.area}
+                  required
+                >
+                  <div className="space-y-2">
+                    <input
+                      name="area"
+                      value={form.area}
+                      onChange={onChange}
+                      placeholder="e.g. Andheri West, Bandra, Juhu"
+                      className={inputCls(errors.area)}
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={onUseCurrentLocation}
+                        disabled={locationLoading}
+                        className="px-3 py-1.5 rounded-lg border border-[#E8E0D5] bg-white text-xs font-bold tracking-wide text-[#00342B] hover:border-[#D4AF37] disabled:opacity-60"
+                      >
+                        {locationLoading
+                          ? "Checking location..."
+                          : "Use current location"}
+                      </button>
+                      {isLocationVerified && (
+                        <span className="text-[11px] font-semibold text-[#00342B]">
+                          Location verified: In service zone
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-[#AAA] mt-1.5">
+                    Only locations between Virar and Andheri are serviceable
+                    right now.
+                  </p>
+                </DetailsField>
+                {renderFlowControls()}
+              </div>
+            </DetailPromptCard>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Material */}
-      <DetailsField label="Material / Fabric" error={errors.material} required>
-        <div className="flex flex-wrap gap-2">
-          {MATERIAL_OPTIONS.map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() =>
-                onChange({
-                  target: {
-                    name: "material",
-                    value: form.material === m ? "" : m,
-                  },
-                })
-              }
-              className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition-all ${form.material === m ? "bg-[#1A1A1A] text-white border-[#1A1A1A]" : "bg-white text-[#666] border-[#E8E0D5] hover:border-[#D4AF37]"}`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-        {form.material === "Other" && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="mt-3"
-          >
-            <input
-              name="customMaterial"
-              value={form.customMaterial || ""}
-              onChange={onChange}
-              placeholder="e.g. Handloom Kantha"
-              className={inputCls(errors.customMaterial)}
-            />
-            {errors.customMaterial && (
-              <motion.p
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-xs text-[#C8622A] mt-1.5 font-medium"
-              >
-                {errors.customMaterial}
-              </motion.p>
-            )}
-          </motion.div>
-        )}
-      </DetailsField>
-
-      {/* Description */}
-      <DetailsField label="Description" error={errors.description} required>
-        <textarea
-          name="description"
-          value={form.description}
-          onChange={onChange}
-          rows={5}
-          placeholder="Share the story of this piece — fabric texture, embroidery, occasions it suits, what's included…"
-          className={`${inputCls(errors.description)} resize-none leading-relaxed`}
-        />
-        <div className="flex justify-between mt-1.5">
-          <span className="text-xs text-[#CCC]">
-            Help renters fall in love with it
-          </span>
-          <span className="text-xs text-[#CCC] tabular-nums">
-            {form.description.length}/500
-          </span>
-        </div>
-      </DetailsField>
-
-      {/* Location */}
-      <DetailsField label="Your Area / Locality" error={errors.area} required>
-        <div className="space-y-2">
-          <input
-            name="area"
-            value={form.area}
-            onChange={onChange}
-            placeholder="e.g. Andheri West, Bandra, Juhu"
-            className={inputCls(errors.area)}
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={onUseCurrentLocation}
-              disabled={locationLoading}
-              className="px-3 py-1.5 rounded-lg border border-[#E8E0D5] bg-white text-xs font-bold tracking-wide text-[#00342B] hover:border-[#D4AF37] disabled:opacity-60"
-            >
-              {locationLoading
-                ? "Checking location..."
-                : "Use current location"}
-            </button>
-            {isLocationVerified && (
-              <span className="text-[11px] font-semibold text-[#00342B]">
-                Location verified: In service zone
-              </span>
-            )}
-          </div>
-        </div>
-        <p className="text-xs text-[#AAA] mt-1.5">
-          Only locations between Virar and Andheri are serviceable right now.
-        </p>
-      </DetailsField>
+      {errors.size && (
+        <motion.p
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-[#F3C5B3] bg-[#FFF7F3] px-4 py-3 text-xs font-semibold text-[#C8622A]"
+        >
+          {errors.size}
+        </motion.p>
+      )}
     </div>
   );
 }
@@ -1406,6 +1681,7 @@ const CreateListing = () => {
   const [images, setImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [published, setPublished] = useState(false);
+  const [detailsFlowIndex, setDetailsFlowIndex] = useState(0);
   const [locationLoading, setLocationLoading] = useState(false);
   const [isLocationVerified, setIsLocationVerified] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -1433,6 +1709,15 @@ const CreateListing = () => {
   const [calculatedSize, setCalculatedSize] = useState(null);
   const [errors, setErrors] = useState({});
   const showSaveDraft = !(currentStep === 1 && images.length === 0);
+  const detailsFlowState = getDetailsFlowState(form, isLocationVerified);
+  const currentDetailsFlowIndex = Math.min(
+    detailsFlowIndex,
+    detailsFlowState.flowSteps.length - 1,
+  );
+  const isMeasurementDetailsStep =
+    currentStep === 2 &&
+    detailsFlowState.flowSteps[currentDetailsFlowIndex]?.key ===
+      "measurements";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -1462,6 +1747,13 @@ const CreateListing = () => {
   };
 
   useEffect(() => {
+    const firstIncompleteIndex = detailsFlowState.firstIncompleteIndex;
+    if (firstIncompleteIndex !== -1 && detailsFlowIndex > firstIncompleteIndex) {
+      setDetailsFlowIndex(firstIncompleteIndex);
+    }
+  }, [detailsFlowState.firstIncompleteIndex, detailsFlowIndex]);
+
+  useEffect(() => {
     if (
       form.category &&
       hasEnoughMeasurementsForSize(form.category, form.measurements)
@@ -1480,7 +1772,7 @@ const CreateListing = () => {
     let isActive = true;
 
     const loadCategoryVideo = async () => {
-      if (currentStep !== 2 || !form.category) {
+      if (!isMeasurementDetailsStep || !form.category) {
         setCategoryVideo(null);
         setCategoryVideoError("");
         setCategoryVideoLoading(false);
@@ -1510,7 +1802,7 @@ const CreateListing = () => {
     return () => {
       isActive = false;
     };
-  }, [currentStep, form.category]);
+  }, [isMeasurementDetailsStep, form.category]);
 
   const handleUseCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -1869,7 +2161,13 @@ const CreateListing = () => {
 
           {/* Step Content Card */}
           {currentStep === 2 ? (
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.85fr)] xl:items-start mb-6">
+            <div
+              className={`grid gap-6 xl:items-start mb-6 ${
+                isMeasurementDetailsStep
+                  ? "xl:grid-cols-[minmax(0,1.45fr)_minmax(360px,0.85fr)]"
+                  : "xl:grid-cols-1"
+              }`}
+            >
               <motion.div
                 key={`${currentStep}-details`}
                 initial={{ opacity: 0, x: 20, filter: "blur(4px)" }}
@@ -1889,28 +2187,34 @@ const CreateListing = () => {
                   calculatedSize={calculatedSize}
                   handleMeasurementChange={handleMeasurementChange}
                   handleMeasurementNotesChange={handleMeasurementNotesChange}
+                  currentFlowIndex={currentDetailsFlowIndex}
+                  onFlowStepChange={setDetailsFlowIndex}
                 />
               </motion.div>
 
-              <motion.div
-                key={`${currentStep}-video`}
-                initial={{ opacity: 0, x: 20, filter: "blur(4px)" }}
-                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{
-                  duration: 0.35,
-                  ease: [0.16, 1, 0.3, 1],
-                  delay: 0.05,
-                }}
-                className="w-full self-start"
-              >
-                <CategoryVideoCard
-                  category={form.category}
-                  loading={categoryVideoLoading}
-                  video={categoryVideo}
-                  error={categoryVideoError}
-                />
-              </motion.div>
+              <AnimatePresence>
+                {isMeasurementDetailsStep && (
+                  <motion.div
+                    key={`${currentStep}-video`}
+                    initial={{ opacity: 0, x: 20, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{
+                      duration: 0.35,
+                      ease: [0.16, 1, 0.3, 1],
+                      delay: 0.05,
+                    }}
+                    className="w-full self-start"
+                  >
+                    <CategoryVideoCard
+                      category={form.category}
+                      loading={categoryVideoLoading}
+                      video={categoryVideo}
+                      error={categoryVideoError}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ) : (
             <motion.div
