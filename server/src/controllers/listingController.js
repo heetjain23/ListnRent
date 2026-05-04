@@ -11,6 +11,7 @@ import {
 } from "../services/listingService.js";
 import { buildMeasurementPayload } from "../services/sizeClassificationService.js";
 import { successResponse, errorResponse } from "../utils/helper.js";
+import { SIZES } from "@listnrent/shared/constants";
 
 export const handleCreateListing = async (req, res) => {
   try {
@@ -48,8 +49,10 @@ export const handleCreateListing = async (req, res) => {
         }
 
         data.measurements = measurementResult.measurements;
-        // Set derived size from measurements
-        data.size = `${measurementResult.measurements.derivedSize}`;
+        // Map derived short size (e.g. 'M') to configured full size label (e.g. 'M(38)')
+        const derived = measurementResult.measurements.derivedSize;
+        const mapped = SIZES.find((s) => s.startsWith(derived)) || derived;
+        data.size = mapped;
       } else if (!data.size) {
         // Fallback: require either measurements or size for backward compatibility
         return errorResponse(res, "Either measurements or size is required", 400);

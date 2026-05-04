@@ -1,5 +1,6 @@
 import React from 'react'
 import { motion } from 'motion/react'
+import { getMeasurementFieldsForCategory } from '@listnrent/shared/measurements'
 
 // ─── Category Badge ────────────────────────────────────────────────────────────
 const CategoryBadge = ({ category = 'Category' }) => (
@@ -39,6 +40,200 @@ const AvailabilityBadge = ({ isActive }) => (
     {isActive ? 'Available' : 'Unavailable'}
   </motion.div>
 )
+
+const toPlainObject = (value) => {
+  if (!value) return {}
+  if (value instanceof Map) return Object.fromEntries(value)
+  return value
+}
+
+const getMeasurementValue = (measurementBuckets, key) => {
+  const { measurements, baseMeasurements, extraMeasurements } = measurementBuckets
+  if (baseMeasurements[key] !== undefined && baseMeasurements[key] !== null && baseMeasurements[key] !== '') {
+    return baseMeasurements[key]
+  }
+  if (extraMeasurements[key] !== undefined && extraMeasurements[key] !== null && extraMeasurements[key] !== '') {
+    return extraMeasurements[key]
+  }
+  if (measurements[key] !== undefined && measurements[key] !== null && measurements[key] !== '') {
+    return measurements[key]
+  }
+  return null
+}
+
+const formatMeasurementValue = (value) => {
+  if (value === null || value === undefined || value === '') return null
+  return `${value} cm`
+}
+
+const groupFieldsBySection = (fields) => {
+  const upperBody = fields.filter((field) => field.family?.includes('upper-body'))
+  const lowerBody = fields.filter((field) => field.family?.includes('lower-body'))
+  const otherFields = fields.filter(
+    (field) => !field.family?.includes('upper-body') && !field.family?.includes('lower-body'),
+  )
+
+  return [
+    { key: 'upper-body', label: 'Upper Body', fields: upperBody },
+    { key: 'lower-body', label: 'Lower Body', fields: lowerBody },
+    { key: 'additional', label: 'Additional', fields: otherFields },
+  ].filter((section) => section.fields.length > 0)
+}
+
+const MeasurementsSection = ({ listing }) => {
+  const measurements = listing.measurements || {}
+  const allMeasurements = toPlainObject(measurements.allMeasurements)
+  const baseMeasurements = toPlainObject(measurements.base)
+  const extraMeasurements = toPlainObject(measurements.extra)
+  const { baseFields, extraFields } = getMeasurementFieldsForCategory(listing.category, listing.gender)
+  const fitNotes = measurements.fitNotes || listing.measurementNotes || listing.fitNotes
+  const groupedBaseFields = groupFieldsBySection(baseFields)
+  const groupedExtraFields = groupFieldsBySection(extraFields)
+  const measurementBuckets = {
+    measurements: Object.keys(allMeasurements).length > 0 ? allMeasurements : toPlainObject(measurements),
+    baseMeasurements: Object.keys(baseMeasurements).length > 0 ? baseMeasurements : toPlainObject(measurements.base),
+    extraMeasurements: Object.keys(extraMeasurements).length > 0 ? extraMeasurements : toPlainObject(measurements.extra),
+  }
+
+  const rows = [
+    ...baseFields
+      .map((field) => ({ key: field.key, label: field.label, value: getMeasurementValue(measurementBuckets, field.key) }))
+      .filter((row) => row.value !== undefined && row.value !== null && row.value !== ''),
+    ...extraFields
+      .map((field) => ({ key: field.key, label: field.label, value: getMeasurementValue(measurementBuckets, field.key) }))
+      .filter((row) => row.value !== undefined && row.value !== null && row.value !== ''),
+  ]
+
+  if (!rows.length && !fitNotes && !measurements.derivedSize) return null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.18 }}
+      className="rounded-2xl overflow-hidden"
+      style={{
+        border: '1px solid rgba(0,77,64,0.12)',
+        background: 'linear-gradient(135deg, rgba(0,77,64,0.03) 0%, rgba(212,175,55,0.03) 100%)',
+      }}
+    >
+      <div
+        className="px-4 py-3 flex items-center gap-2"
+        style={{ borderBottom: '1px solid rgba(0,77,64,0.08)' }}
+      >
+        <div className="h-3 w-0.5 rounded-sm" style={{ background: 'linear-gradient(180deg, #D4AF37, #C8622A)' }} />
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em]" style={{ color: '#7D6B41' }}>
+          Outfit Measurements
+        </p>
+      </div>
+
+      <div className="p-4 space-y-4">
+        {measurements.derivedSize && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-extrabold uppercase tracking-[0.16em]" style={{ color: '#9E9E7A' }}>
+              Derived size
+            </span>
+            <span
+              className="px-2.5 py-1 rounded-full text-xs font-bold"
+              style={{
+                backgroundColor: 'rgba(0,77,64,0.08)',
+                color: '#004D40',
+                border: '1px solid rgba(0,77,64,0.14)',
+              }}
+            >
+              {measurements.derivedSize}
+            </span>
+            {typeof measurements.confidence === 'number' && (
+              <span className="text-xs" style={{ color: '#6A6A56' }}>
+                Confidence {Math.round(measurements.confidence * 100)}%
+              </span>
+            )}
+          </div>
+        )}
+
+        {groupedBaseFields.length > 0 && (
+          <div className="space-y-3">
+            {groupedBaseFields.map((section) => (
+              <div key={section.key} className="space-y-2">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.16em]" style={{ color: '#7D6B41' }}>
+                  {section.label}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {section.fields.map((field) => {
+                    const value = getMeasurementValue(measurementBuckets, field.key)
+                    if (value === undefined || value === null || value === '') return null
+
+                    return (
+                      <div
+                        key={field.key}
+                        className="rounded-xl px-3 py-2.5"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.78)', border: '1px solid rgba(0,77,64,0.08)' }}
+                      >
+                        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em]" style={{ color: '#9E9E7A' }}>
+                          {field.label}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold" style={{ color: '#1A1A14' }}>
+                          {formatMeasurementValue(value)}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {groupedExtraFields.length > 0 && (
+          <div className="space-y-3">
+            {groupedExtraFields.map((section) => (
+              <div key={section.key} className="space-y-2">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.16em]" style={{ color: '#7D6B41' }}>
+                  {section.label}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {section.fields.map((field) => {
+                    const value = getMeasurementValue(measurementBuckets, field.key)
+                    if (value === undefined || value === null || value === '') return null
+
+                    return (
+                      <div
+                        key={field.key}
+                        className="rounded-xl px-3 py-2.5"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.78)', border: '1px solid rgba(0,77,64,0.08)' }}
+                      >
+                        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em]" style={{ color: '#9E9E7A' }}>
+                          {field.label}
+                        </p>
+                        <p className="mt-1 text-sm font-semibold" style={{ color: '#1A1A14' }}>
+                          {formatMeasurementValue(value)}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {fitNotes && (
+          <div
+            className="rounded-xl px-3 py-3"
+            style={{ backgroundColor: 'rgba(0,77,64,0.05)', border: '1px solid rgba(0,77,64,0.08)' }}
+          >
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em]" style={{ color: '#9E9E7A' }}>
+              Fit notes
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap wrap-break-word" style={{ color: '#4D4B3E' }}>
+              {fitNotes}
+            </p>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  )
+}
 
 const ListingDetailsSection = ({ listing }) => {
   return (
@@ -80,6 +275,8 @@ const ListingDetailsSection = ({ listing }) => {
       >
         {listing.description}
       </motion.p>
+
+      <MeasurementsSection listing={listing} />
 
       {/* Location pill */}
       {listing.location && (

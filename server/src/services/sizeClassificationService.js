@@ -140,6 +140,7 @@ export const buildMeasurementPayload = (
   return {
     valid: true,
     measurements: {
+      allMeasurements: measurements,
       base,
       extra,
       derivedSize: sizeData.size,

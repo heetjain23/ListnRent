@@ -32,6 +32,11 @@ const listingSchema = new mongoose.Schema(
       enum: ['XS(34)','S(36)','M(38)','L(40)','XL(42)','XXL(44)','3XL(46)','4XL(48)','5XL(50)'],
     },
     measurements: {
+      allMeasurements: {
+        type: Map,
+        of: Number,
+        default: null,
+      },
       base: {
         type: Map,
         of: Number,

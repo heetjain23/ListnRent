@@ -2,9 +2,11 @@ import Listing from "../models/Listing.js";
 import User from "../models/User.js";
 import Booking from "../models/Booking.js";
 import admin from "../config/firebase-admin.js";
+import { buildMeasurementPayload } from "./sizeClassificationService.js";
+import { SIZES } from "@listnrent/shared/constants";
 
 const toPlainListing = (listing) =>
-  listing?.toObject ? listing.toObject() : listing;
+  listing?.toObject ? listing.toObject({ flattenMaps: true }) : listing;
 
 const displayNameFromEmail = (email) => {
   if (!email) return "User";
@@ -176,6 +178,24 @@ export const updateListing = async (id, userId, data) => {
 
   if (listing.userId !== userId) {
     throw new Error("Unauthorized: You can only update your own listings");
+  }
+
+  if (data.measurements) {
+    const measurementResult = buildMeasurementPayload(
+      data.category || listing.category,
+      data.measurements,
+      data.measurementNotes,
+      data.gender || listing.gender,
+    );
+
+    if (!measurementResult.valid) {
+      throw new Error("Invalid measurements");
+    }
+
+    data.measurements = measurementResult.measurements;
+    // Map derived short size (e.g. 'M') to configured full size label (e.g. 'M(38)')
+    const derived = measurementResult.measurements.derivedSize;
+    data.size = SIZES.find((s) => s.startsWith(derived)) || derived;
   }
 
   // Fields that can be updated

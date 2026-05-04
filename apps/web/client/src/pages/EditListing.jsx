@@ -5,6 +5,21 @@ import { toast } from 'sonner'
 import { useAuth } from '../hooks/useAuth'
 import Loading from '../components/ui/Loading'
 import { CATEGORIES, OCCASIONS, GENDER, SIZES, CONDITIONS, MATERIALS } from '@listnrent/shared/constants'
+import {
+  MeasurementGroup,
+  MeasurementHelp,
+  SizePreview,
+} from '../components/measurements/MeasurementInputs'
+import {
+  getEffectiveMeasurementGender,
+  getMeasurementFieldsUI,
+  isFemaleDefaultCategory,
+} from '@listnrent/shared/measurements'
+import {
+  calculateSizeFromMeasurements,
+  hasEnoughMeasurementsForSize,
+  validateAllMeasurements,
+} from '../services/sizeService'
 import { listingsApi } from '../services/api'
 import { uploadMultipleImages } from '../services/cloudinary'
 import { useSEO } from '../hooks/useSEO'
@@ -19,6 +34,44 @@ const SIZE_OPTIONS = normalizeOptions(SIZES)
 const GENDER_OPTIONS = normalizeOptions(GENDER)
 const CONDITION_OPTIONS = normalizeOptions(CONDITIONS)
 const MATERIAL_OPTIONS = [...normalizeOptions(MATERIALS), 'Other']
+
+const SERVICE_AREA_BOUNDS = {
+  // Operational corridor: Virar (north) to Andheri (south)
+  northLat: 19.5,
+  southLat: 19.1,
+  westLng: 72.78,
+  eastLng: 72.91,
+}
+
+const isWithinServiceArea = (lat, lng) => (
+  lat >= SERVICE_AREA_BOUNDS.southLat
+  && lat <= SERVICE_AREA_BOUNDS.northLat
+  && lng >= SERVICE_AREA_BOUNDS.westLng
+  && lng <= SERVICE_AREA_BOUNDS.eastLng
+)
+
+const getLocationLabel = async (lat, lng) => {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=13&addressdetails=1`,
+    )
+    if (!response.ok) throw new Error('Reverse geocoding failed')
+
+    const data = await response.json()
+    const addr = data?.address || {}
+    return (
+      addr.suburb
+      || addr.neighbourhood
+      || addr.city_district
+      || addr.city
+      || addr.town
+      || data?.display_name
+      || ''
+    )
+  } catch {
+    return ''
+  }
+}
 
 // ─── Step config ──────────────────────────────────────────────────────────────
 
@@ -210,6 +263,113 @@ const inputCls = (err) =>
       : 'border-[#E8E0D5] focus:border-[#D4AF37] focus:ring-1 focus:ring-[rgba(212,175,55,0.15)]'
   }`
 
+const toPlainObject = (value) => {
+  if (!value) return {}
+  if (value instanceof Map) return Object.fromEntries(value)
+  return value
+}
+
+const flattenMeasurements = (measurements) => {
+  const flat = {}
+  if (!measurements) return flat
+
+  const raw = toPlainObject(measurements)
+  const allMeasurements = toPlainObject(measurements.allMeasurements)
+  const base = toPlainObject(measurements.base)
+  const extra = toPlainObject(measurements.extra)
+  const reservedKeys = new Set([
+    'allMeasurements',
+    'base',
+    'extra',
+    'derivedSize',
+    'confidence',
+    'isBetween',
+    'ruleSetVersion',
+    'fitNotes',
+    'classification',
+  ])
+
+  Object.entries(allMeasurements).forEach(([key, value]) => {
+    flat[key] = value
+  })
+
+  Object.entries(base).forEach(([key, value]) => {
+    flat[key] = value
+  })
+
+  Object.entries(extra).forEach(([key, value]) => {
+    flat[key] = value
+  })
+
+  Object.entries(raw).forEach(([key, value]) => {
+    if (!reservedKeys.has(key) && flat[key] === undefined) {
+      flat[key] = value
+    }
+  })
+
+  return flat
+}
+
+const hasMeasurementValues = (measurements = {}) => (
+  Object.values(measurements).some((value) => value !== null && value !== undefined && value !== '')
+)
+
+// Details flow helpers (adapted from CreateListing)
+const getDetailsFlowState = (form, isLocationVerified = true) => {
+  const hasMaterial = form.material && (form.material !== 'Other' || form.customMaterial?.trim())
+  const effectiveGender = getEffectiveMeasurementGender(form.category, form.gender)
+  const hasMeasurements = form.category && hasEnoughMeasurementsForSize(form.category, form.measurements, effectiveGender)
+  const remainingComplete = form.occasion && form.condition && form.description.trim() && form.area.trim() && isLocationVerified
+  const flowSteps = [
+    { key: 'category', label: 'Category', complete: Boolean(form.category) },
+    { key: 'gender', label: 'Gender', complete: isFemaleDefaultCategory(form.category) || Boolean(form.gender), hidden: isFemaleDefaultCategory(form.category) },
+    { key: 'title', label: 'Title', complete: Boolean(form.title.trim()) },
+    { key: 'material', label: 'Material', complete: Boolean(hasMaterial) },
+    { key: 'measurements', label: 'Measurements', complete: Boolean(hasMeasurements) },
+    { key: 'remaining', label: 'Finish', complete: Boolean(remainingComplete) },
+  ]
+  const visibleFlowSteps = flowSteps.filter((step) => !step.hidden)
+  const firstIncompleteIndex = visibleFlowSteps.findIndex((step) => !step.complete)
+  return { flowSteps: visibleFlowSteps, firstIncompleteIndex }
+}
+
+function DetailsFlowControls({ currentIndex, totalSteps, canContinue, onPrevious, onNext }) {
+  const isLastStep = currentIndex >= totalSteps - 1
+  return (
+    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8E0D5] pt-4">
+      <button type="button" onClick={onPrevious} disabled={currentIndex === 0}
+        className="rounded-xl border border-[#E8E0D5] bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[#666] transition-all hover:border-[#D4AF37] hover:text-[#1A1A1A] disabled:cursor-not-allowed disabled:opacity-40">
+        Back
+      </button>
+      {!isLastStep && (
+        <button type="button" onClick={onNext} disabled={!canContinue}
+          className="rounded-xl bg-[#00342B] px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white shadow-[0_8px_20px_rgba(0,52,43,0.18)] transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45">
+          Continue
+        </button>
+      )}
+    </div>
+  )
+}
+
+function DetailPromptCard({ number, eyebrow, title, description, active, complete, children }) {
+  return (
+    <motion.section layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
+      className={`relative overflow-hidden rounded-2xl border p-4 transition-colors md:p-5 ${active ? 'border-[#D4AF37] bg-[#FFFCF6] shadow-[0_12px_34px_rgba(212,175,55,0.12)]' : complete ? 'border-[#DDE9E3] bg-[#F8FBF8]' : 'border-[#E8E0D5] bg-white'}`}>
+      <div className="flex gap-4">
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-black ${complete ? 'bg-[#00342B] text-white' : active ? 'bg-[#D4AF37] text-[#1A1A1A]' : 'bg-[#F3EDE4] text-[#8B806F]'}`}>
+          {complete ? '✓' : number}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#9A8A72]">{eyebrow}</p>
+          <h3 className="mt-1 text-lg font-black leading-tight text-[#1A1A1A]" style={{ fontFamily: "'Georgia', serif" }}>{title}</h3>
+          {description && <p className="mt-1 max-w-2xl text-sm leading-6 text-[#7A756D]">{description}</p>}
+        </div>
+      </div>
+      <div className="mt-5 md:pl-13">{children}</div>
+    </motion.section>
+  )
+}
+
 // ─── Step 1: Photos ───────────────────────────────────────────────────────────
 
 const PHOTO_SLOTS = [
@@ -383,86 +543,202 @@ function PhotosStep({ existingImages, newImageFiles, onAddFiles, onRemoveExistin
 
 // ─── Step 2: Details ──────────────────────────────────────────────────────────
 
-function DetailsStep({ form, onChange, errors }) {
+function DetailsStep({
+  form,
+  onChange,
+  errors,
+  measurementErrors,
+  onMeasurementChange,
+  onMeasurementNotesChange,
+  calculatedSize,
+  onUseCurrentLocation,
+  locationLoading,
+  isLocationVerified,
+  currentFlowIndex,
+  onFlowStepChange,
+}) {
+  const { flowSteps } = getDetailsFlowState(form, isLocationVerified)
+  const currentFlowKey = flowSteps[currentFlowIndex]?.key
+  const isCurrent = (key) => key === currentFlowKey
+  const activeStepComplete = Boolean(flowSteps[currentFlowIndex]?.complete)
+
+  const goPrevious = () => onFlowStepChange(Math.max(0, currentFlowIndex - 1))
+  const goNext = () => onFlowStepChange(Math.min(flowSteps.length - 1, currentFlowIndex + 1))
+
+  const renderFlowControls = () => (
+    <DetailsFlowControls
+      currentIndex={currentFlowIndex}
+      totalSteps={flowSteps.length}
+      canContinue={activeStepComplete}
+      onPrevious={goPrevious}
+      onNext={goNext}
+    />
+  )
+
+  const effectiveGender = getEffectiveMeasurementGender(form.category, form.gender)
+  const { groups, extraFields } = getMeasurementFieldsUI(form.category, effectiveGender)
+
   return (
     <div className="space-y-8">
       <div>
         <StepEyebrow step={2} tag="Tell Its Story" />
         <StepHeading>The Details</StepHeading>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-[#777]">A gentle step at a time: category, gender, title, material, measurements, then the last listing details.</p>
       </div>
 
-      <Field label="Outfit Name" error={errors.title} required>
-        <input name="title" value={form.title} onChange={onChange}
-          placeholder="e.g. Vintage Emerald Banarasi Lehenga with Zari Work"
-          className={inputCls(errors.title)} />
-      </Field>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Field label="Category" error={errors.category} required>
-          <ChipSelect name="category" options={CATEGORY_OPTIONS} value={form.category} onChange={onChange} error={errors.category} />
-        </Field>
-        <Field label="Best For (Occasion)" error={errors.occasion} required>
-          <ChipSelect name="occasion" options={OCCASION_OPTIONS} value={form.occasion} onChange={onChange} error={errors.occasion} />
-        </Field>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Field label="Size" error={errors.size} required>
-          <ChipSelect name="size" options={SIZE_OPTIONS} value={form.size} onChange={onChange} error={errors.size} />
-        </Field>
-        <Field label="Gender" error={errors.gender} required>
-          <ChipSelect name="gender" options={GENDER_OPTIONS} value={form.gender} onChange={onChange} error={errors.gender} />
-        </Field>
-        <Field label="Condition" error={errors.condition} required>
-          <ChipSelect name="condition" options={CONDITION_OPTIONS} value={form.condition} onChange={onChange} error={errors.condition} />
-        </Field>
-      </div>
-
-      <Field label="Material / Fabric" error={errors.material} required>
+      <div className="rounded-2xl border border-[#E8E0D5] bg-[#FBF9F5] p-3">
         <div className="flex flex-wrap gap-2">
-          {MATERIAL_OPTIONS.map((m) => (
-            <button key={m} type="button"
-              onClick={() => onChange({ target: { name: 'material', value: form.material === m ? '' : m } })}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition-all ${
-                form.material === m
-                  ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
-                  : 'bg-white text-[#666] border-[#E8E0D5] hover:border-[#D4AF37]'
-              }`}
-            >{m}</button>
-          ))}
+          {flowSteps.map((step, index) => {
+            const canVisit = index === currentFlowIndex || step.complete
+            return (
+              <button
+                type="button"
+                key={step.key}
+                onClick={() => canVisit && onFlowStepChange(index)}
+                disabled={!canVisit}
+                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] ${
+                  index === currentFlowIndex
+                    ? 'border-[#D4AF37] bg-white text-[#1A1A1A]'
+                    : step.complete
+                      ? 'border-[#DDE9E3] bg-[#EEF7F1] text-[#00342B]'
+                      : 'border-[#E8E0D5] bg-white/60 text-[#A9A196]'
+                } ${canVisit ? 'cursor-pointer hover:border-[#D4AF37]' : 'cursor-not-allowed'}`}
+              >
+                <span>{index + 1}</span>
+                <span>{step.label}</span>
+              </button>
+            )
+          })}
         </div>
-        <AnimatePresence>
-          {form.material === 'Other' && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-3">
-              <input name="customMaterial" value={form.customMaterial || ''} onChange={onChange}
-                placeholder="e.g. Handloom Kantha" className={inputCls(errors.customMaterial)} />
-              {errors.customMaterial && (
-                <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                  className="text-xs text-[#C8622A] mt-1.5 font-medium">{errors.customMaterial}</motion.p>
-              )}
-            </motion.div>
+      </div>
+
+      <div className="space-y-4">
+        <AnimatePresence initial={false}>
+          {isCurrent('category') && (
+            <DetailPromptCard key="category" number="1" eyebrow="Start simple" title="Choose the category" description="This decides the right measurement guide and keeps the next steps focused." active complete={flowSteps[0].complete}>
+              <Field label="Category" error={errors.category} required>
+                <ChipSelect name="category" options={CATEGORY_OPTIONS} value={form.category} onChange={onChange} error={errors.category} />
+              </Field>
+              {renderFlowControls()}
+            </DetailPromptCard>
+          )}
+
+          {isCurrent('gender') && (
+            <DetailPromptCard key="gender" number="2" eyebrow="Who it suits" title="Select gender" description="One clear choice is enough here." active complete={flowSteps[1].complete}>
+              <Field label="Gender" error={errors.gender} required>
+                <ChipSelect name="gender" options={GENDER_OPTIONS} value={form.gender} onChange={onChange} error={errors.gender} />
+              </Field>
+              {renderFlowControls()}
+            </DetailPromptCard>
+          )}
+
+          {isCurrent('title') && (
+            <DetailPromptCard key="title" number="3" eyebrow="Name it" title="Add a short title" description="A simple, descriptive name works best." active complete={flowSteps[2].complete}>
+              <Field label="Outfit Name" error={errors.title} required>
+                <input name="title" value={form.title} onChange={onChange} placeholder="e.g. Vintage Emerald Banarasi Lehenga" className={inputCls(errors.title)} />
+              </Field>
+              {renderFlowControls()}
+            </DetailPromptCard>
+          )}
+
+          {isCurrent('material') && (
+            <DetailPromptCard key="material" number="4" eyebrow="Feel and fabric" title="Pick the material" description="Choose the closest match, or add your own." active complete={flowSteps[3].complete}>
+              <Field label="Material / Fabric" error={errors.material} required>
+                <div className="flex flex-wrap gap-2">
+                  {MATERIAL_OPTIONS.map((m) => (
+                    <button key={m} type="button" onClick={() => onChange({ target: { name: 'material', value: form.material === m ? '' : m } })}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border transition-all ${form.material === m ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#666] border-[#E8E0D5] hover:border-[#D4AF37]'}`}>
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                <AnimatePresence>
+                  {form.material === 'Other' && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-3">
+                      <input name="customMaterial" value={form.customMaterial || ''} onChange={onChange} placeholder="e.g. Handloom Kantha" className={inputCls(errors.customMaterial)} />
+                      {errors.customMaterial && (
+                        <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-[#C8622A] mt-1.5 font-medium">{errors.customMaterial}</motion.p>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Field>
+              {renderFlowControls()}
+            </DetailPromptCard>
+          )}
+
+          {isCurrent('measurements') && form.category && (() => {
+            return (
+              <DetailPromptCard key="measurements" number="5" eyebrow="Fit check" title="Add measurements" description="Fill the key centimeter values first. The size preview appears automatically." active complete={flowSteps[4].complete}>
+                <div className="space-y-4">
+                  {groups.map((group) => (
+                    <MeasurementGroup key={group.id} title={`${group.label} (cm)`} fields={group.fields} measurements={form.measurements} errors={measurementErrors} onChange={onMeasurementChange} />
+                  ))}
+
+                  {extraFields.length > 0 && (
+                    <MeasurementGroup title="Blouse Measurements (cm)" fields={extraFields} measurements={form.measurements} errors={measurementErrors} onChange={onMeasurementChange} />
+                  )}
+
+                  {calculatedSize && (
+                    <SizePreview size={calculatedSize.size} confidence={calculatedSize.confidence} isBetween={calculatedSize.isBetween} note={calculatedSize.note} />
+                  )}
+
+                  <Field label="Fit Notes" error={errors.measurementNotes}>
+                    <textarea name="measurementNotes" value={form.measurementNotes} onChange={onMeasurementNotesChange} placeholder="e.g., Runs slightly large in chest" className={`w-full px-4 py-3 text-sm bg-white border rounded-xl focus:outline-none placeholder:text-[#CCC] text-[#1A1A1A] transition-all resize-none leading-relaxed ${errors.measurementNotes ? 'border-[#C8622A] focus:border-[#C8622A]' : 'border-[#E8E0D5] focus:border-[#D4AF37]'}`} rows={2} />
+                  </Field>
+
+                  <MeasurementHelp category={form.category} />
+                  {renderFlowControls()}
+                </div>
+              </DetailPromptCard>
+            )
+          })()}
+
+          {isCurrent('remaining') && (
+            <DetailPromptCard key="remaining" number="6" eyebrow="Last details" title="Finish the listing details" description="Add where it shines, its condition, a short description, and your serviceable location." active complete={flowSteps[5].complete}>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Field label="Best For (Occasion)" error={errors.occasion} required>
+                    <ChipSelect name="occasion" options={OCCASION_OPTIONS} value={form.occasion} onChange={onChange} error={errors.occasion} />
+                  </Field>
+                  <Field label="Condition" error={errors.condition} required>
+                    <ChipSelect name="condition" options={CONDITION_OPTIONS} value={form.condition} onChange={onChange} error={errors.condition} />
+                  </Field>
+                </div>
+
+                <Field label="Description" error={errors.description} required>
+                  <textarea name="description" value={form.description} onChange={onChange} rows={5} placeholder="Share the fabric texture, embroidery, occasions it suits, and what's included." className={`${inputCls(errors.description)} resize-none leading-relaxed`} />
+                  <div className="flex justify-between mt-1.5">
+                    <span className="text-xs text-[#CCC]">Help renters fall in love with it</span>
+                    <span className="text-xs text-[#CCC] tabular-nums">{form.description.length}/500</span>
+                  </div>
+                </Field>
+
+                <Field label="Your Area / Locality" error={errors.area} required>
+                  <div className="space-y-2">
+                    <input name="area" value={form.area} onChange={onChange} placeholder="e.g. Andheri West, Bandra, Juhu" className={inputCls(errors.area)} />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={onUseCurrentLocation}
+                        disabled={locationLoading}
+                        className="px-3 py-1.5 rounded-lg border border-[#E8E0D5] bg-white text-xs font-bold tracking-wide text-[#00342B] hover:border-[#D4AF37] disabled:opacity-60"
+                      >
+                        {locationLoading ? 'Checking location...' : 'Use current location'}
+                      </button>
+                      {isLocationVerified && (
+                        <span className="text-[11px] font-semibold text-[#00342B]">Location verified: In service zone</span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-[#AAA] mt-1.5">Only locations between Virar and Andheri are serviceable right now.</p>
+                </Field>
+                {renderFlowControls()}
+              </div>
+            </DetailPromptCard>
           )}
         </AnimatePresence>
-      </Field>
-
-      <Field label="Description" error={errors.description} required>
-        <textarea name="description" value={form.description} onChange={onChange} rows={5}
-          placeholder="Share the story of this piece — fabric texture, embroidery, occasions it suits, what's included…"
-          className={`${inputCls(errors.description)} resize-none leading-relaxed`} />
-        <div className="flex justify-between mt-1.5">
-          <span className="text-xs text-[#CCC]">Help renters fall in love with it</span>
-          <span className="text-xs text-[#CCC] tabular-nums">{form.description.length}/500</span>
-        </div>
-      </Field>
-
-      <Field label="Your Area / Locality" error={errors.area} required>
-        <input name="area" value={form.area} onChange={onChange}
-          placeholder="e.g. Andheri West, Bandra, Juhu"
-          className={inputCls(errors.area)} />
-        <p className="text-xs text-[#AAA] mt-1.5">
-          Only locations between Virar and Andheri are serviceable right now.
-        </p>
-      </Field>
+      </div>
     </div>
   )
 }
@@ -636,6 +912,10 @@ function ReviewStep({ existingImages, newImageFiles, form, isDraft }) {
           <Row label="Category"  value={form.category} />
           <Row label="Occasion"  value={form.occasion} />
           <Row label="Size"      value={form.size} />
+          <Row label="Measurements" value={hasMeasurementValues(form.measurements) ? 'Added' : '—'} />
+          {form.measurementNotes?.trim() && (
+            <Row label="Measurement Notes" value={form.measurementNotes.trim()} />
+          )}
           <Row label="Gender"    value={form.gender} />
           <Row label="Material"  value={form.material === 'Other' ? form.customMaterial : form.material} />
           <Row label="Condition" value={form.condition} />
@@ -680,13 +960,18 @@ const EditListing = () => {
   const [form, setForm] = useState({
     title: '', category: '', occasion: '', size: '', condition: '',
     gender: '', material: '', customMaterial: '', pricePerDay: '',
-    description: '', area: '',
+    description: '', area: '', measurements: {}, measurementNotes: '',
   })
   const [errors, setErrors] = useState({})
+  const [measurementErrors, setMeasurementErrors] = useState({})
+  const [calculatedSize, setCalculatedSize] = useState(null)
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [isLocationVerified, setIsLocationVerified] = useState(false)
 
   // Step state
   const [currentStep, setCurrentStep] = useState(1)
   const [completedSteps, setCompletedSteps] = useState([])
+  const [detailsFlowIndex, setDetailsFlowIndex] = useState(0)
 
   // Submit state
   const [submitting, setSubmitting] = useState(false)
@@ -719,6 +1004,8 @@ const EditListing = () => {
           pricePerDay:    data.pricePerDay || '',
           description:    data.description || '',
           area:           data.location?.area || '',
+          measurements:   flattenMeasurements(data.measurements),
+          measurementNotes: data.measurements?.fitNotes || data.measurementNotes || '',
         })
         // All steps up to review pre-completed so user can jump around
         setCompletedSteps([1, 2, 3])
@@ -736,7 +1023,77 @@ const EditListing = () => {
     let v = value
     if (name === 'title' && v) v = v.charAt(0).toUpperCase() + v.slice(1)
     setForm((prev) => ({ ...prev, [name]: v }))
+    if (name === 'area' && isLocationVerified) setIsLocationVerified(false)
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }))
+  }
+
+  const handleUseCurrentLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported on this device.')
+      return
+    }
+
+    setLocationLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        const { latitude, longitude } = coords
+        const inService = isWithinServiceArea(latitude, longitude)
+
+        if (!inService) {
+          setLocationLoading(false)
+          setIsLocationVerified(false)
+          setErrors((prev) => ({
+            ...prev,
+            area: 'Location is outside service area',
+          }))
+          toast.error('Your location is currently out of service range. Service is available from Virar to Andheri.')
+          return
+        }
+
+        const areaName = await getLocationLabel(latitude, longitude)
+        setForm((prev) => ({
+          ...prev,
+          area: areaName || `Lat ${latitude.toFixed(4)}, Lng ${longitude.toFixed(4)}`,
+        }))
+        setIsLocationVerified(true)
+        setErrors((prev) => ({ ...prev, area: '' }))
+        setLocationLoading(false)
+        toast.success('Location verified. You are within our current service area.')
+      },
+      (geoError) => {
+        setLocationLoading(false)
+        setIsLocationVerified(false)
+        if (geoError.code === 1) {
+          toast.error('Location permission was denied. Please allow access to continue.')
+          return
+        }
+        toast.error('Unable to fetch your location right now. Please try again.')
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      },
+    )
+  }, [])
+
+  const handleMeasurementChange = (key, value) => {
+    setForm((prev) => ({
+      ...prev,
+      measurements: {
+        ...prev.measurements,
+        [key]: value ? parseFloat(value) : null,
+      },
+    }))
+
+    if (measurementErrors[key]) {
+      setMeasurementErrors((prev) => ({ ...prev, [key]: '' }))
+    }
+  }
+
+  const handleMeasurementNotesChange = (e) => {
+    const { value } = e.target
+    setForm((prev) => ({ ...prev, measurementNotes: value }))
   }
 
   const handleAddFiles = useCallback((files) => {
@@ -753,6 +1110,28 @@ const EditListing = () => {
 
   const totalImages = existingImages.length + newImageFiles.length
 
+  useEffect(() => {
+    const effectiveGender = getEffectiveMeasurementGender(form.category, form.gender)
+
+    if (
+      form.category &&
+      hasEnoughMeasurementsForSize(form.category, form.measurements, effectiveGender)
+    ) {
+      const sizeData = calculateSizeFromMeasurements(
+        form.category,
+        form.measurements,
+        effectiveGender,
+      )
+      setCalculatedSize(sizeData)
+      setForm((prev) => (prev.size === sizeData.size ? prev : { ...prev, size: sizeData.size }))
+    } else {
+      setCalculatedSize(null)
+    }
+  }, [form.category, form.gender, form.measurements])
+
+  const detailsFlowState = getDetailsFlowState(form, isLocationVerified)
+  const currentDetailsFlowIndex = Math.min(detailsFlowIndex, detailsFlowState.flowSteps.length - 1)
+
   const validateStep = (step) => {
     const errs = {}
     if (step === 1) {
@@ -762,13 +1141,30 @@ const EditListing = () => {
       if (!form.title.trim())   errs.title = 'Title is required'
       if (!form.category)       errs.category = 'Select a category'
       if (!form.occasion)       errs.occasion = 'Select an occasion'
-      if (!form.size)           errs.size = 'Select a size'
       if (!form.gender)         errs.gender = 'Select gender'
       if (!form.condition)      errs.condition = 'Select condition'
       if (!form.material)       errs.material = 'Select material'
       if (form.material === 'Other' && !form.customMaterial?.trim()) errs.customMaterial = 'Enter custom material'
       if (!form.description.trim()) errs.description = 'Add a description'
       if (!form.area.trim())    errs.area = 'Your area is required'
+      if (!isLocationVerified) errs.area = 'Please verify your current location to continue'
+
+      const hasMeasurements = hasMeasurementValues(form.measurements)
+
+      if (hasMeasurements) {
+        const measurementValidationErrors = validateAllMeasurements(
+          form.category,
+          form.measurements,
+          getEffectiveMeasurementGender(form.category, form.gender),
+        )
+
+        if (Object.keys(measurementValidationErrors).length > 0) {
+          setMeasurementErrors(measurementValidationErrors)
+          errs.measurements = 'Please fix measurement errors'
+        }
+      } else if (!form.size) {
+        errs.size = 'Either measurements or size is required'
+      }
     }
     if (step === 3) {
       if (!form.pricePerDay || Number(form.pricePerDay) < 1) errs.pricePerDay = 'Enter a valid price'
@@ -798,11 +1194,16 @@ const EditListing = () => {
     }
     const pricePerDay = Number(form.pricePerDay) || 0
     const finalMaterial = form.material === 'Other' ? form.customMaterial.trim() : form.material
-    return {
+    const hasMeasurements = hasMeasurementValues(form.measurements)
+    const effectiveGender = getEffectiveMeasurementGender(form.category, form.gender)
+
+    const payload = {
       title:       form.title.trim(),
       category:    form.category,
       occasion:    form.occasion,
-      size:        form.size,
+      size:        hasMeasurements && calculatedSize?.size
+        ? calculatedSize.size
+        : form.size,
       condition:   form.condition,
       gender:      form.gender,
       material:    finalMaterial,
@@ -814,6 +1215,17 @@ const EditListing = () => {
       isDraft:     asDraft,
       isActive:    !asDraft,
     }
+
+    if (hasMeasurements) {
+      payload.measurements = form.measurements
+      payload.measurementNotes = form.measurementNotes.trim()
+      if (!payload.size && hasEnoughMeasurementsForSize(form.category, form.measurements, effectiveGender)) {
+        const sizeData = calculateSizeFromMeasurements(form.category, form.measurements, effectiveGender)
+        payload.size = sizeData.size
+      }
+    }
+
+    return payload
   }
 
   const handleSave = async (asDraft = false) => {
@@ -944,7 +1356,20 @@ const EditListing = () => {
                 />
               )}
               {currentStep === 2 && (
-                <DetailsStep form={form} onChange={handleChange} errors={errors} />
+                <DetailsStep
+                  form={form}
+                  onChange={handleChange}
+                  errors={errors}
+                  measurementErrors={measurementErrors}
+                  onMeasurementChange={handleMeasurementChange}
+                  onMeasurementNotesChange={handleMeasurementNotesChange}
+                  calculatedSize={calculatedSize}
+                  onUseCurrentLocation={handleUseCurrentLocation}
+                  locationLoading={locationLoading}
+                  isLocationVerified={isLocationVerified}
+                  currentFlowIndex={currentDetailsFlowIndex}
+                  onFlowStepChange={setDetailsFlowIndex}
+                />
               )}
               {currentStep === 3 && (
                 <PricingStep form={form} onChange={handleChange} errors={errors} />
