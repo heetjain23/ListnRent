@@ -143,11 +143,6 @@ const MeasurementsSection = ({ listing }) => {
             >
               {measurements.derivedSize}
             </span>
-            {typeof measurements.confidence === 'number' && (
-              <span className="text-xs" style={{ color: '#6A6A56' }}>
-                Confidence {Math.round(measurements.confidence * 100)}%
-              </span>
-            )}
           </div>
         )}
 

@@ -560,6 +560,7 @@ function DetailsStep({
   const { flowSteps } = getDetailsFlowState(form, isLocationVerified)
   const currentFlowKey = flowSteps[currentFlowIndex]?.key
   const isCurrent = (key) => key === currentFlowKey
+  const getStep = (key) => flowSteps.find((step) => step.key === key)
   const activeStepComplete = Boolean(flowSteps[currentFlowIndex]?.complete)
 
   const goPrevious = () => onFlowStepChange(Math.max(0, currentFlowIndex - 1))
@@ -615,7 +616,7 @@ function DetailsStep({
       <div className="space-y-4">
         <AnimatePresence initial={false}>
           {isCurrent('category') && (
-            <DetailPromptCard key="category" number="1" eyebrow="Start simple" title="Choose the category" description="This decides the right measurement guide and keeps the next steps focused." active complete={flowSteps[0].complete}>
+            <DetailPromptCard key="category" number="1" eyebrow="Start simple" title="Choose the category" description="This decides the right measurement guide and keeps the next steps focused." active complete={Boolean(getStep('category')?.complete)}>
               <Field label="Category" error={errors.category} required>
                 <ChipSelect name="category" options={CATEGORY_OPTIONS} value={form.category} onChange={onChange} error={errors.category} />
               </Field>
@@ -624,7 +625,7 @@ function DetailsStep({
           )}
 
           {isCurrent('gender') && (
-            <DetailPromptCard key="gender" number="2" eyebrow="Who it suits" title="Select gender" description="One clear choice is enough here." active complete={flowSteps[1].complete}>
+            <DetailPromptCard key="gender" number="2" eyebrow="Who it suits" title="Select gender" description="One clear choice is enough here." active complete={Boolean(getStep('gender')?.complete)}>
               <Field label="Gender" error={errors.gender} required>
                 <ChipSelect name="gender" options={GENDER_OPTIONS} value={form.gender} onChange={onChange} error={errors.gender} />
               </Field>
@@ -633,7 +634,7 @@ function DetailsStep({
           )}
 
           {isCurrent('title') && (
-            <DetailPromptCard key="title" number="3" eyebrow="Name it" title="Add a short title" description="A simple, descriptive name works best." active complete={flowSteps[2].complete}>
+            <DetailPromptCard key="title" number="3" eyebrow="Name it" title="Add a short title" description="A simple, descriptive name works best." active complete={Boolean(getStep('title')?.complete)}>
               <Field label="Outfit Name" error={errors.title} required>
                 <input name="title" value={form.title} onChange={onChange} placeholder="e.g. Vintage Emerald Banarasi Lehenga" className={inputCls(errors.title)} />
               </Field>
@@ -642,7 +643,7 @@ function DetailsStep({
           )}
 
           {isCurrent('material') && (
-            <DetailPromptCard key="material" number="4" eyebrow="Feel and fabric" title="Pick the material" description="Choose the closest match, or add your own." active complete={flowSteps[3].complete}>
+            <DetailPromptCard key="material" number="4" eyebrow="Feel and fabric" title="Pick the material" description="Choose the closest match, or add your own." active complete={Boolean(getStep('material')?.complete)}>
               <Field label="Material / Fabric" error={errors.material} required>
                 <div className="flex flex-wrap gap-2">
                   {MATERIAL_OPTIONS.map((m) => (
@@ -669,7 +670,7 @@ function DetailsStep({
 
           {isCurrent('measurements') && form.category && (() => {
             return (
-              <DetailPromptCard key="measurements" number="5" eyebrow="Fit check" title="Add measurements" description="Fill the key centimeter values first. The size preview appears automatically." active complete={flowSteps[4].complete}>
+              <DetailPromptCard key="measurements" number="5" eyebrow="Fit check" title="Add measurements" description="Fill the key centimeter values first. The size preview appears automatically." active complete={Boolean(getStep('measurements')?.complete)}>
                 <div className="space-y-4">
                   {groups.map((group) => (
                     <MeasurementGroup key={group.id} title={`${group.label} (cm)`} fields={group.fields} measurements={form.measurements} errors={measurementErrors} onChange={onMeasurementChange} />
@@ -695,7 +696,7 @@ function DetailsStep({
           })()}
 
           {isCurrent('remaining') && (
-            <DetailPromptCard key="remaining" number="6" eyebrow="Last details" title="Finish the listing details" description="Add where it shines, its condition, a short description, and your serviceable location." active complete={flowSteps[5].complete}>
+            <DetailPromptCard key="remaining" number="6" eyebrow="Last details" title="Finish the listing details" description="Add where it shines, its condition, a short description, and your serviceable location." active complete={Boolean(getStep('remaining')?.complete)}>
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Field label="Best For (Occasion)" error={errors.occasion} required>
