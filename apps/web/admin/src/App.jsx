@@ -2,6 +2,7 @@ import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AdminAuthProvider } from './context/AdminAuthContext'
 import ProtectedRoute from './components/shared/ProtectedRoute'
+import ComingSoon from './pages/ComingSoon'
 import AdminLogin from './pages/AdminLogin'
 import AdminsPage from './pages/AdminsPage'
 import DeliveryPartnerPage from './pages/DeliveryPartnerPage'
@@ -10,8 +11,9 @@ import ErrorPage from './pages/ErrorPage'
 import TermsAndConditions from './pages/TermsAndConditions'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import ContactUsPage from './pages/ContactUsPage'
+import { SITE_RENDER_TARGET } from './config/siteMode'
 
-const App = () => {
+const AdminApplication = () => {
   return (
     <AdminAuthProvider>
       <Routes>
@@ -70,6 +72,10 @@ const App = () => {
       </Routes>
     </AdminAuthProvider>
   )
+}
+
+const App = () => {
+  return SITE_RENDER_TARGET === 'comingsoon' ? <ComingSoon /> : <AdminApplication />
 }
 
 export default App
