@@ -16,6 +16,7 @@
     "@listnrent/shared": "file:../../../packages/shared",
     "@tailwindcss/vite": "^4.2.2",
     "cropperjs": "^1.6.2",
+    "date-fns": "^4.1.0",
     "firebase": "^12.11.0",
     "gsap": "^3.14.2",
     "html2canvas": "^1.4.1",

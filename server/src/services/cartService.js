@@ -68,7 +68,7 @@ export const addCartItem = async (userId, payload) => {
   const item = await CartItem.findOneAndUpdate(
     { userId, listingId },
     { $set: cartItemData },
-    { new: true, upsert: true, setDefaultsOnInsert: true }
+    { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
   ).populate('listingId', 'title category occasion size description pricePerDay deposit condition gender images location isActive userId')
 
   return item

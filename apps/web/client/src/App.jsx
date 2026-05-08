@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { BrowserRouter as Router } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { AuthProvider } from './context/AuthContext'
+import { MessagingProvider } from './context/MessagingContext'
 import { completeMagicLinkSignIn } from './services/firebase'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import Navbar from './components/layout/Navbar'
@@ -10,6 +11,7 @@ import BottomNav from './components/layout/BottomNav'
 import PageLoadAnimation from './components/animations/PageLoadAnimation'
 import AnimatedRoutes from './components/animations/AnimatedRoutes'
 import CursorFollower from './components/ui/CursorFollower'
+import MessageNotificationListener from './components/messaging/MessageNotificationListener'
 import ComingSoon from './pages/ComingSoon'
 import { SITE_RENDER_TARGET } from './config/siteMode'
 import { useSEO } from './hooks/useSEO'
@@ -100,27 +102,31 @@ const FullApplication = () => {
 
   return (
     <AuthProvider>
-      <Router>
-        {!isMobile && <CursorFollower />}
-        <Toaster
-          position="top-center"
-          richColors
-          theme="light"
-          closeButton
-          duration={4000}
-        />
-        <div className="flex flex-col min-h-screen bg-[#FAF7F2]">
-          <Navbar />
-          <main className="grow">
-            <PageLoadAnimation>
-              <AnimatedRoutes CompleteMagicLinkComponent={CompleteMagicLink} />
-            </PageLoadAnimation>
-          </main>
-          <Footer />
-        </div>
-        {/* Bottom navigation — mobile only (lg:hidden handled inside component) */}
-        <BottomNav />
-      </Router>
+        <MessagingProvider>
+        <Router>
+          {!isMobile && <CursorFollower />}
+          <Toaster
+            position="top-center"
+            richColors
+            theme="light"
+            closeButton
+            duration={4000}
+          />
+          <div className="flex flex-col min-h-screen bg-[#FAF7F2]">
+            <Navbar />
+            <main className="grow">
+              <PageLoadAnimation>
+                <AnimatedRoutes CompleteMagicLinkComponent={CompleteMagicLink} />
+              </PageLoadAnimation>
+            </main>
+            <Footer />
+          </div>
+          {/* Bottom navigation — mobile only (lg:hidden handled inside component) */}
+          <BottomNav />
+            {/* Background message notification listener */}
+            <MessageNotificationListener />
+        </Router>
+        </MessagingProvider>
     </AuthProvider>
   )
 }

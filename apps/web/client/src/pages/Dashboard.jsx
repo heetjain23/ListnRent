@@ -21,6 +21,7 @@ import SettingsSection from '../components/dashboard/SettingsSection'
 import MyOrders from '../components/dashboard/MyOrders'
 import MyRentalsAsOwner from '../components/dashboard/MyRentalsAsOwner'
 import MyEarnings from '../components/dashboard/MyEarnings'
+import { ChatWindow } from '../components/messaging/ChatWindow'
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -515,38 +516,6 @@ const ListingsTab = ({
   )
 }
 
-// ─── Messages placeholder ─────────────────────────────────────────────────────
-
-const MessagesPlaceholder = () => (
-  <div className="flex flex-col items-center justify-center py-20 text-center">
-    <motion.div
-      animate={{ y: [0, -8, 0] }}
-      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-      className="text-6xl mb-4"
-    >
-      💬
-    </motion.div>
-    <h3 className="text-xl font-bold text-[#1A1A1A] mb-2">Messages coming soon</h3>
-    <p className="text-[#999] text-sm max-w-xs">
-      Soon you'll be able to chat directly with renters and owners right here.
-    </p>
-    <div className="mt-6 flex gap-2">
-      {['Design', 'Development', 'Testing'].map((stage, i) => (
-        <span
-          key={stage}
-          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            i === 0 ? 'bg-green-100 text-green-700' :
-            i === 1 ? 'bg-blue-100 text-blue-700' :
-            'bg-gray-100 text-gray-600'
-          }`}
-        >
-          {i === 0 ? '✓' : i === 1 ? '●' : '○'} {stage}
-        </span>
-      ))}
-    </div>
-  </div>
-)
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const ListingsLoader = () => (
@@ -628,6 +597,17 @@ const Dashboard = () => {
 
   const [activeTab, setActiveTab] = useState('listings')
   const [userData, setUserData] = useState(null)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  // Handle window resize for mobile detection
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Derive stats
   const liveListings = listings.filter((l) => !l.isDraft)
@@ -805,7 +785,7 @@ const Dashboard = () => {
 
                 {activeTab === 'rentals' && <MyRentalsAsOwner />}
 
-                {activeTab === 'messages' && <MessagesPlaceholder />}
+                {activeTab === 'messages' && <ChatWindow isMobile={isMobile} />}
 
                 {activeTab === 'settings' && (
                   <SettingsSection

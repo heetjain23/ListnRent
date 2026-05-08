@@ -15,6 +15,7 @@ import newsletterRoutes from "./src/routes/newsletterRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
 import categoryVideoRoutes from "./src/routes/categoryVideoRoutes.js";
+import messageRoutes from "./src/routes/messageRoutes.js";
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/category-videos", categoryVideoRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

@@ -49,6 +49,4 @@ const categoryVideoSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-categoryVideoSchema.index({ category: 1 }, { unique: true });
-
 export default mongoose.model("CategoryVideo", categoryVideoSchema);

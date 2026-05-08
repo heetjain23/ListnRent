@@ -29,7 +29,7 @@ export const upsertCategoryVideo = async (payload) => {
   const categoryVideo = await CategoryVideo.findOneAndUpdate(
     { category: normalizedCategory },
     { $set: nextPayload },
-    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true },
+    { returnDocument: 'after', upsert: true, runValidators: true, setDefaultsOnInsert: true },
   );
 
   return categoryVideo;
@@ -44,7 +44,7 @@ export const updateCategoryVideoById = async (id, updates) => {
         ...(updates.category ? { category: normalizeCategory(updates.category) } : {}),
       },
     },
-    { new: true, runValidators: true },
+    { returnDocument: 'after', runValidators: true },
   );
 };
 

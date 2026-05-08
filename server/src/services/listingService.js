@@ -137,7 +137,7 @@ export const incrementListingViewCount = async (id) => {
   const listing = await Listing.findOneAndUpdate(
     { _id: id, isActive: true, isDraft: { $ne: true } },
     { $inc: { viewCount: 1 } },
-    { new: true }
+    { returnDocument: 'after' }
   )
     .select("_id viewCount")
     .lean();
@@ -273,7 +273,7 @@ export const markListingAsRented = async (listingId, booking, renterInfo) => {
           },
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     return listing;
@@ -308,7 +308,7 @@ export const markListingAsAvailable = async (listingId, booking, renterInfo) => 
           },
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     return listing;
