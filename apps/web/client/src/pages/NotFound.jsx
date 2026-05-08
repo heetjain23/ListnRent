@@ -1,11 +1,19 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useSEO } from '../hooks/useSEO'
 
 /**
  * NotFound Page - Displays 404 error
  */
 const NotFound = () => {
   const navigate = useNavigate()
+
+  useSEO({
+    title: 'Page Not Found',
+    description: 'The page you are looking for is not available on ListnRent.',
+    canonicalPath: '/404',
+    noIndex: true,
+  })
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center px-4 pt-20">

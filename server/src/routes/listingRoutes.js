@@ -9,12 +9,14 @@ import {
   handleDeleteListing,
   handleGetRentedListings,
   handleRelistListing,
+  handleTrackListingView,
 } from "../controllers/listingController.js";
 
 const router = express.Router();
 
 // Public routes
 router.get("/", handleGetAllListings);
+router.post("/:id/view", handleTrackListingView);
 
 // Protected routes - require Firebase authentication
 router.post("/", verifyFirebaseToken, handleCreateListing);

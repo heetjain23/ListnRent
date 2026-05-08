@@ -1,6 +1,7 @@
 import React from 'react'
+import { motion } from 'motion/react'
 
-// ─── Icon helpers (inline SVG keeps zero external deps) ────────────────────────────
+// ─── Icons ────────────────────────────────────────────────────────────────────
 const ShieldIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="#7D6B41" strokeWidth="2" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round"
@@ -27,20 +28,27 @@ const ReturnIcon = () => (
 
 // ─── Trust Badge ───────────────────────────────────────────────────────────────
 const TrustBadge = ({ icon, label }) => (
-  <div className="flex flex-col items-center gap-1.5 text-center">
+  <motion.div
+    whileHover={{ y: -2 }}
+    transition={{ duration: 0.2 }}
+    className="flex flex-col items-center gap-2 text-center cursor-default"
+  >
     <div
       className="w-9 h-9 rounded-full flex items-center justify-center"
-      style={{ backgroundColor: '#F5F2E8' }}
+      style={{
+        backgroundColor: 'rgba(212,175,55,0.08)',
+        border: '1px solid rgba(212,175,55,0.2)',
+      }}
     >
       {icon}
     </div>
     <p
-      className="text-[10px] font-semibold uppercase tracking-wide leading-tight"
-      style={{ color: '#7D6B41' }}
+      className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider leading-tight"
+      style={{ color: '#9E9E7A' }}
     >
       {label}
     </p>
-  </div>
+  </motion.div>
 )
 
 export { TrustBadge, ShieldIcon, SparkleIcon, ReturnIcon }

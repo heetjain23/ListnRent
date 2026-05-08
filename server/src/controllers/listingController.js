@@ -7,8 +7,11 @@ import {
   deleteListing,
   getRentedListings,
   markListingAsAvailable,
+  incrementListingViewCount,
 } from "../services/listingService.js";
+import { buildMeasurementPayload } from "../services/sizeClassificationService.js";
 import { successResponse, errorResponse } from "../utils/helper.js";
+import { SIZES } from "@listnrent/shared/constants";
 
 export const handleCreateListing = async (req, res) => {
   try {
@@ -18,7 +21,7 @@ export const handleCreateListing = async (req, res) => {
     // For drafts, no fields are required
     if (!isDraft) {
       const required = [
-        "title", "category", "occasion", "size",
+        "title", "category", "occasion",
         "description", "pricePerDay", "deposit", "condition", "gender", "material",
       ];
 
@@ -30,6 +33,29 @@ export const handleCreateListing = async (req, res) => {
 
       if (!data.location?.area) {
         return errorResponse(res, "location.area is required", 400);
+      }
+
+      // Handle measurements if provided
+      if (data.measurements) {
+        const measurementResult = buildMeasurementPayload(
+          data.category,
+          data.measurements,
+          data.measurementNotes,
+          data.gender
+        );
+
+        if (!measurementResult.valid) {
+          return errorResponse(res, "Invalid measurements", 400, measurementResult.errors);
+        }
+
+        data.measurements = measurementResult.measurements;
+        // Map derived short size (e.g. 'M') to configured full size label (e.g. 'M(38)')
+        const derived = measurementResult.measurements.derivedSize;
+        const mapped = SIZES.find((s) => s.startsWith(derived)) || derived;
+        data.size = mapped;
+      } else if (!data.size) {
+        // Fallback: require either measurements or size for backward compatibility
+        return errorResponse(res, "Either measurements or size is required", 400);
       }
     }
 
@@ -45,11 +71,36 @@ export const handleCreateListing = async (req, res) => {
 
 export const handleGetAllListings = async (req, res) => {
   try {
-    const { category, occasion, gender, city } = req.query;
-    const listings = await getAllListings({ category, occasion, gender, city });
+    const { category, occasion, gender, city, limit, sortBy } = req.query;
+    const listings = await getAllListings({
+      category,
+      occasion,
+      gender,
+      city,
+      limit,
+      sortBy,
+    });
     return successResponse(res, { listings });
   } catch (error) {
     return errorResponse(res, error.message || "Failed to fetch listings", 500);
+  }
+};
+
+export const handleTrackListingView = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const listing = await incrementListingViewCount(id);
+
+    if (!listing) {
+      return errorResponse(res, "Listing not found", 404);
+    }
+
+    return successResponse(res, {
+      listingId: listing._id,
+      viewCount: listing.viewCount,
+    });
+  } catch (error) {
+    return errorResponse(res, error.message || "Failed to track listing view", 500);
   }
 };
 

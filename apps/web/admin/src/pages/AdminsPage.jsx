@@ -5,6 +5,7 @@ import Layout from '../components/adminspage/layout/Layout'
 import DashboardTab from '../components/adminspage/tabs/dashboard/DashboardTab'
 import TeamManagementTab from '../components/adminspage/tabs/teammanagement/TeamManagementTab'
 import MarketplaceTab from '../components/adminspage/tabs/MarketplaceTab'
+import CategoryVideosTab from '../components/adminspage/tabs/CategoryVideosTab'
 import DisputesTab from '../components/adminspage/tabs/DisputesTab'
 import DeliviresHandlingTab from '../components/adminspage/tabs/DeliviresHandlingTab'
 import FinanceTab from '../components/adminspage/tabs/FinanceTab'
@@ -25,6 +26,7 @@ const AdminsPage = () => {
     'dashboard': 'dashboard',
     'team': 'team',
     'marketplace': 'marketplace',
+    'category-videos': 'category-videos',
     'disputes': 'disputes',
     'deliviresHandling': 'deliviresHandling',
     'finance': 'finance',
@@ -45,6 +47,8 @@ const AdminsPage = () => {
         return <TeamManagementTab />
       case 'marketplace':
         return <MarketplaceTab />
+      case 'category-videos':
+        return <CategoryVideosTab />
       case 'disputes':
         return <DisputesTab />
       case 'deliviresHandling':

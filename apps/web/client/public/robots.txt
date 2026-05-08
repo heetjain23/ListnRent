@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /dashboard
+Disallow: /checkout
+Disallow: /create
+Disallow: /edit/
+Disallow: /order/
+Disallow: /rental/
+Disallow: /complete-magic-link
+Sitemap: https://listnrent.com/sitemap.xml

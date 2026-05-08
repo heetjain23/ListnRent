@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Button from './Button'
-import { CATEGORIES, OCCASIONS, SIZES, GENDER, CONDITIONS } from '../../constants'
+import { CATEGORIES, OCCASIONS, SIZES, GENDER, CONDITIONS } from '@listnrent/shared/constants'
 
 const EditListingModal = ({ listing, onClose, onSave, loading = false }) => {
   const [formData, setFormData] = useState(null)

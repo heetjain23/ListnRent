@@ -5,9 +5,17 @@ import { auth } from "../services/firebase";
 import { getOptimizedImageUrl } from "../services/cloudinary";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { useSEO } from "../hooks/useSEO";
 
 const OrderDetail = () => {
   const { bookingId } = useParams();
+  useSEO({
+    title: "Order Details",
+    description: "View your rental order details and timeline on ListnRent.",
+    canonicalPath: `/order/${bookingId || ''}`,
+    noIndex: true,
+  });
+
   const navigate = useNavigate();
   const location = useLocation();
   const [booking, setBooking] = useState(location.state?.booking || null);

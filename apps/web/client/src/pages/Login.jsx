@@ -7,11 +7,19 @@ import ErrorMessage from '../components/login/ErrorMessage'
 import GoogleAuthSection from '../components/login/GoogleAuthSection'
 import AuthDivider from '../components/login/AuthDivider'
 import EmailAuthSection from '../components/login/EmailAuthSection'
+import { useSEO } from '../hooks/useSEO'
 
 const Login = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { loginWithGoogle, sendMagicLinkToEmail, loadingAction, error, clearError, isAuthenticated } = useAuth()
+
+  useSEO({
+    title: 'Sign In',
+    description: 'Sign in to your ListnRent account to rent outfits, manage listings, and track orders.',
+    canonicalPath: '/login',
+    noIndex: true,
+  })
 
   const [email, setEmail] = useState('')
   const [step, setStep] = useState('initial') // initial, email-sent, completing-link

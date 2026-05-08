@@ -595,50 +595,6 @@ function TrustBadge({ icon, label, delay }) {
   );
 }
 
-// ─── Cursor Follower ──────────────────────────────────────────────────────────
-function CursorFollower() {
-  const x = useMotionValue(-100);
-  const y = useMotionValue(-100);
-  const sx = useSpring(x, { stiffness: 80, damping: 15 });
-  const sy = useSpring(y, { stiffness: 80, damping: 15 });
-  const [active, setActive] = useState(false);
-
-  useEffect(() => {
-    const move = (e) => {
-      x.set(e.clientX);
-      y.set(e.clientY);
-    };
-    const down = () => setActive(true);
-    const up = () => setActive(false);
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mousedown", down);
-    window.addEventListener("mouseup", up);
-    return () => {
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mousedown", down);
-      window.removeEventListener("mouseup", up);
-    };
-  }, []);
-
-  return (
-    <>
-      <motion.div
-        className="pointer-events-none fixed -left-5 -top-5 z-9999 h-10 w-10 rounded-full border-[1.5px] border-[rgba(212,175,55,0.5)]"
-        style={{
-          x: sx,
-          y: sy,
-          scale: active ? 0.6 : 1,
-          transition: "scale 0.15s",
-        }}
-      />
-      <motion.div
-        className="pointer-events-none fixed -left-0.75 -top-0.75 z-9999 h-1.5 w-1.5 rounded-full bg-[#D4AF37]"
-        style={{ x, y }}
-      />
-    </>
-  );
-}
-
 // ─── Stacked Outfit Images (SVG placeholder visualization) ────────────────────
 const FALLBACK_SHOWCASE = [
   {
@@ -948,6 +904,8 @@ function OutfitShowcase({
 }
 
 // ─── MAIN HERO ────────────────────────────────────────────────────────────────
+// NOTE: CursorFollower has been removed from here — it is now mounted globally
+// in App.jsx so it persists across all pages and sections.
 export default function HeroSection({ listings = [], loading = false }) {
   const navigate = useNavigate();
   const heroRef = useRef(null);
@@ -976,32 +934,22 @@ export default function HeroSection({ listings = [], loading = false }) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const goToCollection = () => {
-    navigate("/collection");
-  };
-
-  const goToCreateListing = () => {
-    navigate("/create");
-  };
-
-  const goToListing = (listingId) => {
+  const goToCollection = () => navigate("/collection");
+  const goToCreateListing = () => navigate("/create");
+  const goToListing = (listingId) =>
     navigate(listingId ? `/listing/${listingId}` : "/collection");
-  };
 
   return (
     <div className="overflow-hidden bg-[#FAF7F2] font-sans">
-      {/* Custom cursor */}
-      {!isMobile && <CursorFollower />}
-
       {/* ── MAIN HERO SECTION ─────────────────────────────── */}
       <section
         ref={heroRef}
         className={`relative flex items-center overflow-hidden bg-[linear-gradient(135deg,#FBF8F3_0%,#F7F1E7_52%,#EFE4D4_100%)] ${
           isMobile
-            ? "pb-10 pt-14"
+            ? "pb-10 pt-18"
             : isTablet
-              ? "min-h-[92vh] pb-13 pt-17"
-              : "min-h-[92vh] pb-15 pt-20"
+              ? "min-h-[92vh] pb-13 pt-20"
+              : "min-h-[92vh] pb-15 pt-25"
         }`}
       >
         <AmbientGlowBackground
@@ -1023,11 +971,11 @@ export default function HeroSection({ listings = [], loading = false }) {
           className={`relative z-2 mx-auto w-full max-w-300 ${isMobile ? "px-4" : "px-6"}`}
         >
           <div
-            className={`grid items-center ${isTablet || isMobile ? "grid-cols-1" : "grid-cols-[1fr_auto]"} ${isMobile ? "gap-7" : "gap-12"}`}
+            className={`grid items-center ${isMobile ? "grid-cols-1" : "grid-cols-[1fr_auto]"} ${isMobile ? "gap-7" : "gap-12"}`}
           >
             {/* ── LEFT COLUMN ─────────────────────────────── */}
             <div
-              className={`${isTablet || isMobile ? "max-w-full" : "max-w-150"} ${isMobile ? "text-center" : "text-left"}`}
+              className={`${isMobile ? "order-2 max-w-full" : "order-1 max-w-150"} ${isMobile ? "text-center" : "text-left"}`}
             >
               {/* Tag line */}
               <motion.div
@@ -1150,7 +1098,7 @@ export default function HeroSection({ listings = [], loading = false }) {
                 duration: 0.9,
                 ease: [0.16, 1, 0.3, 1],
               }}
-              className={`flex justify-center ${isTablet || isMobile ? "mt-2" : "mt-0"}`}
+              className={`order-1 flex justify-center ${isMobile ? "mt-2" : "mt-0"}`}
               style={{
                 x: useTransform(mouseX, [0, 1], [8, -8]),
                 y: useTransform(mouseY, [0, 1], [4, -4]),

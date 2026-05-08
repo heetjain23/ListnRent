@@ -10,9 +10,11 @@ import "./src/config/firebase-admin.js";
 import { connectDB } from "./src/config/db.js";
 import listingRoutes from "./src/routes/listingRoutes.js";
 import paymentRoutes from "./src/routes/paymentRoutes.js";
+import cartRoutes from "./src/routes/cartRoutes.js";
 import newsletterRoutes from "./src/routes/newsletterRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
+import categoryVideoRoutes from "./src/routes/categoryVideoRoutes.js";
 
 const app = express();
 
@@ -47,9 +49,11 @@ app.get("/api/test", (req, res) => {
 // Routes
 app.use("/api/listings", listingRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/cart", cartRoutes);
 app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/category-videos", categoryVideoRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

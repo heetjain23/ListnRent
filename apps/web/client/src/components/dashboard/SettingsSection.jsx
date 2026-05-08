@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '../../hooks/useAuth'
-import { auth } from '../../services/firebase'
-import { api } from '../../services/api'
+import { api, usersApi } from '../../services/api'
 
 const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
   const [isEditingName, setIsEditingName] = useState(false)
@@ -23,57 +21,24 @@ const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
   const [deliverySuccess, setDeliverySuccess] = useState(null)
   const [fetchingUserData, setFetchingUserData] = useState(true)
 
-  const getApiBaseUrl = () => {
-    const env = import.meta.env.VITE_API_URL || import.meta.env.VITE_SERVER_URL
-    if (env) return env.endsWith('/') ? env.slice(0, -1) : env
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return 'http://localhost:5000'
-    }
-    return window.location.origin
-  }
-
-  // Set flag to fetch user profile on mount
-  useEffect(() => {
-    setFetchingUserData(true)
-  }, [])
-
   // Fetch user profile from database
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const currentUser = auth.currentUser
-        if (!currentUser) return
+        const responseData = await usersApi.getProfile()
+        const userData = responseData.user || responseData
 
-        const idToken = await currentUser.getIdToken()
+        if (userData.displayName) {
+          setDisplayName(userData.displayName)
+        }
 
-        const response = await fetch(`${getApiBaseUrl()}/api/users/profile`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${idToken}`,
-          },
-          credentials: 'include',
-        })
-
-        if (response.ok) {
-          const responseData = await response.json()
-          // Extract user from response (could be responseData.user or responseData)
-          const userData = responseData.user || responseData
-          
-          // Update display name if available
-          if (userData.displayName) {
-            setDisplayName(userData.displayName)
-          }
-          
-          // Update delivery details if available
-          if (userData.deliveryDetails) {
-            setDeliveryDetails({
-              mobileNumber: userData.deliveryDetails.mobileNumber || '',
-              deliveryAddress: userData.deliveryDetails.deliveryAddress || '',
-              landmark: userData.deliveryDetails.landmark || '',
-              pincode: userData.deliveryDetails.pincode || '',
-            })
-          }
+        if (userData.deliveryDetails) {
+          setDeliveryDetails({
+            mobileNumber: userData.deliveryDetails.mobileNumber || '',
+            deliveryAddress: userData.deliveryDetails.deliveryAddress || '',
+            landmark: userData.deliveryDetails.landmark || '',
+            pincode: userData.deliveryDetails.pincode || '',
+          })
         }
       } catch (err) {
         console.error('Failed to fetch user profile:', err)
@@ -82,9 +47,7 @@ const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
       }
     }
 
-    if (fetchingUserData) {
-      fetchUserProfile()
-    }
+    fetchUserProfile()
   }, [])
 
   const handleSaveName = async () => {
@@ -103,6 +66,7 @@ const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
       setUpdateError(null)
 
       await api('/api/users/profile', {
+        auth: true,
         method: 'PATCH',
         body: JSON.stringify({ displayName: displayName.trim() }),
       })
@@ -155,27 +119,7 @@ const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
     setDeliverySuccess(null)
 
     try {
-      const currentUser = auth.currentUser
-      if (!currentUser) {
-        throw new Error('User not authenticated')
-      }
-
-      const idToken = await currentUser.getIdToken()
-
-      const response = await fetch(`${getApiBaseUrl()}/api/users/delivery-details`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify(deliveryDetails),
-        credentials: 'include',
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.message || 'Failed to update delivery details')
-      }
+      await usersApi.updateDeliveryDetails(deliveryDetails)
 
       setDeliverySuccess('Delivery details saved successfully!')
       setIsEditingDelivery(false)

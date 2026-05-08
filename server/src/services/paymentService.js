@@ -311,6 +311,61 @@ export const createOrder = async (bookingData) => {
   }
 };
 
+export const createCartOrder = async (cartData) => {
+  try {
+    const { cartItems } = cartData;
+
+    if (!Array.isArray(cartItems) || cartItems.length === 0) {
+      throw new Error("Cart is empty");
+    }
+
+    let rentalAmount = 0;
+
+    for (const item of cartItems) {
+      const listing = await getListingById(item.listingId);
+      if (!listing) {
+        throw new Error(`Listing not found with ID: ${item.listingId}`);
+      }
+
+      const totalDays = Number(item.durationDays) || 1;
+      const pricePerDay = Number(item.pricePerDay) || Number(listing.pricePerDay) || 0;
+      rentalAmount += totalDays * pricePerDay;
+    }
+
+    const amountToCharge = rentalAmount / 2;
+    const amountInPaise = Math.round(amountToCharge * 100);
+
+    if (amountInPaise < 1) {
+      throw new Error("Order amount is too small. Minimum is 0.01 INR");
+    }
+
+    if (!razorpay) {
+      const keyId = (process.env.RAZORPAY_KEY_ID || "").trim();
+      const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim();
+      razorpay = new Razorpay({
+        key_id: keyId,
+        key_secret: keySecret,
+      });
+    }
+
+    const razorpayOrder = await razorpay.orders.create({
+      amount: amountInPaise,
+      currency: "INR",
+      receipt: `cart_${Date.now()}`,
+    });
+
+    return {
+      orderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      key: process.env.RAZORPAY_KEY_ID,
+    };
+  } catch (error) {
+    console.error("[PaymentService] createCartOrder error:", error);
+    throw new Error(`Failed to create cart order: ${error.message}`);
+  }
+};
+
 export const verifyPayment = async (paymentData) => {
   try {
     const { 
@@ -457,6 +512,130 @@ export const verifyPayment = async (paymentData) => {
     return booking;
   } catch (error) {
     console.error("[PaymentService] verifyPayment error:", error);
+    throw new Error(`Payment verification failed: ${error.message}`);
+  }
+};
+
+export const verifyCartPayment = async (paymentData) => {
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      cartItems,
+      deliveryDetails,
+    } = paymentData;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      throw new Error("Missing payment verification data");
+    }
+
+    if (!Array.isArray(cartItems) || cartItems.length === 0) {
+      throw new Error("Missing cart items for verification");
+    }
+
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body)
+      .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+      throw new Error("Payment signature verification failed");
+    }
+
+    const bookings = [];
+
+    for (const item of cartItems) {
+      const listing = await getListingById(item.listingId);
+      if (!listing) {
+        throw new Error(`Listing not found with ID: ${item.listingId}`);
+      }
+
+      const totalDays = Number(item.totalDays) || Number(item.durationDays) || 1;
+      const pricePerDay = Number(item.pricePerDay) || Number(listing.pricePerDay) || 0;
+      const depositAmount = Number(item.depositAmount) || Number(listing.deposit) || 0;
+      const cleaningFee = Number(item.cleaningFee) || 0;
+      const deliveryFee = Number(item.deliveryFee) || 0;
+      const rentalAmount = totalDays * pricePerDay;
+      const paidAmount = rentalAmount / 2;
+      const pendingAmount = rentalAmount / 2 + depositAmount + cleaningFee + deliveryFee;
+      const startDate = new Date(item.startDate);
+      const endDate = new Date(item.endDate);
+      const eventDate = item.eventDate ? new Date(item.eventDate) : addDays(startDate, 1);
+
+      const booking = new Booking({
+        listingId: listing._id,
+        userId: item.userId,
+        renterId: item.renterId || listing.userId,
+        startDate,
+        endDate,
+        deliveryDate: startDate,
+        eventDate,
+        sellerPickupDate: startDate,
+        customerPickupDate: addDays(endDate, 1),
+        sellerReturnDate: addDays(endDate, 1),
+        totalDays,
+        pricePerDay,
+        rentalAmount,
+        depositAmount,
+        bookingFee: 0,
+        cleaningFee,
+        deliveryFee,
+        totalAmount: rentalAmount + depositAmount + cleaningFee + deliveryFee,
+        paidAmount,
+        pendingAmount,
+        paymentStatus: "partial",
+        bookingStatus: "active",
+        deliveryStatus: "unassigned",
+        deliveryPartnerId: null,
+        deliveryPartnerName: "",
+        deliveryPartnerEmail: "",
+        deliveryAssignedAt: null,
+        milestones: {
+          sellerPickupCompletedAt: null,
+          buyerDeliveryCompletedAt: null,
+          buyerPickupCompletedAt: null,
+          sellerReturnCompletedAt: null,
+          restPaymentCompletedAt: null,
+          depositReturnedAt: null,
+        },
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        razorpaySignature: razorpay_signature,
+        deliveryDetails: deliveryDetails || {},
+        notes: "Reserved from cart",
+      });
+
+      await booking.save();
+      await booking.populate("listingId");
+
+      let renterInfo = {
+        userId: booking.userId,
+        email: `user_${booking.userId}@listnrent.com`,
+        displayName: "Renter",
+      };
+
+      try {
+        const renterUser = await User.findOne({ uid: booking.userId });
+        if (renterUser) {
+          renterInfo = {
+            userId: booking.userId,
+            email: renterUser.email || renterInfo.email,
+            displayName: renterUser.displayName || renterInfo.displayName,
+          };
+        }
+      } catch (userFetchError) {
+        console.warn("[PaymentService] Could not fetch renter user data for cart booking:", userFetchError.message);
+      }
+
+      await markListingAsRented(booking.listingId._id, booking, renterInfo);
+      bookings.push(booking);
+    }
+
+    return bookings;
+  } catch (error) {
+    console.error("[PaymentService] verifyCartPayment error:", error);
     throw new Error(`Payment verification failed: ${error.message}`);
   }
 };

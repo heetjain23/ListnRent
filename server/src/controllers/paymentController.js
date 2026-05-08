@@ -1,6 +1,8 @@
 import {
   createOrder,
+  createCartOrder,
   verifyPayment,
+  verifyCartPayment,
   getBooking,
   getUserBookings,
   getRenterBookings,
@@ -58,6 +60,16 @@ export const handleCreateOrder = async (req, res) => {
   } catch (error) {
     console.error("[Payment Controller] Error creating order:", error);
     return errorResponse(res, error.message || "Failed to create order", 500);
+  }
+};
+
+export const handleCreateCartOrder = async (req, res) => {
+  try {
+    const order = await createCartOrder(req.body);
+    return successResponse(res, order, 201);
+  } catch (error) {
+    console.error("[Payment Controller] Error creating cart order:", error);
+    return errorResponse(res, error.message || "Failed to create cart order", 500);
   }
 };
 
@@ -124,6 +136,33 @@ export const handleVerifyPayment = async (req, res) => {
     return successResponse(res, { booking }, 200);
   } catch (error) {
     console.error("[Payment Controller] Verify payment error:", error);
+    return errorResponse(res, error.message || "Payment verification failed", 400);
+  }
+};
+
+export const handleVerifyCartPayment = async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, cartItems, deliveryDetails } = req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return errorResponse(res, "Missing payment verification data", 400);
+    }
+
+    if (!Array.isArray(cartItems) || cartItems.length === 0) {
+      return errorResponse(res, "Missing cart items for verification", 400);
+    }
+
+    const bookings = await verifyCartPayment({
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      cartItems,
+      deliveryDetails,
+    });
+
+    return successResponse(res, { bookings }, 200);
+  } catch (error) {
+    console.error("[Payment Controller] Verify cart payment error:", error);
     return errorResponse(res, error.message || "Payment verification failed", 400);
   }
 };

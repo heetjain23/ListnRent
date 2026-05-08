@@ -22,7 +22,10 @@ const Layout = ({ children, currentTab, onTabChange }) => {
       <div className="flex-1 flex flex-col ml-0 lg:ml-64">
         <Topbar
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-          title={currentTab.charAt(0).toUpperCase() + currentTab.slice(1).replace(/([A-Z])/g, ' $1')}
+          title={currentTab
+            .replace(/-/g, ' ')
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, (char) => char.toUpperCase())}
         />
 
         {/* Main content */}

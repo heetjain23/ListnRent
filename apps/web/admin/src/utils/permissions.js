@@ -16,6 +16,7 @@ const ROLE_MENU_ACCESS = {
     { icon: '📊', label: 'Dashboard', path: '/admin' },
     { icon: '👥', label: 'Team Management', path: '/admin/team' },
     { icon: '🏪', label: 'Marketplace', path: '/admin/marketplace' },
+    { icon: '🎬', label: 'Category Videos', path: '/admin/category-videos' },
     { icon: '⚠️', label: 'Disputes', path: '/admin/disputes' },
     { icon: '🚚', label: 'Delivires Handling', path: '/admin/deliviresHandling' },
     { icon: '💰', label: 'Finance', path: '/admin/finance' },
@@ -25,6 +26,7 @@ const ROLE_MENU_ACCESS = {
   admin: [
     { icon: '📊', label: 'Dashboard', path: '/admin' },
     { icon: '🏪', label: 'Marketplace', path: '/admin/marketplace' },
+    { icon: '🎬', label: 'Category Videos', path: '/admin/category-videos' },
     { icon: '⚠️', label: 'Disputes', path: '/admin/disputes' },
     { icon: '🚚', label: 'Delivires Handling', path: '/admin/deliviresHandling' },
     { icon: '💰', label: 'Finance', path: '/admin/finance' },
@@ -47,6 +49,10 @@ const PAGE_PERMISSIONS = {
     restricted: ['admin', 'delivery_partner', 'support_team'],
   },
   '/marketplace': {
+    allowed: ['super_admin', 'admin'],
+    restricted: ['delivery_partner', 'support_team'],
+  },
+  '/category-videos': {
     allowed: ['super_admin', 'admin'],
     restricted: ['delivery_partner', 'support_team'],
   },

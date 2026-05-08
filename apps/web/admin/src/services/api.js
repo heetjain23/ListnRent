@@ -1,5 +1,18 @@
 // Admin API Service
+import { auth } from './firebase'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+
+const getAuthHeaders = async () => {
+  const currentUser = auth.currentUser
+
+  if (!currentUser) {
+    return {}
+  }
+
+  const token = await currentUser.getIdToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 export const adminApi = {
   // Initialize admin
@@ -84,6 +97,86 @@ export const adminApi = {
 
     if (!response.ok) {
       throw new Error(data.message || 'Failed to update admin email')
+    }
+
+    return data
+  },
+
+  // Category Videos Methods
+  getCategoryVideos: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/category-videos`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get category videos')
+    }
+
+    return data
+  },
+
+  saveCategoryVideo: async (payload) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeaders()),
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/category-videos`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to save category video')
+    }
+
+    return data
+  },
+
+  updateCategoryVideo: async (id, updates) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeaders()),
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/category-videos/${id}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(updates),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update category video')
+    }
+
+    return data
+  },
+
+  deleteCategoryVideo: async (id) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeaders()),
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/category-videos/${id}`, {
+      method: 'DELETE',
+      headers,
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to delete category video')
     }
 
     return data

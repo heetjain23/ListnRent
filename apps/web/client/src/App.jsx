@@ -6,12 +6,22 @@ import { completeMagicLinkSignIn } from './services/firebase'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
+import BottomNav from './components/layout/BottomNav'
 import PageLoadAnimation from './components/animations/PageLoadAnimation'
 import AnimatedRoutes from './components/animations/AnimatedRoutes'
+import CursorFollower from './components/ui/CursorFollower'
+import { useSEO } from './hooks/useSEO'
 
 const CompleteMagicLink = () => {
   const [status, setStatus] = useState('loading') // loading, success, error
   const [error, setError] = useState(null)
+
+  useSEO({
+    title: 'Complete Sign In',
+    description: 'Completing your secure sign-in on ListnRent.',
+    canonicalPath: '/complete-magic-link',
+    noIndex: true,
+  })
 
   useEffect(() => {
     const completeSignIn = async () => {
@@ -23,11 +33,9 @@ const CompleteMagicLink = () => {
           return
         }
 
-        // Complete the magic link sign-in
         await completeMagicLinkSignIn(savedEmail)
         setStatus('success')
 
-        // Redirect to dashboard after 2 seconds
         setTimeout(() => {
           window.location.href = '/dashboard'
         }, 2000)
@@ -78,10 +86,21 @@ const CompleteMagicLink = () => {
 }
 
 const App = () => {
+  const [isMobile, setIsMobile] = useState(
+    typeof window === 'undefined' ? false : window.innerWidth < 768
+  )
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
   return (
     <ErrorBoundary>
       <AuthProvider>
         <Router>
+          {!isMobile && <CursorFollower />}
           <Toaster
             position="top-center"
             richColors
@@ -98,6 +117,8 @@ const App = () => {
             </main>
             <Footer />
           </div>
+          {/* Bottom navigation — mobile only (lg:hidden handled inside component) */}
+          <BottomNav />
         </Router>
       </AuthProvider>
     </ErrorBoundary>
