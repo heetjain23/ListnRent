@@ -17,5 +17,8 @@
     "build:server": "npm run build --workspace=server",
     "build:client": "npm run build --workspace=@listnrent/client",
     "build:admin": "npm run build --workspace=@listnrent/admin"
+  },
+  "devDependencies": {
+    "rollup": "^4.60.3"
   }
 }
