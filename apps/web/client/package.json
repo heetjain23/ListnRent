@@ -8,11 +8,11 @@
     "sitemap": "node scripts/generate-sitemap.mjs",
     "build": "npm run sitemap && vite build",
     "build:seo": "npm run sitemap && vite build",
-    "postinstall": "node scripts/patch-rollup-native.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "lightningcss": "^1.30.2",
     "@listnrent/shared": "file:../../../packages/shared",
     "@tailwindcss/vite": "^4.2.2",
     "cropperjs": "^1.6.2",
