@@ -19,6 +19,7 @@
     "build:admin": "npm run build --workspace=@listnrent/admin"
   },
   "devDependencies": {
+    "esbuild": "^0.28.0",
     "rollup": "^4.60.3"
   }
 }
