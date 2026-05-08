@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node apps/web/admin/scripts/patch-rollup-native.mjs && npm run build:admin",
+  "buildCommand": "node scripts/patch-rollup-native.mjs && if [ \"$VERCEL_ENV\" = \"production\" ]; then export VITE_SITE_MODE=production; elif [ \"$VERCEL_ENV\" = \"preview\" ]; then export VITE_SITE_MODE=preview; else export VITE_SITE_MODE=development; fi; npm run build",
   "installCommand": "npm install",
   "rewrites": [
     {
