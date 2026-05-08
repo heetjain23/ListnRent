@@ -4,11 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "postinstall": "node scripts/patch-rollup-native.mjs",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "node scripts/patch-rollup-native.mjs"
+  },
+  "engines": {
+    "node": "22.x"
   },
   "dependencies": {
     "@listnrent/shared": "file:../../../packages/shared",
