@@ -25,6 +25,27 @@ Create a .env file:
 
 VITE_API_URL=http://localhost:5000
 
+### Site Rendering Mode
+
+The client supports environment-based rendering via `VITE_SITE_MODE`.
+
+- `VITE_SITE_MODE=production` -> renders only the Coming Soon page
+- `VITE_SITE_MODE=preview` -> renders the full app (routes + features)
+- `VITE_SITE_MODE=development` -> renders the full app
+- `VITE_SITE_MODE=comingsoon` -> force Coming Soon page in any environment
+
+Default files included:
+
+- `.env.production` sets `VITE_SITE_MODE=production`
+- `.env.preview` sets `VITE_SITE_MODE=preview`
+- `.env.development` sets `VITE_SITE_MODE=development`
+
+Vercel behavior:
+
+- Production deployments build with `VITE_SITE_MODE=production`
+- Preview deployments build with `VITE_SITE_MODE=preview`
+- Development deployments build with `VITE_SITE_MODE=development`
+
 ## 📁 Structure
 
 src/
