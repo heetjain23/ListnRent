@@ -22,19 +22,6 @@ router.post("/send", messageController.handleSendMessage);
 router.get("/conversations", messageController.handleGetConversations);
 
 /**
- * GET /api/messages/:conversationId
- * Get messages in a conversation (auto-marks as read)
- * Query: { limit?, skip? }
- */
-router.get("/:conversationId", messageController.handleGetMessages);
-
-/**
- * POST /api/messages/:conversationId/read
- * Explicitly mark messages as read
- */
-router.post("/:conversationId/read", messageController.handleMarkAsRead);
-
-/**
  * GET /api/messages/unread/count
  * Get unread message counts
  */
@@ -48,5 +35,18 @@ router.get(
   "/get-or-create/:listingId/:otherUserId",
   messageController.handleGetOrCreateConversation
 );
+
+/**
+ * POST /api/messages/:conversationId/read
+ * Explicitly mark messages as read
+ */
+router.post("/:conversationId/read", messageController.handleMarkAsRead);
+
+/**
+ * GET /api/messages/:conversationId
+ * Get messages in a conversation (auto-marks as read)
+ * Query: { limit?, skip? }
+ */
+router.get("/:conversationId", messageController.handleGetMessages);
 
 export default router;
