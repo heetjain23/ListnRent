@@ -3,18 +3,15 @@
   "version": "1.0.0",
   "description": "ListnRent - Clothing Rental Platform",
   "private": true,
-
   "engines": {
     "node": "22.x"
   },
-
   "workspaces": [
     "packages/*",
     "apps/web/client",
     "apps/web/admin",
     "server"
   ],
-
   "scripts": {
     "install-all": "npm install",
     "dev:server": "npm run dev --workspace=server",
@@ -24,9 +21,11 @@
     "build:client": "npm run build --workspace=@listnrent/client",
     "build:admin": "npm run build --workspace=@listnrent/admin"
   },
-
   "devDependencies": {
     "esbuild": "^0.28.0",
     "rollup": "^4.60.3"
+  },
+  "optionalDependencies": {
+    "lightningcss-linux-x64-gnu": "*"
   }
 }
