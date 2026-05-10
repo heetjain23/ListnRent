@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import admin from "../config/firebase-admin.js";
-import * as messageService from "../services/messageService.js";
+import * as messageService from "../features/messages/messageService.js";
 
 /**
  * socketServer.js

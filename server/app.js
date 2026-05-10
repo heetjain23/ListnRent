@@ -9,14 +9,14 @@ dotenv.config();
 import "./src/config/firebase-admin.js";
 
 import { connectDB } from "./src/config/db.js";
-import listingRoutes from "./src/routes/listingRoutes.js";
-import paymentRoutes from "./src/routes/paymentRoutes.js";
-import cartRoutes from "./src/routes/cartRoutes.js";
-import newsletterRoutes from "./src/routes/newsletterRoutes.js";
-import userRoutes from "./src/routes/userRoutes.js";
-import adminRoutes from "./src/routes/adminRoutes.js";
-import categoryVideoRoutes from "./src/routes/categoryVideoRoutes.js";
-import messageRoutes from "./src/routes/messageRoutes.js";
+import listingRoutes from "./src/features/listings/listingRoutes.js";
+import paymentRoutes from "./src/features/payments/paymentRoutes.js";
+import cartRoutes from "./src/features/cart/cartRoutes.js";
+import newsletterRoutes from "./src/features/newsletter/newsletterRoutes.js";
+import userRoutes from "./src/features/users/userRoutes.js";
+import adminRoutes from "./src/features/admin/adminRoutes.js";
+import categoryVideoRoutes from "./src/features/category-videos/categoryVideoRoutes.js";
+import messageRoutes from "./src/features/messages/messageRoutes.js";
 
 // Socket.io
 import { initSocketServer, attachIO } from "./src/socket/socketServer.js";
