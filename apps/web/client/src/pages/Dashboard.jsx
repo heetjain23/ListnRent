@@ -177,9 +177,7 @@ const Sidebar = ({ activeTab, onTabChange, user, onLogout, onAddNew }) => (
                   className="w-1.5 h-1.5 rounded-full bg-[#D4AF37]"
                 />
               )}
-              {item.id === 'messages' && (
-                <span className="bg-[#C8622A] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">New</span>
-              )}
+              {item.id === 'messages'}
             </button>
           )
         })}
@@ -307,9 +305,7 @@ const MobileNav = ({ activeTab, onTabChange, user, onLogout, onAddNew }) => {
                     >
                       {item.icon}
                       <span className="flex-1 text-left">{item.label}</span>
-                      {item.id === 'messages' && (
-                        <span className="bg-[#C8622A] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">New</span>
-                      )}
+                      {item.id === 'messages' }
                     </button>
                   )
                 })}

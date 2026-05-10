@@ -1,15 +1,20 @@
 import * as messageService from "../services/messageService.js";
 import { errorResponse } from "../utils/helper.js";
+import {
+  broadcastNewMessage,
+  broadcastReadReceipt,
+} from "../socket/socketServer.js";
 
 /**
  * Send a message
+ * Flow: validate → write to DB → respond to HTTP client → broadcast via socket
+ * Socket broadcast is fire-and-forget after the DB write succeeds.
  */
 export const handleSendMessage = async (req, res) => {
   try {
     const userId = req.user.uid;
     const { conversationId, otherUserId, listingId, text } = req.body;
 
-    // Validate input
     if (!text?.trim()) {
       return errorResponse(res, "Message text cannot be empty", 400);
     }
@@ -26,43 +31,60 @@ export const handleSendMessage = async (req, res) => {
       return errorResponse(res, "Cannot message yourself", 400);
     }
 
+    // Get or create conversation
     let finalConversationId = conversationId;
-
-    // Get or create conversation if needed
+    let conversation;
     if (!conversationId) {
-      const conversation = await messageService.getOrCreateConversation(
+      conversation = await messageService.getOrCreateConversation(
         userId,
         otherUserId,
         listingId
       );
       finalConversationId = conversation._id.toString();
+    } else {
+      conversation = await messageService.getConversationById(finalConversationId);
     }
 
-    // Verify user is in conversation
+    // Verify participant
     const isParticipant = await messageService.isUserInConversation(
       finalConversationId,
       userId
     );
     if (!isParticipant) {
-      return errorResponse(
-        res,
-        "Not authorized to message in this conversation",
-        403
-      );
+      return errorResponse(res, "Not authorized to message in this conversation", 403);
     }
 
-    // Send message
+    // Write message to DB
     const message = await messageService.sendMessage(
       finalConversationId,
       userId,
       text
     );
 
+    const messageObj = message.toObject();
+
+    // HTTP response — client gets immediate confirmation
     res.status(201).json({
       success: true,
       conversationId: finalConversationId,
-      message: message.toObject(),
+      message: messageObj,
     });
+
+    // Broadcast via socket (after responding so HTTP latency doesn't block)
+    const participantIds = conversation?.participantIds ||
+      (await messageService.getConversationParticipants(finalConversationId));
+
+    broadcastNewMessage(
+      finalConversationId,
+      messageObj,
+      participantIds,
+      {
+        conversationId: finalConversationId,
+        lastMessage: text.trim().substring(0, 100),
+        lastMessageAt: messageObj.createdAt,
+        senderId: userId,
+      }
+    );
   } catch (error) {
     console.error("[SendMessage Error]", error);
     errorResponse(res, error.message || "Failed to send message", 500);
@@ -92,6 +114,7 @@ export const handleGetConversations = async (req, res) => {
 
 /**
  * Get messages in a conversation
+ * Also marks messages as read and broadcasts the receipt.
  */
 export const handleGetMessages = async (req, res) => {
   try {
@@ -99,7 +122,6 @@ export const handleGetMessages = async (req, res) => {
     const { conversationId } = req.params;
     const { limit = 50, skip = 0 } = req.query;
 
-    // Verify user is in conversation
     const isParticipant = await messageService.isUserInConversation(
       conversationId,
       userId
@@ -108,10 +130,9 @@ export const handleGetMessages = async (req, res) => {
       return errorResponse(res, "Not authorized to view this conversation", 403);
     }
 
-    // Mark messages as read
+    // Mark as read
     await messageService.markMessagesAsRead(conversationId, userId);
 
-    // Get messages
     const messages = await messageService.getConversationMessages(
       conversationId,
       Math.min(parseInt(limit) || 50, 100),
@@ -119,6 +140,10 @@ export const handleGetMessages = async (req, res) => {
     );
 
     res.status(200).json({ success: true, messages });
+
+    // Broadcast read receipt after responding
+    const participants = await messageService.getConversationParticipants(conversationId);
+    broadcastReadReceipt(conversationId, userId, participants);
   } catch (error) {
     console.error("[GetMessages Error]", error);
     errorResponse(res, error.message || "Failed to fetch messages", 500);
@@ -126,14 +151,13 @@ export const handleGetMessages = async (req, res) => {
 };
 
 /**
- * Mark messages as read (explicit)
+ * Explicit mark-as-read (called when user focuses conversation)
  */
 export const handleMarkAsRead = async (req, res) => {
   try {
     const userId = req.user.uid;
     const { conversationId } = req.params;
 
-    // Verify user is in conversation
     const isParticipant = await messageService.isUserInConversation(
       conversationId,
       userId
@@ -145,6 +169,10 @@ export const handleMarkAsRead = async (req, res) => {
     await messageService.markMessagesAsRead(conversationId, userId);
 
     res.status(200).json({ success: true, message: "Messages marked as read" });
+
+    // Broadcast read receipt
+    const participants = await messageService.getConversationParticipants(conversationId);
+    broadcastReadReceipt(conversationId, userId, participants);
   } catch (error) {
     console.error("[MarkAsRead Error]", error);
     errorResponse(res, error.message || "Failed to mark as read", 500);
@@ -157,16 +185,10 @@ export const handleMarkAsRead = async (req, res) => {
 export const handleGetUnreadCount = async (req, res) => {
   try {
     const userId = req.user.uid;
-
     const unreadCount = await messageService.getUnreadMessageCount(userId);
-    const unreadConversations =
-      await messageService.getUnreadConversations(userId);
+    const unreadConversations = await messageService.getUnreadConversations(userId);
 
-    res.status(200).json({
-      success: true,
-      unreadCount,
-      unreadConversations,
-    });
+    res.status(200).json({ success: true, unreadCount, unreadConversations });
   } catch (error) {
     console.error("[GetUnreadCount Error]", error);
     errorResponse(res, error.message || "Failed to fetch unread count", 500);
@@ -181,10 +203,7 @@ export const handleGetOrCreateConversation = async (req, res) => {
     const userId = req.user.uid;
     const { listingId, otherUserId } = req.params;
 
-    if (!otherUserId) {
-      return errorResponse(res, "otherUserId required", 400);
-    }
-
+    if (!otherUserId) return errorResponse(res, "otherUserId required", 400);
     if (userId === otherUserId) {
       return errorResponse(res, "Cannot create conversation with yourself", 400);
     }
@@ -202,10 +221,6 @@ export const handleGetOrCreateConversation = async (req, res) => {
     });
   } catch (error) {
     console.error("[GetOrCreateConversation Error]", error);
-    errorResponse(
-      res,
-      error.message || "Failed to get/create conversation",
-      500
-    );
+    errorResponse(res, error.message || "Failed to get/create conversation", 500);
   }
 };

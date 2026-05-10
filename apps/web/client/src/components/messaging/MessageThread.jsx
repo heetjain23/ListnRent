@@ -1,165 +1,171 @@
 import React, { useEffect, useRef, useMemo } from 'react'
 import { motion } from 'motion/react'
 
-/**
- * Get date grouping key for a message
- */
 const getDateKey = (date) => {
   const now = new Date()
   const msgDate = new Date(date)
-  
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
   const msgDay = new Date(msgDate.getFullYear(), msgDate.getMonth(), msgDate.getDate())
-  
-  if (msgDay.getTime() === today.getTime()) {
-    return 'TODAY'
-  } else if (msgDay.getTime() === yesterday.getTime()) {
-    return 'YESTERDAY'
-  } else {
-    return msgDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }).toUpperCase()
+
+  if (msgDay.getTime() === today.getTime()) return 'Today'
+  if (msgDay.getTime() === yesterday.getTime()) return 'Yesterday'
+  return msgDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+}
+
+const DateDivider = ({ date }) => (
+  <div className="flex items-center gap-3 my-5 px-5">
+    <div className="flex-1 h-px" style={{ background: 'rgba(0,52,43,0.10)' }} />
+    <span
+      className="px-3 py-1 rounded-full text-xs font-medium"
+      style={{
+        background: 'rgba(0,52,43,0.07)',
+        color: '#7D9A8A',
+        letterSpacing: '0.03em',
+        fontSize: 11,
+      }}
+    >
+      {getDateKey(date)}
+    </span>
+    <div className="flex-1 h-px" style={{ background: 'rgba(0,52,43,0.10)' }} />
+  </div>
+)
+
+const MessageBubble = ({ message, isOwn, senderName, senderPhoto }) => {
+  const timeStr = new Date(message.createdAt).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  if (isOwn) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        className="flex justify-end px-5 mb-2"
+      >
+        <div className="flex flex-col items-end max-w-[72%]">
+          <div
+            className="px-4 py-2.5 rounded-2xl rounded-tr-sm"
+            style={{
+              background: 'linear-gradient(135deg, #004D40 0%, #00342B 100%)',
+              boxShadow: '0 2px 12px rgba(0,52,43,0.18)',
+            }}
+          >
+            <p style={{ color: '#E8F5F2', fontSize: 13.5, lineHeight: 1.5, wordBreak: 'break-word' }}>
+              {message.text}
+            </p>
+          </div>
+          <span style={{ fontSize: 10.5, color: '#9E9E7A', marginTop: 3 }}>{timeStr}</span>
+        </div>
+      </motion.div>
+    )
   }
-}
 
-/**
- * DateDivider - Shows date separator between message groups
- */
-const DateDivider = ({ date }) => {
-  const dateKey = getDateKey(date)
-  const monthDay = new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }).toUpperCase()
-  
-  return (
-    <div className="flex items-center gap-3 my-6">
-      <div className="flex-1" style={{ borderTopColor: '#E8E4D4', borderTopWidth: '1px' }} />
-      <p className="text-xs font-semibold" style={{ color: '#9E9E7A' }}>
-        {dateKey}, {monthDay}
-      </p>
-      <div className="flex-1" style={{ borderTopColor: '#E8E4D4', borderTopWidth: '1px' }} />
-    </div>
-  )
-}
-
-/**
- * Message - Individual message bubble
- */
-const Message = ({ message, isOwn, senderName, senderPhoto }) => {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className={`flex gap-2 mb-4 ${isOwn ? 'justify-end' : 'justify-start'}`}
+      initial={{ opacity: 0, y: 6, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      className="flex items-end gap-2.5 px-5 mb-2"
     >
-      {!isOwn && senderPhoto && (
+      {/* Avatar */}
+      {senderPhoto ? (
+        <img src={senderPhoto} alt={senderName} className="w-8 h-8 rounded-full object-cover shrink-0" />
+      ) : (
         <div
           className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0"
-          style={{
-            background: 'linear-gradient(135deg, #004D40, #00342B)',
-          }}
+          style={{ background: 'linear-gradient(135deg, #004D40, #00342B)' }}
         >
-          {senderName?.[0]?.toUpperCase() || 'U'}
+          {(senderName || 'U').charAt(0).toUpperCase()}
         </div>
       )}
 
-      <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-xs`}>
+      <div className="flex flex-col items-start max-w-[72%]">
         <div
-          className="p-3 rounded-lg wrap-break-word"
+          className="px-4 py-2.5 rounded-2xl rounded-tl-sm"
           style={{
-            backgroundColor: isOwn ? '#004D40' : '#FDFCF0',
-            color: isOwn ? '#FDFCF0' : '#1A1A14',
-            border: isOwn ? 'none' : '1px solid #E8E4D4',
+            background: '#FDFCF5',
+            border: '1px solid rgba(0,52,43,0.10)',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
           }}
         >
-          <p className="text-sm">{message.text}</p>
+          <p style={{ color: '#1A1A14', fontSize: 13.5, lineHeight: 1.5, wordBreak: 'break-word' }}>
+            {message.text}
+          </p>
         </div>
-        <p className="text-xs mt-1" style={{ color: '#9E9E7A' }}>
-          {new Date(message.createdAt).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </p>
+        <span style={{ fontSize: 10.5, color: '#9E9E7A', marginTop: 3 }}>{timeStr}</span>
       </div>
     </motion.div>
   )
 }
 
-/**
- * MessageThread - Displays all messages in a conversation with date grouping
- */
 export const MessageThread = ({ messages, currentUserId, loading = false }) => {
   const endRef = useRef(null)
-  const previousMessageCountRef = useRef(0)
+  const prevCountRef = useRef(0)
 
-  // Group messages by date
   const groupedMessages = useMemo(() => {
     if (!messages || messages.length === 0) return []
-    
     const groups = []
     let currentDateKey = null
     let currentGroup = []
-    
-    messages.forEach((message) => {
-      const dateKey = getDateKey(message.createdAt)
-      
-      if (dateKey !== currentDateKey) {
-        if (currentGroup.length > 0) {
-          groups.push({ dateKey: currentDateKey, messages: currentGroup })
-        }
-        currentDateKey = dateKey
-        currentGroup = [message]
+
+    messages.forEach((msg) => {
+      const dk = getDateKey(msg.createdAt)
+      if (dk !== currentDateKey) {
+        if (currentGroup.length > 0) groups.push({ dateKey: currentDateKey, messages: currentGroup })
+        currentDateKey = dk
+        currentGroup = [msg]
       } else {
-        currentGroup.push(message)
+        currentGroup.push(msg)
       }
     })
-    
-    // Push last group
-    if (currentGroup.length > 0) {
-      groups.push({ dateKey: currentDateKey, messages: currentGroup })
-    }
-    
+    if (currentGroup.length > 0) groups.push({ dateKey: currentDateKey, messages: currentGroup })
     return groups
   }, [messages])
 
-  // Auto-scroll to bottom only when NEW messages arrive, not on initial load
   useEffect(() => {
-    // Only scroll if messages increased (new message added), not on initial load
-    if (messages.length > previousMessageCountRef.current) {
+    if (messages.length > prevCountRef.current) {
       endRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-    previousMessageCountRef.current = messages.length
+    prevCountRef.current = messages.length
   }, [messages])
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <p style={{ color: '#9E9E7A' }}>Loading messages...</p>
+      <div className="flex-1 flex items-center justify-center" style={{ background: '#F5F2EA' }}>
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-6 h-6 rounded-full border-2 border-[#004D40]/20 border-t-[#004D40] animate-spin" />
+          <p style={{ fontSize: 12, color: '#9E9E7A' }}>Loading messages...</p>
+        </div>
       </div>
     )
   }
 
   if (!messages || messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <p style={{ color: '#9E9E7A' }}>No messages yet. Start the conversation!</p>
+      <div className="flex-1 flex items-center justify-center" style={{ background: '#F5F2EA' }}>
+        <p style={{ fontSize: 13, color: '#9E9E7A' }}>No messages yet. Say hello! 👋</p>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4" style={{ backgroundColor: '#FAFAF8' }}>
-      {groupedMessages.map((group, groupIdx) => (
-        <div key={groupIdx}>
+    <div className="flex-1 overflow-y-auto py-4" style={{ background: '#F5F2EA' }}>
+      {groupedMessages.map((group, gi) => (
+        <div key={gi}>
           <DateDivider date={group.messages[0].createdAt} />
-          {group.messages.map((message, idx) => {
-            const isOwn = message.senderId === currentUserId
+          {group.messages.map((msg, mi) => {
+            const isOwn = msg.senderId === currentUserId
             return (
-              <Message
-                key={message._id || `${groupIdx}-${idx}`}
-                message={message}
+              <MessageBubble
+                key={msg._id || `${gi}-${mi}`}
+                message={msg}
                 isOwn={isOwn}
-                senderName={message.senderName}
-                senderPhoto={message.senderPhotoURL}
+                senderName={msg.senderName}
+                senderPhoto={msg.senderPhotoURL}
               />
             )
           })}

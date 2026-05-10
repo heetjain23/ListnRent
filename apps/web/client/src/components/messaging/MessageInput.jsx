@@ -1,114 +1,121 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback } from 'react'
 
 const MessageInput = ({
   onSend,
+  onTyping,
+  onStopTyping,
   disabled = false,
-  placeholder = "Type your message...",
+  placeholder = 'Type a message...',
 }) => {
-  const textareaRef = useRef(null);
-  const valueRef = useRef("");
-  const [value, setValue] = useState("");
-  const [rows, setRows] = useState(1);
+  const textareaRef = useRef(null)
+  const valueRef    = useRef('')
+  const [value, setValue] = useState('')
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    valueRef.current = value;
-  }, [value]);
+  useEffect(() => { valueRef.current = value }, [value])
 
   // Auto-resize textarea
   useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    textarea.style.height = "auto";
-    const height = Math.min(textarea.scrollHeight, 120); // Max 120px
-    textarea.style.height = `${height}px`;
-
-    const lineCount = Math.ceil(textarea.scrollHeight / 24); // Approx 24px per line
-    setRows(Math.min(lineCount, 5));
-  }, [value]);
+    const ta = textareaRef.current
+    if (!ta) return
+    ta.style.height = 'auto'
+    ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`
+  }, [value])
 
   const handleSend = useCallback(() => {
-    if (!valueRef.current.trim() || disabled) return;
-    onSend(valueRef.current.trim());
-    setValue("");
-  }, [disabled, onSend]);
+    if (!valueRef.current.trim() || disabled) return
+    onStopTyping?.()
+    onSend(valueRef.current.trim())
+    setValue('')
+  }, [disabled, onSend, onStopTyping])
+
+  const handleChange = (e) => {
+    setValue(e.target.value)
+    if (e.target.value.trim()) {
+      onTyping?.()
+    } else {
+      onStopTyping?.()
+    }
+  }
 
   const handleKeyDown = (e) => {
-    if (disabled) return;
-
-    // Ctrl+Enter or Shift+Enter to send
-    if ((e.ctrlKey || e.shiftKey) && e.key === "Enter") {
-      e.preventDefault();
-      handleSend();
+    if (disabled) return
+    if ((e.ctrlKey || e.shiftKey) && e.key === 'Enter') {
+      e.preventDefault()
+      handleSend()
     }
-  };
+  }
+
+  const handleBlur = () => onStopTyping?.()
 
   return (
-    <>
-      <style>{`
-        .message-textarea {
-          overflow-y: hidden !important;
-          scrollbar-width: none;
-        }
-        .message-textarea::-webkit-scrollbar {
-          display: none;
-        }
-        .message-textarea::-webkit-outer-spin-button,
-        .message-textarea::-webkit-inner-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-      `}</style>
-      <div className="flex items-end gap-3 p-4 border-t" style={{ borderColor: '#E8E4D4', backgroundColor: '#FAFAF8' }}>
-        {/* Attachment button */}
-        <button
-          className="shrink-0 p-3 rounded-lg hover:bg-opacity-20 transition-colors"
-          style={{ color: '#004D40' }}
-          title="Attach file"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2m0 0v-8m0 8l-6-4m6 4l6-4" />
-          </svg>
-        </button>
+    <div
+      className="flex items-end gap-2.5 px-4 py-3"
+      style={{
+        background: '#F5F2EA',
+        borderTop: '1px solid rgba(0,52,43,0.09)',
+      }}
+    >
+      {/* Attachment */}
+      <button
+        className="shrink-0 flex items-center justify-center w-9 h-9 rounded-xl transition-all hover:bg-black/6"
+        style={{ color: '#7D9A8A' }}
+        title="Attach"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
 
+      {/* Input field */}
+      <div
+        className="flex-1 flex items-center rounded-2xl px-4 py-2.5"
+        style={{
+          background: '#FDFCF5',
+          border: '1.5px solid rgba(0,52,43,0.11)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+          minHeight: 44,
+        }}
+      >
         <textarea
           ref={textareaRef}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
           placeholder={placeholder}
           disabled={disabled}
-          rows={rows}
-          className="message-textarea flex-1 resize-none rounded-lg border px-4 py-3 text-sm bg-white disabled:opacity-50 focus:outline-none focus:ring-2 focus:border-transparent max-h-37.5 min-h-11 leading-relaxed"
+          rows={1}
+          className="flex-1 resize-none bg-transparent focus:outline-none disabled:opacity-50 leading-relaxed"
           style={{
-            borderColor: '#E8E4D4',
             color: '#1A1A14',
-            focusRingColor: '#004D40',
+            fontSize: 13.5,
+            maxHeight: 120,
+            overflow: 'hidden',
+            scrollbarWidth: 'none',
           }}
         />
-        
-        <button
-          onClick={handleSend}
-          disabled={disabled || !value.trim()}
-          className="shrink-0 p-3 rounded-lg text-white font-medium hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-          style={{ backgroundColor: '#004D40' }}
-        >
-          {disabled ? (
-            <svg className="w-5 h-5 animate-spin" fill="currentColor" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="1" opacity="0.3" />
-              <circle cx="19" cy="12" r="1" opacity="0.6" />
-              <circle cx="5" cy="12" r="1" opacity="0.3" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M16.6915026,12.4744748 L3.50612381,13.2599618 C3.19218622,13.2599618 3.03521743,13.4170592 3.03521743,13.5741566 L1.15159189,20.0151496 C0.8376543,20.8006365 0.99,21.89 1.77946707,22.52 C2.41,22.99 3.50612381,23.1 4.13399899,22.8429026 L21.714504,14.0454487 C22.6563168,13.5741566 23.1272231,12.6315722 22.9702544,11.6889879 L4.13399899,1.16346707 C3.34915502,0.9 2.40734225,1.00636533 1.77946707,1.4776575 C0.994623095,2.10604706 0.837654326,3.0486314 1.15159189,3.99721578 L3.03521743,10.4382088 C3.03521743,10.5953061 3.34915502,10.7524035 3.50612381,10.7524035 L16.6915026,11.5378905 C16.6915026,11.5378905 17.1624089,11.5378905 17.1624089,12.0091827 C17.1624089,12.4744748 16.6915026,12.4744748 16.6915026,12.4744748 Z" />
-            </svg>
-          )}
-        </button>
       </div>
-    </>
-  );
-};
 
-export default React.memo(MessageInput);
+      {/* Send button */}
+      <button
+        onClick={handleSend}
+        disabled={disabled || !value.trim()}
+        className="shrink-0 flex items-center justify-center w-10 h-10 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        style={{
+          background: 'linear-gradient(135deg, #004D40, #00342B)',
+          boxShadow: value.trim() ? '0 4px 14px rgba(0,52,43,0.28)' : 'none',
+        }}
+      >
+        {disabled ? (
+          <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+        ) : (
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="white">
+            <path d="M16.6915026,12.4744748 L3.50612381,13.2599618 C3.19218622,13.2599618 3.03521743,13.4170592 3.03521743,13.5741566 L1.15159189,20.0151496 C0.8376543,20.8006365 0.99,21.89 1.77946707,22.52 C2.41,22.99 3.50612381,23.1 4.13399899,22.8429026 L21.714504,14.0454487 C22.6563168,13.5741566 23.1272231,12.6315722 22.9702544,11.6889879 L4.13399899,1.16346707 C3.34915502,0.9 2.40734225,1.00636533 1.77946707,1.4776575 C0.994623095,2.10604706 0.837654326,3.0486314 1.15159189,3.99721578 L3.03521743,10.4382088 C3.03521743,10.5953061 3.34915502,10.7524035 3.50612381,10.7524035 L16.6915026,11.5378905 C16.6915026,11.5378905 17.1624089,11.5378905 17.1624089,12.0091827 C17.1624089,12.4744748 16.6915026,12.4744748 16.6915026,12.4744748 Z" />
+          </svg>
+        )}
+      </button>
+    </div>
+  )
+}
+
+export default React.memo(MessageInput)
