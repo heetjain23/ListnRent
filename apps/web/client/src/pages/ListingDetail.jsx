@@ -62,7 +62,7 @@ function AmbientBackground() {
       <motion.div
         animate={{ x: [0, -20, 10, 0], y: [0, 18, 6, 0], opacity: [0.18, 0.3, 0.22, 0.18] }}
         transition={{ duration: 24, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -top-[15%] -right-[10%] rounded-full blur-3xl"
+        className="absolute top-[-15%] right-[-10%] rounded-full blur-3xl"
         style={{
           width: 'min(48vw, 600px)', height: 'min(48vw, 600px)',
           background: 'radial-gradient(circle, rgba(212,175,55,0.22) 0%, rgba(212,175,55,0.07) 50%, transparent 72%)',
@@ -72,7 +72,7 @@ function AmbientBackground() {
       <motion.div
         animate={{ x: [0, 16, -8, 0], y: [0, -14, -4, 0], opacity: [0.12, 0.22, 0.15, 0.12] }}
         transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -bottom-[20%] -left-[8%] rounded-full blur-3xl"
+        className="absolute bottom-[-20%] left-[-8%] rounded-full blur-3xl"
         style={{
           width: 'min(40vw, 500px)', height: 'min(40vw, 500px)',
           background: 'radial-gradient(circle, rgba(0,77,64,0.18) 0%, rgba(0,77,64,0.06) 50%, transparent 72%)',
@@ -437,6 +437,8 @@ const ListingDetail = () => {
               <HostCard
                 displayName={listing.owner?.displayName || listing.owner?.name || 'Host'}
                 ownerName={listing.owner?.name}
+                ownerId={listing.userId}
+                listingId={listing._id}
               />
 
               {/* Sustainability note */}

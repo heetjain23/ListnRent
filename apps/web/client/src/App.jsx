@@ -1,78 +1,86 @@
-import React, { useEffect, useState } from 'react'
-import { BrowserRouter as Router } from 'react-router-dom'
-import { Toaster } from 'sonner'
-import { AuthProvider } from './context/AuthContext'
-import { completeMagicLinkSignIn } from './services/firebase'
-import ErrorBoundary from './components/ui/ErrorBoundary'
-import Navbar from './components/layout/Navbar'
-import Footer from './components/layout/Footer'
-import BottomNav from './components/layout/BottomNav'
-import PageLoadAnimation from './components/animations/PageLoadAnimation'
-import AnimatedRoutes from './components/animations/AnimatedRoutes'
-import CursorFollower from './components/ui/CursorFollower'
-import ComingSoon from './pages/ComingSoon'
-import { SITE_RENDER_TARGET } from './config/siteMode'
-import { useSEO } from './hooks/useSEO'
+import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router } from "react-router-dom";
+import { Toaster } from "sonner";
+import { AuthProvider } from "./context/AuthContext";
+import { MessagingProvider } from "./context/MessagingContext";
+import { SocketProvider } from "./context/SocketContext";
+import { completeMagicLinkSignIn } from "./services/firebase";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
+import Navbar from "./components/layout/Navbar";
+import Footer from "./components/layout/Footer";
+import BottomNav from "./components/layout/BottomNav";
+import PageLoadAnimation from "./components/animations/PageLoadAnimation";
+import AnimatedRoutes from "./components/animations/AnimatedRoutes";
+import CursorFollower from "./components/ui/CursorFollower";
+import MessageNotificationListener from "./components/messaging/MessageNotificationListener";
+import ComingSoon from "./pages/ComingSoon";
+import { SITE_RENDER_TARGET } from "./config/siteMode";
+import { useSEO } from "./hooks/useSEO";
 
 const CompleteMagicLink = () => {
-  const [status, setStatus] = useState('loading') // loading, success, error
-  const [error, setError] = useState(null)
+  const [status, setStatus] = useState("loading");
+  const [error, setError] = useState(null);
 
   useSEO({
-    title: 'Complete Sign In',
-    description: 'Completing your secure sign-in on ListnRent.',
-    canonicalPath: '/complete-magic-link',
+    title: "Complete Sign In",
+    description: "Completing your secure sign-in on ListnRent.",
+    canonicalPath: "/complete-magic-link",
     noIndex: true,
-  })
+  });
 
   useEffect(() => {
     const completeSignIn = async () => {
       try {
-        const savedEmail = localStorage.getItem('emailForSignIn')
+        const savedEmail = localStorage.getItem("emailForSignIn");
         if (!savedEmail) {
-          setStatus('error')
-          setError('No email found. Please try signing in again.')
-          return
+          setStatus("error");
+          setError("No email found. Please try signing in again.");
+          return;
         }
-
-        await completeMagicLinkSignIn(savedEmail)
-        setStatus('success')
-
+        await completeMagicLinkSignIn(savedEmail);
+        setStatus("success");
         setTimeout(() => {
-          window.location.href = '/dashboard'
-        }, 2000)
+          window.location.href = "/dashboard";
+        }, 2000);
       } catch (err) {
-        setStatus('error')
-        setError(err.message || 'Failed to complete sign-in. Link may have expired.')
+        setStatus("error");
+        setError(
+          err.message || "Failed to complete sign-in. Link may have expired.",
+        );
       }
-    }
-
-    completeSignIn()
-  }, [])
+    };
+    completeSignIn();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center px-4 pt-20">
       <div className="w-full max-w-md text-center">
-        {status === 'loading' && (
+        {status === "loading" && (
           <>
             <div className="text-5xl animate-spin mb-4">⏳</div>
-            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">Completing Sign In</h2>
-            <p className="text-[#666]">Securing your session, one moment please...</p>
+            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">
+              Completing Sign In
+            </h2>
+            <p className="text-[#666]">
+              Securing your session, one moment please...
+            </p>
           </>
         )}
-
-        {status === 'success' && (
+        {status === "success" && (
           <>
             <div className="text-5xl mb-4">✅</div>
-            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">Welcome Back!</h2>
+            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">
+              Welcome Back!
+            </h2>
             <p className="text-[#666]">Redirecting to your dashboard...</p>
           </>
         )}
-
-        {status === 'error' && (
+        {status === "error" && (
           <>
             <div className="text-5xl mb-4">❌</div>
-            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">Sign In Failed</h2>
+            <h2 className="text-2xl font-bold text-[#1A1A1A] mb-2">
+              Sign In Failed
+            </h2>
             <p className="text-red-600 mb-4">{error}</p>
             <a
               href="/login"
@@ -84,55 +92,65 @@ const CompleteMagicLink = () => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 const FullApplication = () => {
   const [isMobile, setIsMobile] = useState(
-    typeof window === 'undefined' ? false : window.innerWidth < 768
-  )
+    typeof window === "undefined" ? false : window.innerWidth < 768,
+  );
 
   useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   return (
     <AuthProvider>
-      <Router>
-        {!isMobile && <CursorFollower />}
-        <Toaster
-          position="top-center"
-          richColors
-          theme="light"
-          closeButton
-          duration={4000}
-        />
-        <div className="flex flex-col min-h-screen bg-[#FAF7F2]">
-          <Navbar />
-          <main className="grow">
-            <PageLoadAnimation>
-              <AnimatedRoutes CompleteMagicLinkComponent={CompleteMagicLink} />
-            </PageLoadAnimation>
-          </main>
-          <Footer />
-        </div>
-        {/* Bottom navigation — mobile only (lg:hidden handled inside component) */}
-        <BottomNav />
-      </Router>
+      {/*
+        SocketProvider is INSIDE AuthProvider so it can access `user` for auth.
+        MessagingProvider is inside SocketProvider so it can use the socket context.
+      */}
+      <SocketProvider>
+        <MessagingProvider>
+          <Router>
+            {!isMobile && <CursorFollower />}
+            <Toaster
+              position="top-center"
+              richColors
+              theme="light"
+              closeButton
+              duration={4000}
+            />
+            <div className="flex flex-col min-h-screen bg-[#FAF7F2]">
+              <Navbar />
+              <main className="grow">
+                <PageLoadAnimation>
+                  <AnimatedRoutes
+                    CompleteMagicLinkComponent={CompleteMagicLink}
+                  />
+                </PageLoadAnimation>
+              </main>
+              <Footer />
+            </div>
+            <BottomNav />
+            {/* Background notification listener — now socket-powered, not polling */}
+            <MessageNotificationListener />
+          </Router>
+        </MessagingProvider>
+      </SocketProvider>
     </AuthProvider>
-  )
-}
+  );
+};
 
 const App = () => {
-  const shouldRenderComingSoon = SITE_RENDER_TARGET === 'comingsoon'
-
+  const shouldRenderComingSoon = SITE_RENDER_TARGET === "comingsoon";
   return (
     <ErrorBoundary>
       {shouldRenderComingSoon ? <ComingSoon /> : <FullApplication />}
     </ErrorBoundary>
-  )
-}
+  );
+};
 
-export default App
+export default App;
