@@ -11,16 +11,18 @@ import {
   useRealtimeMessages,
   useRealtimeConversations,
   useTypingSender,
+  useMessageSeenSender,
   useOnlinePresence,
 } from '../../hooks/useRealtimeMessages'
 import { MessageThread } from './MessageThread'
 import MessageInput from './MessageInput'
 import { ConversationList } from './ConversationList'
+import { useSocketContext } from '../../context/SocketContext'
 
 // ── Typing Indicator ──────────────────────────────────────────────────────────
 
 const TypingIndicator = ({ typingUsers }) => {
-  if (!typingUsers || typingUsers.length === 0) return null
+  if (!typingUsers?.length) return null
   return (
     <div className="flex items-center gap-2 px-5 pb-2">
       <div className="flex gap-1 items-center">
@@ -44,19 +46,15 @@ const TypingIndicator = ({ typingUsers }) => {
 // ── Conversation Header ───────────────────────────────────────────────────────
 
 const ConversationHeader = ({ conversation, onBack, showBack }) => {
-  const name = conversation?.otherUser?.displayName || 'User'
-  const initial = name.charAt(0).toUpperCase()
+  const name     = conversation?.otherUser?.displayName || 'User'
+  const initial  = name.charAt(0).toUpperCase()
   const otherUid = conversation?.otherUser?.uid
   const { isOnline } = useOnlinePresence(otherUid)
 
   return (
     <div
-      className="flex items-center justify-between px-5 py-3.5"
-      style={{
-        background: '#F5F2EA',
-        borderBottom: '1px solid rgba(0,52,43,0.09)',
-        minHeight: 64,
-      }}
+      className="flex items-center justify-between px-5 py-3.5 shrink-0"
+      style={{ background: '#F5F2EA', borderBottom: '1px solid rgba(0,52,43,0.09)', minHeight: 64 }}
     >
       <div className="flex items-center gap-3">
         {showBack && (
@@ -70,7 +68,6 @@ const ConversationHeader = ({ conversation, onBack, showBack }) => {
             </svg>
           </button>
         )}
-
         <div className="relative shrink-0">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
@@ -80,13 +77,9 @@ const ConversationHeader = ({ conversation, onBack, showBack }) => {
           </div>
           <div
             className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 transition-colors duration-500"
-            style={{
-              backgroundColor: isOnline ? '#22C55E' : '#9CA3AF',
-              borderColor: '#F5F2EA',
-            }}
+            style={{ backgroundColor: isOnline ? '#22C55E' : '#9CA3AF', borderColor: '#F5F2EA' }}
           />
         </div>
-
         <div>
           <p style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 15, color: '#1A1A14', lineHeight: 1.2 }}>
             {name}
@@ -96,7 +89,6 @@ const ConversationHeader = ({ conversation, onBack, showBack }) => {
           </p>
         </div>
       </div>
-
       <div className="flex items-center gap-1">
         <HeaderIconBtn title="Call">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -143,34 +135,58 @@ const EmptyState = () => (
   </div>
 )
 
-// ── Main Chat Panel (right side) ──────────────────────────────────────────────
+// ── Chat Panel ────────────────────────────────────────────────────────────────
 
 const ChatPanel = ({ conversation, userId, onBack, showBack }) => {
-  const { messages, loading: messagesLoading, fetchMessages, addMessage } = useConversation(
-    conversation?._id
-  )
-  const { sendMessage, loading: sendingMessage } = useSendMessage()
+  const convId = conversation?._id?.toString?.() ?? conversation?._id
+
+  const {
+    messages,
+    loading: messagesLoading,
+    loadingMore,
+    hasMore,
+    fetchMessages,
+    addMessage,
+    replaceMessage,
+    updateMessage,
+  } =
+    useConversation(convId)
+  const {
+    sendMessage,
+    loading: sendingMessage,
+    connected: realtimeConnected,
+  } = useSendMessage()
+  const { connectionStatus, connectionError } = useSocketContext()
+  const { markConversationAsRead, applyUnreadUpdate } = useMessaging()
+  const { sendMessageSeen } = useMessageSeenSender(convId)
+
   const [typingUsers, setTypingUsers] = useState([])
   const typingTimersRef = useRef({})
 
-  // Load messages when conversation opens
+  // Initial message load
   useEffect(() => {
-    if (conversation?._id) fetchMessages()
-  }, [conversation?._id, fetchMessages])
+    if (convId) {
+      console.log('[ChatPanel] Fetching messages for', convId)
+      fetchMessages().then(() => {
+        markConversationAsRead(convId)
+        sendMessageSeen()
+      })
+    }
+  }, [convId, fetchMessages, markConversationAsRead, sendMessageSeen])
 
-  // ── Real-time: incoming messages ─────────────────────────────────────────
+  // ── Realtime handlers ───────────────────────────────────────────────────
   const handleNewMessage = useCallback((message) => {
-    // Deduplicate: only add if we don't already have this _id
+    console.log('[ChatPanel] Realtime message received:', message?._id)
     addMessage(message)
-  }, [addMessage])
+    if (message?.senderId !== userId) {
+      markConversationAsRead(convId)
+      sendMessageSeen()
+    }
+  }, [addMessage, convId, markConversationAsRead, sendMessageSeen, userId])
 
   const handleTypingStart = useCallback(({ uid, displayName }) => {
     if (uid === userId) return
-    setTypingUsers((prev) => {
-      if (prev.some((u) => u.uid === uid)) return prev
-      return [...prev, { uid, displayName }]
-    })
-    // Auto-clear typing indicator if stop event never arrives
+    setTypingUsers((prev) => prev.some((u) => u.uid === uid) ? prev : [...prev, { uid, displayName }])
     if (typingTimersRef.current[uid]) clearTimeout(typingTimersRef.current[uid])
     typingTimersRef.current[uid] = setTimeout(() => {
       setTypingUsers((prev) => prev.filter((u) => u.uid !== uid))
@@ -183,50 +199,68 @@ const ChatPanel = ({ conversation, userId, onBack, showBack }) => {
   }, [])
 
   useRealtimeMessages({
-    conversationId: conversation?._id,
-    onNewMessage: handleNewMessage,
-    onTypingStart: handleTypingStart,
-    onTypingStop: handleTypingStop,
+    conversationId: convId,
+    onNewMessage:   handleNewMessage,
+    onTypingStart:  handleTypingStart,
+    onTypingStop:   handleTypingStop,
+    onUnreadUpdate: applyUnreadUpdate,
   })
 
-  const { sendTyping, sendStopTyping } = useTypingSender(conversation?._id)
+  const { sendTyping, sendStopTyping } = useTypingSender(convId)
 
+  // ── Send ────────────────────────────────────────────────────────────────
   const handleSendMessage = async (text) => {
-    if (!conversation || !text.trim()) return
+    if (!convId || !text.trim()) return
     sendStopTyping()
-
-    // Always pass conversationId — the conversation is guaranteed to exist
-    // at this point because the user selected it from the list.
-    const conversationId = conversation._id?.toString?.() ?? conversation._id
-
+    const trimmed = text.trim()
+    const clientRequestId =
+      window.crypto?.randomUUID?.() || `msg-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const tempId = `temp-${clientRequestId}`
+    addMessage({
+      _id: tempId,
+      conversationId: convId,
+      senderId: userId,
+      text: trimmed,
+      type: 'text',
+      clientRequestId,
+      status: 'sending',
+      createdAt: new Date().toISOString(),
+      readBy: [{ userId, readAt: new Date().toISOString() }],
+    })
     try {
-      const response = await sendMessage(conversationId, text)
-
-      // Optimistic add — socket will also deliver it to the other participant
-      addMessage({
-        _id: response.message._id,
-        conversationId,
-        senderId: userId,
-        text: text.trim(),
-        type: 'text',
-        createdAt: new Date().toISOString(),
-        readBy: [{ userId, readAt: new Date().toISOString() }],
-      })
+      const response = await sendMessage(convId, trimmed, clientRequestId)
+      replaceMessage(tempId, { ...response.message, status: 'sent' })
     } catch (err) {
       console.error('Failed to send message:', err)
+      updateMessage(tempId, { status: 'failed' })
     }
   }
 
   return (
     <>
       <ConversationHeader conversation={conversation} onBack={onBack} showBack={showBack} />
-      <MessageThread messages={messages} currentUserId={userId} loading={messagesLoading} />
+      <MessageThread
+        messages={messages}
+        currentUserId={userId}
+        loading={messagesLoading}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
+        onLoadOlder={() => fetchMessages(50, messages.length)}
+      />
       <TypingIndicator typingUsers={typingUsers} />
       <MessageInput
         onSend={handleSendMessage}
         onTyping={sendTyping}
         onStopTyping={sendStopTyping}
-        disabled={sendingMessage}
+        disabled={sendingMessage || !realtimeConnected}
+        sending={sendingMessage}
+        placeholder={
+          realtimeConnected
+            ? 'Type a message...'
+            : connectionStatus === 'error'
+              ? (connectionError || 'Realtime unavailable')
+              : 'Connecting...'
+        }
       />
     </>
   )
@@ -237,47 +271,43 @@ const ChatPanel = ({ conversation, userId, onBack, showBack }) => {
 export const ChatWindow = ({ isMobile = false }) => {
   const { user } = useAuth()
   const { setActiveConversationId } = useMessaging()
-  const { conversations, loading: conversationsLoading, fetchConversations, addOrUpdateConversation } =
-    useConversations()
+  const {
+    conversations,
+    loading: conversationsLoading,
+    fetchConversations,
+    addOrUpdateConversation,
+  } = useConversations()
+
   const [selectedConversation, setSelectedConversation] = useState(null)
-  const [showConversationList, setShowConversationList] = useState(true)
+  const [showConversationList, setShowConversationList] = useState(!isMobile)
 
-  // Initial load — one-time fetch, no polling
-  useEffect(() => {
-    fetchConversations()
-  }, [fetchConversations])
+  // One-time initial load
+  useEffect(() => { fetchConversations() }, [fetchConversations])
 
-  useEffect(() => {
-    if (isMobile) {
-      setShowConversationList(true)
-      setSelectedConversation(null)
-    }
-  }, [isMobile])
-
-  // Socket: real-time conversation list updates (no polling needed)
+  // Realtime sidebar updates
   useRealtimeConversations({
     onConversationUpdate: useCallback((update) => {
-      // Merge the update into the conversation list
+      // Normalize: server sends `conversationId`, addOrUpdateConversation needs `_id`
       addOrUpdateConversation({
-        _id: update.conversationId,
         ...update,
+        _id: update.conversationId ?? update._id,
       })
     }, [addOrUpdateConversation]),
   })
 
-  const handleSelectConversation = (conversation) => {
+  const handleSelectConversation = useCallback((conversation) => {
     setSelectedConversation(conversation)
-    setActiveConversationId(conversation._id)
+    setActiveConversationId(conversation._id?.toString?.() ?? conversation._id)
     if (isMobile) setShowConversationList(false)
-  }
+  }, [isMobile, setActiveConversationId])
 
-  const handleBackToList = () => {
+  const handleBackToList = useCallback(() => {
     setShowConversationList(true)
     setSelectedConversation(null)
     setActiveConversationId(null)
-  }
+  }, [setActiveConversationId])
 
-  // ── Mobile layout ──────────────────────────────────────────────────────────
+  // ── Mobile ───────────────────────────────────────────────────────────────
   if (isMobile) {
     if (showConversationList) {
       return (
@@ -297,7 +327,6 @@ export const ChatWindow = ({ isMobile = false }) => {
         </div>
       )
     }
-
     return (
       <div className="w-full h-full flex flex-col" style={{ background: '#F5F2EA' }}>
         {selectedConversation && (
@@ -312,7 +341,7 @@ export const ChatWindow = ({ isMobile = false }) => {
     )
   }
 
-  // ── Desktop layout ─────────────────────────────────────────────────────────
+  // ── Desktop ──────────────────────────────────────────────────────────────
   return (
     <div
       className="w-full flex rounded-2xl overflow-hidden"
@@ -324,7 +353,7 @@ export const ChatWindow = ({ isMobile = false }) => {
         background: '#F5F2EA',
       }}
     >
-      {/* Left sidebar */}
+      {/* Sidebar */}
       <div
         className="flex flex-col shrink-0"
         style={{
@@ -334,17 +363,10 @@ export const ChatWindow = ({ isMobile = false }) => {
         }}
       >
         <div className="px-5 pt-6 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          <h2 style={{
-            fontFamily: 'Georgia, serif',
-            fontSize: 20,
-            fontWeight: 700,
-            color: '#F5F2EA',
-            letterSpacing: '-0.01em',
-          }}>
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, fontWeight: 700, color: '#F5F2EA', letterSpacing: '-0.01em' }}>
             Messages
           </h2>
         </div>
-
         <ConversationList
           conversations={conversations}
           selectedConversationId={selectedConversation?._id}
@@ -355,7 +377,7 @@ export const ChatWindow = ({ isMobile = false }) => {
         />
       </div>
 
-      {/* Right panel */}
+      {/* Thread */}
       <div className="flex-1 flex flex-col min-w-0" style={{ background: '#F5F2EA' }}>
         <AnimatePresence mode="wait">
           {selectedConversation ? (
@@ -367,18 +389,10 @@ export const ChatWindow = ({ isMobile = false }) => {
               transition={{ duration: 0.15 }}
               className="flex-1 flex flex-col min-h-0"
             >
-              <ChatPanel
-                conversation={selectedConversation}
-                userId={user?.uid}
-              />
+              <ChatPanel conversation={selectedConversation} userId={user?.uid} />
             </motion.div>
           ) : (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex-1 flex"
-            >
+            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex">
               <EmptyState />
             </motion.div>
           )}

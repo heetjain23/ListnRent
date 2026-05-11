@@ -1,33 +1,77 @@
 import { useState, useCallback } from 'react'
 import * as messagesService from '../services/messagesService.js'
+import { useSocketContext } from '../context/SocketContext.jsx'
+
+const waitForConnectedSocket = (socketRef, timeoutMs = 8000) => {
+  const socket = socketRef.current
+  if (!socket) {
+    return Promise.reject(new Error('Realtime connection is initializing'))
+  }
+  if (socket.connected) return Promise.resolve(socket)
+
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      cleanup()
+      reject(new Error('Realtime connection timed out'))
+    }, timeoutMs)
+
+    const cleanup = () => {
+      clearTimeout(timeoutId)
+      socket.off('connect', handleConnect)
+      socket.off('connect_error', handleConnectError)
+      socket.off('disconnect', handleDisconnect)
+    }
+
+    const handleConnect = () => {
+      cleanup()
+      resolve(socket)
+    }
+
+    const handleConnectError = (err) => {
+      cleanup()
+      reject(new Error(err?.message || 'Realtime connection failed'))
+    }
+
+    const handleDisconnect = (reason) => {
+      if (reason === 'io client disconnect') return
+      cleanup()
+      reject(new Error('Realtime connection disconnected'))
+    }
+
+    socket.once('connect', handleConnect)
+    socket.once('connect_error', handleConnectError)
+    socket.once('disconnect', handleDisconnect)
+
+    if (!socket.active) socket.connect()
+  })
+}
 
 // ── useConversation ───────────────────────────────────────────────────────────
 
 export const useConversation = (conversationId) => {
   const [messages, setMessages] = useState([])
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState(null)
-  const [hasMore, setHasMore]   = useState(true)
+  const [loading, setLoading]       = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [error, setError]           = useState(null)
+  const [hasMore, setHasMore]       = useState(true)
 
   const fetchMessages = useCallback(
     async (limit = 50, skip = 0, silent = false) => {
       if (!conversationId) return
-      if (!silent) setLoading(true)
+      if (!silent && skip === 0) setLoading(true)
+      if (!silent && skip > 0) setLoadingMore(true)
       setError(null)
       try {
         const response = await messagesService.getMessages(conversationId, limit, skip)
 
-        if (silent && skip === 0) {
-          // Background refresh: only append genuinely new messages
+        if (skip === 0) {
+          setMessages(response.messages || [])
+        } else {
           setMessages((prev) => {
             const prevIds = new Set(prev.map((m) => m._id))
             const incoming = (response.messages || []).filter((m) => !prevIds.has(m._id))
-            return incoming.length ? [...prev, ...incoming] : prev
+            return [...incoming, ...prev]
           })
-        } else if (skip === 0) {
-          setMessages(response.messages || [])
-        } else {
-          setMessages((prev) => [...(response.messages || []), ...prev])
         }
 
         setHasMore((response.messages || []).length === limit)
@@ -37,7 +81,8 @@ export const useConversation = (conversationId) => {
           console.error('Error fetching messages:', err)
         }
       } finally {
-        if (!silent) setLoading(false)
+        if (!silent && skip === 0) setLoading(false)
+        if (!silent && skip > 0) setLoadingMore(false)
       }
     },
     [conversationId]
@@ -49,21 +94,51 @@ export const useConversation = (conversationId) => {
    */
   const addMessage = useCallback((message) => {
     setMessages((prev) => {
-      if (prev.some((m) => m._id === message._id)) return prev
+      if (
+        prev.some(
+          (m) =>
+            m._id === message._id ||
+            (message.clientRequestId && m.clientRequestId === message.clientRequestId)
+        )
+      ) return prev
       return [...prev, message]
     })
   }, [])
 
-  const markAsRead = useCallback(async () => {
-    if (!conversationId) return
-    try {
-      await messagesService.markAsRead(conversationId)
-    } catch (err) {
-      console.error('Error marking as read:', err)
-    }
-  }, [conversationId])
+  const replaceMessage = useCallback((tempId, message) => {
+    setMessages((prev) => {
+      const idx = prev.findIndex(
+        (m) =>
+          m._id === tempId ||
+          m._id === message._id ||
+          (message.clientRequestId && m.clientRequestId === message.clientRequestId)
+      )
+      if (idx < 0) return [...prev, message]
+      const next = [...prev]
+      next[idx] = { ...message }
+      return next
+    })
+  }, [])
 
-  return { messages, loading, error, hasMore, fetchMessages, addMessage, markAsRead }
+  const updateMessage = useCallback((messageId, patch) => {
+    setMessages((prev) =>
+      prev.map((message) =>
+        message._id === messageId ? { ...message, ...patch } : message
+      )
+    )
+  }, [])
+
+  return {
+    messages,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    fetchMessages,
+    addMessage,
+    replaceMessage,
+    updateMessage,
+  }
 }
 
 // ── useConversations ──────────────────────────────────────────────────────────
@@ -144,18 +219,35 @@ export const useConversations = () => {
  * were also misnamed (recipientId vs otherUserId).
  */
 export const useSendMessage = () => {
+  const { socketRef, connected } = useSocketContext()
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState(null)
 
-  const sendMessage = useCallback(async (conversationId, text) => {
+  const sendMessage = useCallback(async (conversationId, text, clientRequestId) => {
     if (!conversationId || !text?.trim()) {
       throw new Error('conversationId and text are required')
     }
     setLoading(true)
     setError(null)
     try {
-      const response = await messagesService.sendMessage({ conversationId, text })
-      return response
+      const socket = await waitForConnectedSocket(socketRef)
+      return await new Promise((resolve, reject) => {
+        socket.timeout(10000).emit(
+          'new_message',
+          { conversationId, text, clientRequestId },
+          (err, response) => {
+            if (err) {
+              reject(new Error('Message send timed out'))
+              return
+            }
+            if (!response?.success) {
+              reject(new Error(response?.message || 'Failed to send message'))
+              return
+            }
+            resolve(response)
+          }
+        )
+      })
     } catch (err) {
       const msg = err.message || 'Failed to send message'
       setError(msg)
@@ -163,9 +255,9 @@ export const useSendMessage = () => {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [socketRef])
 
-  return { sendMessage, loading, error }
+  return { sendMessage, loading, error, connected }
 }
 
 // ── useGetOrCreateConversation ────────────────────────────────────────────────
@@ -195,22 +287,10 @@ export const useGetOrCreateConversation = () => {
 // ── useUnreadCount ────────────────────────────────────────────────────────────
 
 export const useUnreadCount = () => {
-  const [unreadCount, setUnreadCount]             = useState(0)
-  const [unreadConversations, setUnreadConversations] = useState([])
-  const [loading, setLoading]                     = useState(false)
-
-  const fetchUnreadCount = useCallback(async () => {
-    setLoading(true)
-    try {
-      const response = await messagesService.getUnreadCounts()
-      setUnreadCount(response.unreadCount || 0)
-      setUnreadConversations(response.unreadConversations || [])
-    } catch (err) {
-      console.error('Error fetching unread count:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  return { unreadCount, unreadConversations, loading, fetchUnreadCount }
+  return {
+    unreadCount: 0,
+    unreadConversations: [],
+    loading: false,
+    fetchUnreadCount: () => {},
+  }
 }

@@ -1,28 +1,27 @@
 import { Server } from "socket.io";
 import admin from "../config/firebase-admin.js";
 import * as messageService from "../features/messages/messageService.js";
+import { sendMessagePushNotifications } from "../features/messages/pushNotificationService.js";
 
 /**
- * socketServer.js
+ * Socket.IO messaging hub.
  *
- * Architecture decisions:
- * - ALL DB writes still go through REST controllers (single source of truth)
- * - Socket server ONLY broadcasts events — never writes to DB itself
- * - Each user joins a personal room (uid) on connect for targeted delivery
- * - Conversation rooms are joined/left explicitly by the client
- * - Typing events use debounced in-memory state — zero DB hits
- * - Online presence is tracked in-memory with a Map — zero DB hits
- * - No polling anywhere on the server side
+ * Realtime event names:
+ * - new_message
+ * - unread_count_update
+ * - typing_start
+ * - typing_stop
+ * - message_seen
+ * - user_online
+ * - user_offline
+ *
+ * Legacy aliases are still emitted/listened to during migration so older
+ * clients do not break while the web app moves to the new event contract.
  */
 
-// In-memory presence map: uid → Set of socketIds
 const onlineUsers = new Map();
-
-// In-memory typing state: `${conversationId}:${userId}` → timeoutId
 const typingTimeouts = new Map();
 const TYPING_TIMEOUT_MS = 3500;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const addOnlineUser = (uid, socketId) => {
   if (!onlineUsers.has(uid)) onlineUsers.set(uid, new Set());
@@ -35,14 +34,30 @@ const removeOnlineUser = (uid, socketId) => {
   sockets.delete(socketId);
   if (sockets.size === 0) {
     onlineUsers.delete(uid);
-    return true; // last socket — user is now offline
+    return true;
   }
   return false;
 };
 
 const isUserOnline = (uid) => onlineUsers.has(uid) && onlineUsers.get(uid).size > 0;
 
-// ── Auth middleware ───────────────────────────────────────────────────────────
+const emitUnreadSnapshot = async (io, uid) => {
+  try {
+    const unreadConversations = await messageService.getUnreadConversations(uid);
+    const unreadCount = unreadConversations.reduce(
+      (sum, item) => sum + (item.unreadCount || 0),
+      0
+    );
+
+    io.to(`user:${uid}`).emit("unread_count_update", {
+      unreadCount,
+      unreadConversations,
+      isSnapshot: true,
+    });
+  } catch (err) {
+    console.error("[Socket] unread snapshot error:", err.message);
+  }
+};
 
 const authenticateSocket = async (socket, next) => {
   try {
@@ -57,14 +72,13 @@ const authenticateSocket = async (socket, next) => {
     const decoded = await admin.auth().verifyIdToken(token);
     socket.uid = decoded.uid;
     socket.userEmail = decoded.email;
+    socket.displayName = decoded.name || "";
     next();
   } catch (err) {
     console.error("[Socket] Auth failed:", err.message);
     next(new Error("Invalid authentication token"));
   }
 };
-
-// ── Main setup ────────────────────────────────────────────────────────────────
 
 export const initSocketServer = (httpServer, allowedOrigins) => {
   const io = new Server(httpServer, {
@@ -73,33 +87,25 @@ export const initSocketServer = (httpServer, allowedOrigins) => {
       methods: ["GET", "POST"],
       credentials: true,
     },
-    // Tuning: prefer WebSocket, fall back to polling only if needed
     transports: ["websocket", "polling"],
-    // Ping tuning — keeps connections alive without hammering
     pingTimeout: 60000,
     pingInterval: 25000,
-    // Limit payload size
-    maxHttpBufferSize: 1e6, // 1 MB
+    maxHttpBufferSize: 1e6,
   });
 
-  // ── Apply auth middleware ──────────────────────────────────────────────────
   io.use(authenticateSocket);
 
-  // ── Connection handler ────────────────────────────────────────────────────
   io.on("connection", (socket) => {
     const uid = socket.uid;
     console.log(`[Socket] Connected: ${uid} (${socket.id})`);
 
-    // Join personal room for targeted delivery
     socket.join(`user:${uid}`);
     addOnlineUser(uid, socket.id);
 
-    // Broadcast online status to others in shared conversations
+    socket.broadcast.emit("user_online", { uid });
     socket.broadcast.emit("user:online", { uid });
+    emitUnreadSnapshot(io, uid);
 
-    // ── join:conversation ────────────────────────────────────────────────────
-    // Client calls this when opening a conversation thread.
-    // Server verifies participation before granting room access.
     socket.on("join:conversation", async ({ conversationId } = {}) => {
       if (!conversationId) return;
       try {
@@ -114,84 +120,127 @@ export const initSocketServer = (httpServer, allowedOrigins) => {
           return;
         }
         socket.join(`conversation:${conversationId}`);
-        console.log(`[Socket] ${uid} joined conversation:${conversationId}`);
       } catch (err) {
         console.error("[Socket] join:conversation error:", err.message);
       }
     });
 
-    // ── leave:conversation ───────────────────────────────────────────────────
     socket.on("leave:conversation", ({ conversationId } = {}) => {
       if (!conversationId) return;
       socket.leave(`conversation:${conversationId}`);
-      // Clear any pending typing timeout for this user/conversation
-      clearTypingTimeout(io, conversationId, uid);
+      clearTypingTimeout(io, conversationId, uid, socket);
     });
 
-    // ── message:read ─────────────────────────────────────────────────────────
-    // Client emits this after REST marks messages as read.
-    // Server broadcasts the read receipt to the other participant(s).
-    socket.on("message:read", ({ conversationId, readerId } = {}) => {
+    const handleNewMessage = async ({ conversationId, text, clientRequestId } = {}, ack) => {
+      try {
+        if (!conversationId || !text?.trim()) {
+          throw new Error("conversationId and text are required");
+        }
+
+        const { message, conversation } = await messageService.sendMessage(
+          conversationId,
+          uid,
+          text,
+          clientRequestId
+        );
+
+        const messageObj = message.toObject();
+        const senderName = await messageService.getUserDisplayName(uid);
+        const participantIds = conversation?.participantIds || [];
+
+        ack?.({
+          success: true,
+          conversationId,
+          message: messageObj,
+        });
+
+        broadcastNewMessage(conversationId, messageObj, participantIds, {
+          conversationId,
+          lastMessage: text.trim().substring(0, 100),
+          lastMessageAt: messageObj.createdAt,
+          senderId: uid,
+          senderName,
+          unreadCounts: conversation?.unreadCounts,
+        });
+      } catch (err) {
+        console.error("[Socket] new_message error:", err.message);
+        ack?.({ success: false, message: err.message || "Failed to send message" });
+      }
+    };
+
+    socket.on("new_message", handleNewMessage);
+
+    const handleSeen = async ({ conversationId } = {}, ack) => {
       if (!conversationId) return;
-      // Only broadcast to the conversation room (not back to sender)
-      socket.to(`conversation:${conversationId}`).emit("message:read", {
-        conversationId,
-        readerId: uid,
-        readAt: new Date().toISOString(),
-      });
-    });
+      try {
+        const result = await messageService.markMessagesAsRead(conversationId, uid);
+        broadcastReadReceipt(
+          conversationId,
+          uid,
+          result.conversation?.participantIds || [],
+          result.previousUnreadCount
+        );
+        ack?.({ success: true });
+      } catch (err) {
+        console.error("[Socket] message_seen error:", err.message);
+        ack?.({ success: false, message: err.message || "Failed to mark seen" });
+      }
+    };
 
-    // ── user:typing ──────────────────────────────────────────────────────────
-    // Zero DB hits — pure in-memory debounce
-    socket.on("user:typing", ({ conversationId } = {}) => {
+    socket.on("message_seen", handleSeen);
+    socket.on("message:read", handleSeen);
+
+    const handleTypingStart = ({ conversationId } = {}) => {
       if (!conversationId) return;
       const key = `${conversationId}:${uid}`;
-
-      // Clear existing timeout — debounce the stop event
       const existing = typingTimeouts.get(key);
       if (existing) clearTimeout(existing);
 
-      // Broadcast typing start (only if not already typing)
-      socket.to(`conversation:${conversationId}`).emit("user:typing", {
+      const payload = {
         conversationId,
         uid,
         displayName: socket.displayName || "",
-      });
+      };
 
-      // Auto-stop after timeout (handles tab close / no stop event)
+      socket.to(`conversation:${conversationId}`).emit("typing_start", payload);
+      socket.to(`conversation:${conversationId}`).emit("user:typing", payload);
+
       const timeout = setTimeout(() => {
         clearTypingTimeout(io, conversationId, uid, socket);
       }, TYPING_TIMEOUT_MS);
 
       typingTimeouts.set(key, timeout);
-    });
+    };
 
-    // ── user:stop_typing ─────────────────────────────────────────────────────
-    socket.on("user:stop_typing", ({ conversationId } = {}) => {
+    socket.on("typing_start", handleTypingStart);
+    socket.on("user:typing", handleTypingStart);
+
+    const handleTypingStop = ({ conversationId } = {}) => {
       if (!conversationId) return;
       clearTypingTimeout(io, conversationId, uid, socket);
-    });
+    };
 
-    // ── user:online_check ────────────────────────────────────────────────────
-    // Client can ask if specific users are online (e.g. for conversation header)
+    socket.on("typing_stop", handleTypingStop);
+    socket.on("user:stop_typing", handleTypingStop);
+
     socket.on("user:online_check", ({ uids } = {}) => {
       if (!Array.isArray(uids)) return;
       const result = {};
-      uids.forEach((u) => { result[u] = isUserOnline(u); });
+      uids.forEach((candidateUid) => {
+        result[candidateUid] = isUserOnline(candidateUid);
+      });
       socket.emit("user:online_status", result);
     });
 
-    // ── disconnect ───────────────────────────────────────────────────────────
     socket.on("disconnect", (reason) => {
-      console.log(`[Socket] Disconnected: ${uid} (${socket.id}) — ${reason}`);
+      console.log(`[Socket] Disconnected: ${uid} (${socket.id}) - ${reason}`);
       const wentOffline = removeOnlineUser(uid, socket.id);
       if (wentOffline) {
-        socket.broadcast.emit("user:offline", {
-          uid,
-          lastSeen: new Date().toISOString(),
-        });
+        const payload = { uid, lastSeen: new Date().toISOString() };
+        socket.broadcast.emit("user_offline", payload);
+        socket.broadcast.emit("user:offline", payload);
       }
-      // Clean up typing timeouts for this socket
+
       for (const [key, timeout] of typingTimeouts.entries()) {
         if (key.endsWith(`:${uid}`)) {
           clearTimeout(timeout);
@@ -205,8 +254,6 @@ export const initSocketServer = (httpServer, allowedOrigins) => {
   return io;
 };
 
-// ── Helper: clear typing state ────────────────────────────────────────────────
-
 const clearTypingTimeout = (io, conversationId, uid, socket) => {
   const key = `${conversationId}:${uid}`;
   const timeout = typingTimeouts.get(key);
@@ -214,61 +261,97 @@ const clearTypingTimeout = (io, conversationId, uid, socket) => {
     clearTimeout(timeout);
     typingTimeouts.delete(key);
   }
-  // Broadcast stop typing to others in the room
+
+  const payload = { conversationId, uid };
   const target = socket
     ? socket.to(`conversation:${conversationId}`)
     : io.to(`conversation:${conversationId}`);
-  target.emit("user:stop_typing", { conversationId, uid });
+  target.emit("typing_stop", payload);
+  target.emit("user:stop_typing", payload);
 };
-
-// ── Exported broadcaster ──────────────────────────────────────────────────────
-// Called by REST controllers AFTER successful DB writes.
-// Keeps socket broadcasting decoupled from business logic.
 
 let _io = null;
 
-export const attachIO = (io) => { _io = io; };
+export const attachIO = (io) => {
+  _io = io;
+};
 
 export const getIO = () => _io;
 
-/**
- * Broadcast a new message to a conversation room + update both participants'
- * conversation lists. Called from messageController after sendMessage().
- */
-export const broadcastNewMessage = (conversationId, message, participantIds, conversationUpdate) => {
+export const broadcastNewMessage = (
+  conversationId,
+  message,
+  participantIds,
+  conversationUpdate
+) => {
   if (!_io) return;
 
-  // 1. Deliver message to everyone in the conversation room
-  _io.to(`conversation:${conversationId}`).emit("message:new", {
+  const targetRooms = [
+    `conversation:${conversationId}`,
+    ...participantIds.map((uid) => `user:${uid}`),
+  ];
+
+  const payload = {
     conversationId,
     message,
-  });
+    conversation: conversationUpdate,
+  };
 
-  // 2. Update each participant's conversation list sidebar
-  //    (includes lastMessage, lastMessageAt, unreadCount bump for non-senders)
+  _io.to(targetRooms).emit("new_message", payload);
+  _io.to(targetRooms).emit("message:new", payload);
+
   participantIds.forEach((uid) => {
-    _io.to(`user:${uid}`).emit("conversation:update", {
+    const unreadCount = messageService.getUnreadCountForUser(conversationUpdate, uid);
+    const conversationPayload = {
       conversationId,
       ...conversationUpdate,
-      // The sender's own unread count stays 0; others get bumped
-      unreadCount: uid === message.senderId ? 0 : (conversationUpdate.unreadCount || 1),
+      unreadCount,
+    };
+
+    _io.to(`user:${uid}`).emit("conversation:update", conversationPayload);
+    _io.to(`user:${uid}`).emit("unread_count_update", {
+      conversationId,
+      unreadCount,
+      unreadDelta: uid === message.senderId ? 0 : 1,
+      isSnapshot: false,
     });
+  });
+
+  sendMessagePushNotifications({
+    recipientIds: participantIds.filter((uid) => uid !== message.senderId),
+    senderName: conversationUpdate.senderName,
+    messageText: message.text,
+    conversationId,
+  }).catch((err) => {
+    console.warn("[Push] Message notification failed:", err.message);
   });
 };
 
-/**
- * Broadcast read receipt — called after markMessagesAsRead().
- */
-export const broadcastReadReceipt = (conversationId, readerId, participantIds) => {
+export const broadcastReadReceipt = (
+  conversationId,
+  readerId,
+  participantIds,
+  previousUnreadCount = 0
+) => {
   if (!_io) return;
-  _io.to(`conversation:${conversationId}`).emit("message:read", {
+
+  const payload = {
     conversationId,
     readerId,
     readAt: new Date().toISOString(),
-  });
-  // Reset unread count for the reader in their sidebar
+  };
+
+  _io.to(`conversation:${conversationId}`).emit("message_seen", payload);
+  _io.to(`conversation:${conversationId}`).emit("message:read", payload);
+
   _io.to(`user:${readerId}`).emit("conversation:update", {
     conversationId,
     unreadCount: 0,
+  });
+  _io.to(`user:${readerId}`).emit("unread_count_update", {
+    conversationId,
+    unreadCount: 0,
+    unreadDelta: -Math.max(0, previousUnreadCount || 0),
+    isSnapshot: false,
   });
 };

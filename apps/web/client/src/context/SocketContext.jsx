@@ -1,23 +1,14 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
   useState,
-  useCallback,
 } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "../hooks/useAuth";
-
-/**
- * SocketContext
- *
- * Single socket instance shared across the entire app.
- * - Creates socket only when a user is logged in
- * - Destroys socket on logout / unmount
- * - Reconnects automatically with exponential back-off (socket.io default)
- * - Exposes `socket`, `connected`, and helper methods
- */
+import { auth } from "../services/firebase";
 
 const SocketContext = createContext(null);
 
@@ -28,110 +19,152 @@ const SOCKET_URL =
 
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
+  const userRef = useRef(user);
   const socketRef = useRef(null);
+  const [socketState, setSocketState] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState("idle");
+  const [connectionError, setConnectionError] = useState(null);
+  const [connectCount, setConnectCount] = useState(0);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   const getToken = useCallback(async () => {
-    if (!user) return null;
+    const currentUser = userRef.current;
     try {
-      // Firebase refreshes the token automatically if expired
-      return await user.getIdToken();
+      if (typeof currentUser?.getIdToken === "function") {
+        return await currentUser.getIdToken(false);
+      }
+
+      if (auth.currentUser?.getIdToken) {
+        return await auth.currentUser.getIdToken(false);
+      }
+
+      if (currentUser?.token) {
+        return currentUser.token;
+      }
+
+      return localStorage.getItem("auth_token");
     } catch {
-      return null;
+      return currentUser?.token || localStorage.getItem("auth_token");
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     if (!user?.uid) {
-      // Not logged in — destroy any existing socket
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
-        setConnected(false);
       }
+      setSocketState(null);
+      setConnected(false);
+      setConnectionStatus("idle");
+      setConnectionError(null);
+      setConnectCount(0);
       return;
     }
 
-    // Already connected as this user
-    if (socketRef.current?.connected) return;
+    if (socketRef.current) return;
 
-    let isMounted = true;
+    let cancelled = false;
 
-    const connect = async () => {
+    const initSocket = async () => {
+      setConnectionStatus("connecting");
+      setConnectionError(null);
       const token = await getToken();
-      if (!token || !isMounted) return;
+      if (!token || cancelled) {
+        if (!cancelled) {
+          setConnectionStatus("error");
+          setConnectionError("No auth token available for realtime messaging");
+        }
+        return;
+      }
 
       const socket = io(SOCKET_URL, {
         auth: { token },
         transports: ["websocket", "polling"],
         reconnection: true,
-        reconnectionAttempts: 10,
+        reconnectionAttempts: 20,
         reconnectionDelay: 1000,
-        reconnectionDelayMax: 30000, // cap at 30s
-        randomizationFactor: 0.5,
+        reconnectionDelayMax: 15000,
+        randomizationFactor: 0.3,
         timeout: 20000,
+        autoConnect: false,
       });
 
       socket.on("connect", () => {
-        if (isMounted) setConnected(true);
-        console.log("[Socket] Connected:", socket.id);
+        if (cancelled) return;
+        setConnected(true);
+        setConnectionStatus("connected");
+        setConnectionError(null);
+        setConnectCount((n) => n + 1);
       });
 
-      socket.on("disconnect", (reason) => {
-        if (isMounted) setConnected(false);
-        console.log("[Socket] Disconnected:", reason);
+      socket.on("disconnect", () => {
+        if (cancelled) return;
+        setConnected(false);
+        setConnectionStatus("reconnecting");
       });
 
       socket.on("connect_error", async (err) => {
-        console.error("[Socket] Connection error:", err.message);
-        // If auth failed, refresh token and retry once
-        if (err.message.includes("Authentication") || err.message.includes("Invalid")) {
-          const freshToken = await getToken();
-          if (freshToken && socket) {
-            socket.auth = { token: freshToken };
-            socket.connect();
-          }
+        if (!cancelled) {
+          setConnected(false);
+          setConnectionStatus("error");
+          setConnectionError(err.message || "Realtime connection failed");
+        }
+
+        if (
+          err.message?.includes("Authentication") ||
+          err.message?.includes("Invalid") ||
+          err.message?.includes("token")
+        ) {
+          const fresh = await getToken();
+          if (fresh && !cancelled) socket.auth = { token: fresh };
         }
       });
 
       socketRef.current = socket;
+      if (!cancelled) setSocketState(socket);
+      socket.connect();
     };
 
-    connect();
+    initSocket();
 
     return () => {
-      isMounted = false;
+      cancelled = true;
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
       }
+      setSocketState(null);
       setConnected(false);
+      setConnectionStatus("idle");
+      setConnectionError(null);
+      setConnectCount(0);
     };
-  }, [user?.uid, getToken]);
+  }, [getToken, user?.token, user?.uid]);
 
-  // Re-auth with fresh token before token expires (~55 min, Firebase tokens last 60)
   useEffect(() => {
     if (!user) return;
-    const REFRESH_INTERVAL = 55 * 60 * 1000; // 55 minutes
-
-    const interval = setInterval(async () => {
+    const id = setInterval(async () => {
       const token = await getToken();
       if (token && socketRef.current) {
         socketRef.current.auth = { token };
-        // Force reconnect so the new token is sent in the handshake
-        if (socketRef.current.connected) {
-          socketRef.current.disconnect().connect();
-        }
+        socketRef.current.disconnect().connect();
       }
-    }, REFRESH_INTERVAL);
-
-    return () => clearInterval(interval);
+    }, 55 * 60 * 1000);
+    return () => clearInterval(id);
   }, [user, getToken]);
 
   const value = {
-    socket: socketRef.current,
+    socketRef,
+    socketState,
     connected,
-    // Stable ref accessor so hooks don't need the socket in deps
+    connectionStatus,
+    connectionError,
+    connectCount,
     getSocket: () => socketRef.current,
   };
 
