@@ -102,8 +102,16 @@ const MessageBubble = ({ message, isOwn, senderName, senderPhoto }) => {
   )
 }
 
-export const MessageThread = ({ messages, currentUserId, loading = false }) => {
+export const MessageThread = ({
+  messages,
+  currentUserId,
+  loading = false,
+  hasMore = false,
+  loadingMore = false,
+  onLoadOlder,
+}) => {
   const endRef = useRef(null)
+  const scrollRef = useRef(null)
   const prevCountRef = useRef(0)
 
   const groupedMessages = useMemo(() => {
@@ -128,10 +136,28 @@ export const MessageThread = ({ messages, currentUserId, loading = false }) => {
 
   useEffect(() => {
     if (messages.length > prevCountRef.current) {
-      endRef.current?.scrollIntoView({ behavior: 'smooth' })
+      const container = scrollRef.current
+      if (container) {
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
+      } else {
+        endRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }
     }
     prevCountRef.current = messages.length
   }, [messages])
+
+  const handleScroll = () => {
+    if (!hasMore || loadingMore || !onLoadOlder) return
+    const el = scrollRef.current
+    if (el && el.scrollTop < 80) {
+      const beforeHeight = el.scrollHeight
+      onLoadOlder()?.finally?.(() => {
+        requestAnimationFrame(() => {
+          el.scrollTop = el.scrollHeight - beforeHeight + el.scrollTop
+        })
+      })
+    }
+  }
 
   if (loading) {
     return (
@@ -153,7 +179,25 @@ export const MessageThread = ({ messages, currentUserId, loading = false }) => {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto py-4" style={{ background: '#F5F2EA' }}>
+    <div
+      ref={scrollRef}
+      onScroll={handleScroll}
+      className="flex-1 overflow-y-auto py-4"
+      style={{ background: '#F5F2EA' }}
+    >
+      {hasMore && (
+        <div className="flex justify-center pb-3">
+          <button
+            type="button"
+            onClick={() => onLoadOlder?.()}
+            disabled={loadingMore}
+            className="rounded-full px-3 py-1 text-xs transition-colors disabled:opacity-60"
+            style={{ background: 'rgba(0,52,43,0.07)', color: '#004D40' }}
+          >
+            {loadingMore ? 'Loading...' : 'Older messages'}
+          </button>
+        </div>
+      )}
       {groupedMessages.map((group, gi) => (
         <div key={gi}>
           <DateDivider date={group.messages[0].createdAt} />

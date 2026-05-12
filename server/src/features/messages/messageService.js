@@ -2,6 +2,17 @@ import Conversation from "./Conversation.js";
 import Message from "./Message.js";
 import User from "../users/User.js";
 
+const getMapValue = (value, key) => {
+  if (!value) return 0;
+  if (value instanceof Map) return Number(value.get(key) || 0);
+  return Number(value[key] || 0);
+};
+
+const mapToObject = (value = {}) => {
+  if (value instanceof Map) return Object.fromEntries(value);
+  return value || {};
+};
+
 /**
  * Get or create a conversation between two users
  */
@@ -20,6 +31,10 @@ export const getOrCreateConversation = async (userId1, userId2, listingId) => {
       participantIds: [participantA, participantB],
       listingId,
       readBy: new Map(),
+      unreadCounts: new Map([
+        [participantA, 0],
+        [participantB, 0],
+      ]),
     });
   }
 
@@ -42,29 +57,70 @@ export const getConversationParticipants = async (conversationId) => {
 };
 
 /**
- * Send a message in a conversation
+ * Resolve a user's display name for notification enrichment.
+ * Falls back gracefully so a missing user never blocks a broadcast.
  */
-export const sendMessage = async (conversationId, senderId, text) => {
+export const getUserDisplayName = async (uid) => {
+  try {
+    const user = await User.findOne({ uid }).select("displayName email").lean();
+    if (user?.displayName) return user.displayName;
+    if (user?.email) {
+      // Derive a friendly name from the email prefix
+      return user.email.split("@")[0].replace(/[._-]/g, " ");
+    }
+  } catch {
+    // Non-fatal — caller handles the fallback
+  }
+  return "Someone";
+};
+
+/**
+ * Send a message in a conversation and increment unread counters atomically.
+ */
+export const sendMessage = async (conversationId, senderId, text, clientRequestId = null) => {
   if (!text?.trim()) throw new Error("Message text cannot be empty");
+
+  const conversation = await Conversation.findById(conversationId)
+    .select("participantIds unreadCounts")
+    .lean();
+
+  if (!conversation?.participantIds?.includes(senderId)) {
+    throw new Error("Not authorized to message in this conversation");
+  }
 
   const message = await Message.create({
     conversationId,
     senderId,
     text: text.trim(),
     readBy: [{ userId: senderId, readAt: new Date() }],
+    clientRequestId,
   });
 
-  // Update conversation metadata in a single atomic write
-  await Conversation.findByIdAndUpdate(
+  const now = new Date();
+  const inc = {};
+  const set = {
+    lastMessageAt: now,
+    lastMessage: text.trim().substring(0, 100),
+    [`readBy.${senderId}`]: now,
+    [`unreadCounts.${senderId}`]: 0,
+  };
+
+  conversation.participantIds
+    .filter((uid) => uid !== senderId)
+    .forEach((uid) => {
+      inc[`unreadCounts.${uid}`] = 1;
+    });
+
+  const updatedConversation = await Conversation.findByIdAndUpdate(
     conversationId,
     {
-      lastMessageAt: new Date(),
-      lastMessage: text.trim().substring(0, 100),
-      $set: { [`readBy.${senderId}`]: new Date() },
-    }
-  );
+      $set: set,
+      ...(Object.keys(inc).length ? { $inc: inc } : {}),
+    },
+    { new: true }
+  ).lean();
 
-  return message;
+  return { message, conversation: updatedConversation };
 };
 
 /**
@@ -77,43 +133,45 @@ export const getUserConversations = async (userId, limit = 20, skip = 0) => {
     .limit(limit)
     .lean();
 
-  const enrichedConversations = await Promise.all(
-    conversations.map(async (conv) => {
+  const otherUserIds = conversations
+    .map((conv) => conv.participantIds.find((id) => id !== userId))
+    .filter(Boolean);
+
+  const users = await User.find({ uid: { $in: otherUserIds } })
+    .select("uid displayName photoURL email")
+    .lean();
+  const usersByUid = new Map(users.map((user) => [user.uid, user]));
+
+  const enrichedConversations = conversations.map((conv) => {
       const otherUserId = conv.participantIds.find((id) => id !== userId);
-      const otherUser = await User.findOne({ uid: otherUserId })
-        .select("displayName photoURL email")
-        .lean();
-
-      const unreadCount = await Message.countDocuments({
-        conversationId: conv._id,
-        "readBy.userId": { $ne: userId },
-      });
-
+      const otherUser = usersByUid.get(otherUserId);
       return {
         ...conv,
+        unreadCounts: mapToObject(conv.unreadCounts),
         otherUser: {
           uid: otherUserId,
           displayName: otherUser?.displayName || "User",
           photoURL: otherUser?.photoURL || null,
           email: otherUser?.email,
         },
-        unreadCount,
+        unreadCount: getMapValue(conv.unreadCounts, userId),
       };
-    })
-  );
+    });
 
   return enrichedConversations;
 };
 
 /**
- * Get messages for a conversation (paginated, oldest first)
+ * Get messages for a conversation (latest page, returned oldest first)
  */
 export const getConversationMessages = async (conversationId, limit = 50, skip = 0) => {
-  return Message.find({ conversationId })
-    .sort({ createdAt: 1 })
+  const messages = await Message.find({ conversationId })
+    .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .lean();
+
+  return messages.reverse();
 };
 
 /**
@@ -122,57 +180,58 @@ export const getConversationMessages = async (conversationId, limit = 50, skip =
 export const markMessagesAsRead = async (conversationId, userId) => {
   const now = new Date();
 
-  await Message.updateMany(
-    {
-      conversationId,
-      "readBy.userId": { $ne: userId },
-    },
-    {
-      $push: { readBy: { userId, readAt: now } },
-    }
-  );
-
-  await Conversation.findByIdAndUpdate(
-    conversationId,
-    { $set: { [`readBy.${userId}`]: now } }
-  );
-};
-
-/**
- * Get total unread message count for a user
- */
-export const getUnreadMessageCount = async (userId) => {
-  const userConversations = await Conversation.find({ participantIds: userId })
-    .select("_id")
+  const conversation = await Conversation.findById(conversationId)
+    .select("participantIds unreadCounts")
     .lean();
 
-  const ids = userConversations.map((c) => c._id);
+  if (!conversation?.participantIds?.includes(userId)) {
+    throw new Error("Not authorized");
+  }
 
-  return Message.countDocuments({
-    conversationId: { $in: ids },
-    "readBy.userId": { $ne: userId },
-  });
+  const previousUnreadCount = getMapValue(conversation.unreadCounts, userId);
+
+  const updatedConversation = await Conversation.findByIdAndUpdate(
+    conversationId,
+    {
+      $set: {
+        [`readBy.${userId}`]: now,
+        [`unreadCounts.${userId}`]: 0,
+      },
+    },
+    { new: true }
+  ).lean();
+
+  return { previousUnreadCount, conversation: updatedConversation };
 };
 
 /**
- * Get per-conversation unread counts for a user
+ * Get total unread message count for a user from incremental counters.
+ */
+export const getUnreadMessageCount = async (userId) => {
+  const conversations = await Conversation.find({ participantIds: userId })
+    .select("unreadCounts")
+    .lean();
+
+  return conversations.reduce(
+    (sum, conv) => sum + getMapValue(conv.unreadCounts, userId),
+    0
+  );
+};
+
+/**
+ * Get per-conversation unread counts for a user from incremental counters.
  */
 export const getUnreadConversations = async (userId) => {
   const conversations = await Conversation.find({ participantIds: userId })
-    .select("_id")
+    .select("_id unreadCounts")
     .lean();
 
-  const unreadCounts = await Promise.all(
-    conversations.map(async (conv) => {
-      const count = await Message.countDocuments({
-        conversationId: conv._id,
-        "readBy.userId": { $ne: userId },
-      });
-      return { conversationId: conv._id.toString(), unreadCount: count };
-    })
-  );
-
-  return unreadCounts;
+  return conversations
+    .map((conv) => ({
+      conversationId: conv._id.toString(),
+      unreadCount: getMapValue(conv.unreadCounts, userId),
+    }))
+    .filter((item) => item.unreadCount > 0);
 };
 
 /**
@@ -183,4 +242,8 @@ export const isUserInConversation = async (conversationId, userId) => {
     .select("participantIds")
     .lean();
   return conversation?.participantIds?.includes(userId) ?? false;
+};
+
+export const getUnreadCountForUser = (conversation, userId) => {
+  return getMapValue(conversation?.unreadCounts, userId);
 };

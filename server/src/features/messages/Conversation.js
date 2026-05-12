@@ -37,6 +37,14 @@ const conversationSchema = new mongoose.Schema(
       of: Date,
       default: new Map(),
     },
+
+    // Incremental unread counters per user.
+    // This avoids repeated aggregate count queries for badges/lists.
+    unreadCounts: {
+      type: Map,
+      of: Number,
+      default: new Map(),
+    },
   },
   { timestamps: true }
 );

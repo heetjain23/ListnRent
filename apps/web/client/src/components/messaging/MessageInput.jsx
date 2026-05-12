@@ -5,6 +5,7 @@ const MessageInput = ({
   onTyping,
   onStopTyping,
   disabled = false,
+  sending = false,
   placeholder = 'Type a message...',
 }) => {
   const textareaRef = useRef(null)
@@ -106,7 +107,7 @@ const MessageInput = ({
           boxShadow: value.trim() ? '0 4px 14px rgba(0,52,43,0.28)' : 'none',
         }}
       >
-        {disabled ? (
+        {sending ? (
           <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
         ) : (
           <svg width="17" height="17" viewBox="0 0 24 24" fill="white">

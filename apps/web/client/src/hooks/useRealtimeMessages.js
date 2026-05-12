@@ -1,185 +1,224 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useSocketContext } from "../context/SocketContext";
 
-/**
- * useRealtimeMessages
- *
- * Manages socket room membership and real-time message delivery for a
- * single conversation. Replaces the 3-second polling interval in ChatWindow.
- *
- * @param {string|null}  conversationId
- * @param {Function}     onNewMessage   - (message) => void
- * @param {Function}     onReadReceipt  - ({ conversationId, readerId, readAt }) => void
- * @param {Function}     onTypingStart  - ({ uid, displayName }) => void
- * @param {Function}     onTypingStop   - ({ uid }) => void
- */
 export const useRealtimeMessages = ({
   conversationId,
   onNewMessage,
   onReadReceipt,
   onTypingStart,
   onTypingStop,
+  onUnreadUpdate,
 }) => {
-  const { getSocket } = useSocketContext();
-  const currentConvRef = useRef(null);
-
-  // Stable refs so socket handlers never capture stale callbacks
-  const onNewMessageRef   = useRef(onNewMessage);
-  const onReadReceiptRef  = useRef(onReadReceipt);
-  const onTypingStartRef  = useRef(onTypingStart);
-  const onTypingStopRef   = useRef(onTypingStop);
-  useEffect(() => { onNewMessageRef.current  = onNewMessage;  }, [onNewMessage]);
-  useEffect(() => { onReadReceiptRef.current = onReadReceipt; }, [onReadReceipt]);
-  useEffect(() => { onTypingStartRef.current = onTypingStart; }, [onTypingStart]);
-  useEffect(() => { onTypingStopRef.current  = onTypingStop;  }, [onTypingStop]);
+  const { socketRef, connectCount } = useSocketContext();
+  const cbRef = useRef({
+    onNewMessage,
+    onReadReceipt,
+    onTypingStart,
+    onTypingStop,
+    onUnreadUpdate,
+  });
+  const joinedRoomRef = useRef(null);
 
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+    cbRef.current = {
+      onNewMessage,
+      onReadReceipt,
+      onTypingStart,
+      onTypingStop,
+      onUnreadUpdate,
+    };
+  });
 
-    // Leave previous room cleanly
-    if (currentConvRef.current && currentConvRef.current !== conversationId) {
-      socket.emit("leave:conversation", { conversationId: currentConvRef.current });
+  useEffect(() => {
+    const socket = socketRef.current;
+
+    if (joinedRoomRef.current && joinedRoomRef.current !== conversationId) {
+      socket?.emit("leave:conversation", { conversationId: joinedRoomRef.current });
+      joinedRoomRef.current = null;
     }
 
-    if (!conversationId) {
-      currentConvRef.current = null;
-      return;
-    }
+    if (!socket || !conversationId) return;
 
     socket.emit("join:conversation", { conversationId });
-    currentConvRef.current = conversationId;
+    joinedRoomRef.current = conversationId;
 
-    const handleNewMessage = (data) => {
-      if (data.conversationId !== conversationId) return;
-      onNewMessageRef.current?.(data.message);
+    const onMsg = ({ conversationId: cid, message }) => {
+      if (cid !== conversationId) return;
+      cbRef.current.onNewMessage?.(message);
     };
-    const handleReadReceipt = (data) => {
+    const onRead = (data) => {
       if (data.conversationId !== conversationId) return;
-      onReadReceiptRef.current?.(data);
+      cbRef.current.onReadReceipt?.(data);
     };
-    const handleTypingStart = (data) => {
+    const onTypStart = (data) => {
       if (data.conversationId !== conversationId) return;
-      onTypingStartRef.current?.(data);
+      cbRef.current.onTypingStart?.(data);
     };
-    const handleTypingStop = (data) => {
+    const onTypStop = (data) => {
       if (data.conversationId !== conversationId) return;
-      onTypingStopRef.current?.(data);
+      cbRef.current.onTypingStop?.(data);
+    };
+    const onUnread = (data) => {
+      if (data.conversationId !== conversationId) return;
+      cbRef.current.onUnreadUpdate?.(data);
     };
 
-    socket.on("message:new",      handleNewMessage);
-    socket.on("message:read",     handleReadReceipt);
-    socket.on("user:typing",      handleTypingStart);
-    socket.on("user:stop_typing", handleTypingStop);
+    socket.on("new_message", onMsg);
+    socket.on("message:new", onMsg);
+    socket.on("message_seen", onRead);
+    socket.on("message:read", onRead);
+    socket.on("typing_start", onTypStart);
+    socket.on("user:typing", onTypStart);
+    socket.on("typing_stop", onTypStop);
+    socket.on("user:stop_typing", onTypStop);
+    socket.on("unread_count_update", onUnread);
 
     return () => {
-      socket.off("message:new",      handleNewMessage);
-      socket.off("message:read",     handleReadReceipt);
-      socket.off("user:typing",      handleTypingStart);
-      socket.off("user:stop_typing", handleTypingStop);
+      socket.off("new_message", onMsg);
+      socket.off("message:new", onMsg);
+      socket.off("message_seen", onRead);
+      socket.off("message:read", onRead);
+      socket.off("typing_start", onTypStart);
+      socket.off("user:typing", onTypStart);
+      socket.off("typing_stop", onTypStop);
+      socket.off("user:stop_typing", onTypStop);
+      socket.off("unread_count_update", onUnread);
     };
-  }, [conversationId, getSocket]);
+  }, [conversationId, connectCount, socketRef]);
 
-  // Leave room on unmount
   useEffect(() => {
     return () => {
-      const socket = getSocket();
-      if (socket && currentConvRef.current) {
-        socket.emit("leave:conversation", { conversationId: currentConvRef.current });
+      const socket = socketRef.current;
+      if (socket && joinedRoomRef.current) {
+        socket.emit("leave:conversation", { conversationId: joinedRoomRef.current });
+        joinedRoomRef.current = null;
       }
     };
-  }, [getSocket]);
+  }, [socketRef]);
 };
 
-/**
- * useRealtimeConversations
- *
- * Listens for `conversation:update` events on the user's personal room.
- * Updates the conversation list sidebar without any polling.
- */
 export const useRealtimeConversations = ({ onConversationUpdate }) => {
-  const { getSocket } = useSocketContext();
-  const handlerRef = useRef(onConversationUpdate);
-  useEffect(() => { handlerRef.current = onConversationUpdate; }, [onConversationUpdate]);
+  const { socketRef, connectCount } = useSocketContext();
+  const cbRef = useRef(onConversationUpdate);
 
   useEffect(() => {
-    const socket = getSocket();
+    cbRef.current = onConversationUpdate;
+  });
+
+  useEffect(() => {
+    const socket = socketRef.current;
     if (!socket) return;
-    const handler = (data) => handlerRef.current?.(data);
-    socket.on("conversation:update", handler);
-    return () => socket.off("conversation:update", handler);
-  }, [getSocket]);
+
+    const messageHandler = ({ conversationId, conversation }) => {
+      if (!conversation) return;
+      cbRef.current?.({
+        ...conversation,
+        _id: conversationId,
+        conversationId,
+      });
+    };
+    const unreadHandler = (data) => {
+      if (!data.conversationId || data.isSnapshot) return;
+      cbRef.current?.({
+        _id: data.conversationId,
+        conversationId: data.conversationId,
+        unreadCount: data.unreadCount,
+      });
+    };
+
+    socket.on("new_message", messageHandler);
+    socket.on("unread_count_update", unreadHandler);
+
+    return () => {
+      socket.off("new_message", messageHandler);
+      socket.off("unread_count_update", unreadHandler);
+    };
+  }, [connectCount, socketRef]);
 };
 
-/**
- * useTypingSender
- *
- * Returns stable sendTyping / sendStopTyping functions.
- * Debounces automatically — call sendTyping() on every keystroke.
- */
 export const useTypingSender = (conversationId) => {
-  const { getSocket }  = useSocketContext();
-  const typingTimerRef = useRef(null);
-  const isTypingRef    = useRef(false);
+  const { socketRef } = useSocketContext();
+  const timerRef = useRef(null);
+  const isTypingRef = useRef(false);
 
   const sendStopTyping = useCallback(() => {
-    const socket = getSocket();
-    if (!socket || !conversationId) return;
-    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-    if (isTypingRef.current) {
-      socket.emit("user:stop_typing", { conversationId });
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const socket = socketRef.current;
+    if (socket?.connected && isTypingRef.current && conversationId) {
+      socket.emit("typing_stop", { conversationId });
       isTypingRef.current = false;
     }
-  }, [conversationId, getSocket]);
+  }, [conversationId, socketRef]);
 
   const sendTyping = useCallback(() => {
-    const socket = getSocket();
-    if (!socket || !conversationId) return;
+    const socket = socketRef.current;
+    if (!socket?.connected || !conversationId) return;
 
     if (!isTypingRef.current) {
-      socket.emit("user:typing", { conversationId });
+      socket.emit("typing_start", { conversationId });
       isTypingRef.current = true;
     }
 
-    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-    typingTimerRef.current = setTimeout(() => {
-      socket.emit("user:stop_typing", { conversationId });
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      socket.emit("typing_stop", { conversationId });
       isTypingRef.current = false;
     }, 2000);
-  }, [conversationId, getSocket]);
+  }, [conversationId, socketRef]);
 
   useEffect(() => () => sendStopTyping(), [sendStopTyping]);
 
   return { sendTyping, sendStopTyping };
 };
 
-/**
- * useOnlinePresence — tracks live online/offline status of a given uid
- */
+export const useMessageSeenSender = (conversationId) => {
+  const { socketRef } = useSocketContext();
+
+  const sendMessageSeen = useCallback(() => {
+    const socket = socketRef.current;
+    if (!socket?.connected || !conversationId) return;
+    socket.emit("message_seen", { conversationId });
+  }, [conversationId, socketRef]);
+
+  return { sendMessageSeen };
+};
+
 export const useOnlinePresence = (uid) => {
-  const { getSocket } = useSocketContext();
+  const { socketRef, connectCount } = useSocketContext();
   const [isOnline, setIsOnline] = useState(false);
 
   useEffect(() => {
-    const socket = getSocket();
+    const socket = socketRef.current;
     if (!socket || !uid) return;
 
-    socket.emit("user:online_check", { uids: [uid] });
+    if (connectCount > 0) {
+      socket.emit("user:online_check", { uids: [uid] });
+    }
 
-    const handleStatus  = (map) => { if (uid in map) setIsOnline(map[uid]); };
-    const handleOnline  = (d)   => { if (d.uid === uid) setIsOnline(true);  };
-    const handleOffline = (d)   => { if (d.uid === uid) setIsOnline(false); };
+    const onStatus = (map) => {
+      if (uid in map) setIsOnline(map[uid]);
+    };
+    const onOnline = (data) => {
+      if (data.uid === uid) setIsOnline(true);
+    };
+    const onOffline = (data) => {
+      if (data.uid === uid) setIsOnline(false);
+    };
 
-    socket.on("user:online_status", handleStatus);
-    socket.on("user:online",        handleOnline);
-    socket.on("user:offline",       handleOffline);
+    socket.on("user:online_status", onStatus);
+    socket.on("user_online", onOnline);
+    socket.on("user:online", onOnline);
+    socket.on("user_offline", onOffline);
+    socket.on("user:offline", onOffline);
 
     return () => {
-      socket.off("user:online_status", handleStatus);
-      socket.off("user:online",        handleOnline);
-      socket.off("user:offline",       handleOffline);
+      socket.off("user:online_status", onStatus);
+      socket.off("user_online", onOnline);
+      socket.off("user:online", onOnline);
+      socket.off("user_offline", onOffline);
+      socket.off("user:offline", onOffline);
     };
-  }, [uid, getSocket]);
+  }, [uid, connectCount, socketRef]);
 
   return { isOnline };
 };

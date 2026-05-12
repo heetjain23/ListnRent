@@ -92,12 +92,13 @@ const NAV_ITEMS = [
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
-const StatCard = ({ label, value, sub, accent, delay = 0, icon }) => (
+const StatCard = ({ label, value, sub, accent, delay = 0, icon, onClick }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
-    className={`relative overflow-hidden rounded-2xl p-5 md:p-6 ${accent}`}
+    onClick={onClick}
+    className={`relative overflow-hidden rounded-2xl p-5 md:p-6 ${accent} ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
   >
     {/* decorative circle */}
     <div className="pointer-events-none absolute -right-6 -top-6 w-28 h-28 rounded-full opacity-10 bg-current" />
@@ -385,7 +386,7 @@ const WelcomeHero = ({ user, totalListings, totalEarnings }) => {
 
 // ─── Stats Grid ───────────────────────────────────────────────────────────────
 
-const StatsGrid = ({ totalListings, totalEarnings }) => (
+const StatsGrid = ({ totalListings, totalEarnings, unreadMessages = 0, onMessagesClick }) => (
   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-8">
     <StatCard
       label="Live Listings"
@@ -406,11 +407,12 @@ const StatsGrid = ({ totalListings, totalEarnings }) => (
     <div className="col-span-2 md:col-span-1">
       <StatCard
         label="Messages"
-        value="Coming Soon"
-        sub="Chat with renters"
+        value={unreadMessages > 0 ? unreadMessages : 'No new'}
+        sub={unreadMessages > 0 ? `${unreadMessages > 1 ? 'new messages' : 'new message'} waiting` : 'Chat with renters'}
         accent="bg-[#FAF7F2] text-[#1A1A1A] border border-[#E8E0D5]"
         delay={0.15}
         icon={icons.messages}
+        onClick={onMessagesClick}
       />
     </div>
   </div>
@@ -594,6 +596,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('listings')
   const [userData, setUserData] = useState(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
   // Handle window resize for mobile detection
   useEffect(() => {
@@ -632,6 +635,22 @@ const Dashboard = () => {
       fetchEarnings()
     }
   }, [user, fetchUserListings, fetchEarnings])
+
+  // Fetch unread messages count
+  useEffect(() => {
+    const fetchUnreadMessages = async () => {
+      try {
+        const response = await api('/api/messages/unread', { auth: true })
+        setUnreadMessages(response?.count || 0)
+      } catch (error) {
+        console.log('Unable to fetch unread messages')
+      }
+    }
+
+    if (user) {
+      fetchUnreadMessages()
+    }
+  }, [user])
 
   const handleTabChange = useCallback((tab) => {
     setActiveTab(tab)
@@ -719,7 +738,12 @@ const Dashboard = () => {
                     totalListings={totalListings}
                     totalEarnings={totalEarnings}
                   />
-                  <StatsGrid totalListings={totalListings} totalEarnings={totalEarnings} />
+                  <StatsGrid 
+                    totalListings={totalListings} 
+                    totalEarnings={totalEarnings}
+                    unreadMessages={unreadMessages}
+                    onMessagesClick={() => handleTabChange('messages')}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
