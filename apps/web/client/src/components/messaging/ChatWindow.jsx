@@ -149,13 +149,14 @@ const ChatPanel = ({ conversation, userId, onBack, showBack }) => {
     addMessage,
     replaceMessage,
     updateMessage,
-  } =
-    useConversation(convId)
+  } = useConversation(convId)
+
   const {
     sendMessage,
     loading: sendingMessage,
     connected: realtimeConnected,
   } = useSendMessage()
+
   const { connectionStatus, connectionError } = useSocketContext()
   const { markConversationAsRead, applyUnreadUpdate } = useMessaging()
   const { sendMessageSeen } = useMessageSeenSender(convId)
@@ -166,7 +167,6 @@ const ChatPanel = ({ conversation, userId, onBack, showBack }) => {
   // Initial message load
   useEffect(() => {
     if (convId) {
-      console.log('[ChatPanel] Fetching messages for', convId)
       fetchMessages().then(() => {
         markConversationAsRead(convId)
         sendMessageSeen()
@@ -176,7 +176,6 @@ const ChatPanel = ({ conversation, userId, onBack, showBack }) => {
 
   // ── Realtime handlers ───────────────────────────────────────────────────
   const handleNewMessage = useCallback((message) => {
-    console.log('[ChatPanel] Realtime message received:', message?._id)
     addMessage(message)
     if (message?.senderId !== userId) {
       markConversationAsRead(convId)
@@ -284,10 +283,20 @@ export const ChatWindow = ({ isMobile = false }) => {
   // One-time initial load
   useEffect(() => { fetchConversations() }, [fetchConversations])
 
+  // Bug 1 + 2 fix: when ChatWindow unmounts (user navigates away from the
+  // dashboard or the messages tab), clear activeConversationId so
+  // MessageNotificationListener stops suppressing notifications for this
+  // conversation. Without this, the ID stays set in context forever and
+  // every message in that conversation silently skips the toast/push.
+  useEffect(() => {
+    return () => {
+      setActiveConversationId(null)
+    }
+  }, [setActiveConversationId])
+
   // Realtime sidebar updates
   useRealtimeConversations({
     onConversationUpdate: useCallback((update) => {
-      // Normalize: server sends `conversationId`, addOrUpdateConversation needs `_id`
       addOrUpdateConversation({
         ...update,
         _id: update.conversationId ?? update._id,
