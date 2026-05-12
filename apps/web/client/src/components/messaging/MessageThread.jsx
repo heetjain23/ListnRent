@@ -136,7 +136,12 @@ export const MessageThread = ({
 
   useEffect(() => {
     if (messages.length > prevCountRef.current) {
-      endRef.current?.scrollIntoView({ behavior: 'smooth' })
+      const container = scrollRef.current
+      if (container) {
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
+      } else {
+        endRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }
     }
     prevCountRef.current = messages.length
   }, [messages])
