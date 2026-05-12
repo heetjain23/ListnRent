@@ -90,7 +90,7 @@ function AmbientAccents() {
       <motion.div
         animate={{ x: [0, 22, -10, 0], y: [0, 16, 6, 0], opacity: [0.28, 0.44, 0.32, 0.28] }}
         transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -top-[12%] -left-[8%] rounded-full blur-[72px]"
+        className="absolute top-[-12%] left-[-8%] rounded-full blur-[72px]"
         style={{
           width: 'min(42vw, 520px)', height: 'min(42vw, 520px)',
           background: 'radial-gradient(circle, rgba(0,52,43,0.14) 0%, rgba(0,52,43,0) 72%)',
@@ -99,7 +99,7 @@ function AmbientAccents() {
       <motion.div
         animate={{ x: [0, -18, 8, 0], y: [0, -14, -4, 0], opacity: [0.22, 0.38, 0.28, 0.22] }}
         transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -bottom-[10%] -right-[6%] rounded-full blur-[72px]"
+        className="absolute bottom-[-10%]    rounded-full blur-[72px]"
         style={{
           width: 'min(36vw, 460px)', height: 'min(36vw, 460px)',
           background: 'radial-gradient(circle, rgba(212,175,55,0.18) 0%, rgba(212,175,55,0) 70%)',

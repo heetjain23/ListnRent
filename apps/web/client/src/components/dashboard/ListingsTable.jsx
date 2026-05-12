@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { getOptimizedImageUrl } from '../../services/cloudinary'
+import ConfirmationModal from '../ui/ConfirmationModal'
 
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
@@ -128,6 +129,8 @@ const ActionBtn = ({ onClick, disabled, variant = 'default', children, title }) 
 const ListingRow = ({ listing, onEdit, onDelete, onToggleActive, index }) => {
   const [togglingId, setTogglingId] = useState(null)
   const [rowHovered, setRowHovered] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const status = getStatus(listing)
   const cfg = STATUS_CONFIG[status]
 
@@ -139,6 +142,16 @@ const ListingRow = ({ listing, onEdit, onDelete, onToggleActive, index }) => {
       await onToggleActive(listing._id, listing.isActive)
     } finally {
       setTogglingId(null)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    try {
+      setIsDeleting(true)
+      await onDelete(listing._id)
+      setShowDeleteConfirm(false)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -273,7 +286,7 @@ const ListingRow = ({ listing, onEdit, onDelete, onToggleActive, index }) => {
 
           {/* Delete */}
           <ActionBtn
-            onClick={() => onDelete(listing._id)}
+            onClick={() => setShowDeleteConfirm(true)}
             variant="danger"
             title="Delete listing"
           >
@@ -282,6 +295,19 @@ const ListingRow = ({ listing, onEdit, onDelete, onToggleActive, index }) => {
             </svg>
             Delete
           </ActionBtn>
+          
+          {/* Delete Confirmation Modal */}
+          <ConfirmationModal
+            isOpen={showDeleteConfirm}
+            title="Delete Listing"
+            message={`Are you sure you want to delete "${listing.title}"? This action cannot be undone.`}
+            confirmText="Delete"
+            cancelText="Cancel"
+            confirmVariant="danger"
+            loading={isDeleting}
+            onConfirm={handleConfirmDelete}
+            onCancel={() => setShowDeleteConfirm(false)}
+          />
         </div>
         {listing.adminHidden && (
           <p className="mt-2 text-xs font-medium text-rose-600">

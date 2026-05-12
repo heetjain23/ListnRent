@@ -1,4 +1,5 @@
 import Admin from './Admin.js'
+import { deleteCloudinaryImages } from '../../utils/cloudinaryService.js'
 
 const getLocalDateKey = (dateValue) => {
   const date = new Date(dateValue)
@@ -559,6 +560,16 @@ export const deleteMarketplaceListing = async (listingId) => {
 
   if (!listing) {
     throw new Error('Listing not found')
+  }
+
+  // Delete associated images from Cloudinary
+  if (listing.images && listing.images.length > 0) {
+    try {
+      await deleteCloudinaryImages(listing.images)
+    } catch (error) {
+      console.error('Error deleting images from Cloudinary:', error)
+      // Continue even if image deletion fails
+    }
   }
 
   return { success: true, message: 'Listing deleted successfully' }

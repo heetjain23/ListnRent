@@ -1,5 +1,6 @@
 import React from 'react'
 import PageHeader from '../../shared/PageHeader'
+import ConfirmationModal from '../../ui/ConfirmationModal'
 import { adminApi } from '../../../services/api'
 
 const formatCurrency = (value) =>
@@ -60,6 +61,8 @@ const MarketplaceTab = () => {
   const [actionId, setActionId] = React.useState('')
   const [currentPage, setCurrentPage] = React.useState(1)
   const [pageSize, setPageSize] = React.useState(5)
+  const [deleteConfirm, setDeleteConfirm] = React.useState(null)
+  const [isDeleting, setIsDeleting] = React.useState(false)
 
   React.useEffect(() => {
     const updatePageSize = () => {
@@ -146,20 +149,25 @@ const MarketplaceTab = () => {
 
   const handleDelete = async (listing) => {
     if (!listing?.id) return
+    setDeleteConfirm(listing)
+  }
 
-    const confirmed = window.confirm(`Delete ${listing.title}? This cannot be undone.`)
-    if (!confirmed) return
+  const confirmDelete = async () => {
+    if (!deleteConfirm?.id) return
 
-    setActionId(listing.id)
+    setIsDeleting(true)
+    setActionId(deleteConfirm.id)
     setError('')
 
     try {
-      await adminApi.deleteMarketplaceListing(listing.id)
-      setListings((prev) => prev.filter((item) => item.id !== listing.id))
+      await adminApi.deleteMarketplaceListing(deleteConfirm.id)
+      setListings((prev) => prev.filter((item) => item.id !== deleteConfirm.id))
+      setDeleteConfirm(null)
     } catch (err) {
       setError(err.message || 'Failed to delete listing')
     } finally {
       setActionId('')
+      setIsDeleting(false)
     }
   }
 
@@ -588,6 +596,19 @@ const MarketplaceTab = () => {
         )}
         </>
       )}
+      
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!deleteConfirm}
+        title="Delete Listing"
+        message={deleteConfirm ? `Delete "${deleteConfirm.title}"? This action cannot be undone.` : ''}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        loading={isDeleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </>
   )
 }

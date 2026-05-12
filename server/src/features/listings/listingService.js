@@ -3,6 +3,7 @@ import User from "../users/User.js";
 import Booking from "../bookings/Booking.js";
 import admin from "../../config/firebase-admin.js";
 import { buildMeasurementPayload } from "./sizeClassificationService.js";
+import { deleteCloudinaryImages } from "../../utils/cloudinaryService.js";
 import { SIZES } from "@listnrent/shared/constants";
 
 const toPlainListing = (listing) =>
@@ -273,6 +274,16 @@ export const deleteListing = async (id, userId) => {
 
   if (listing.userId !== userId) {
     throw new Error("Unauthorized: You can only delete your own listings");
+  }
+
+  // Delete associated images from Cloudinary before deleting the listing
+  if (listing.images && listing.images.length > 0) {
+    try {
+      await deleteCloudinaryImages(listing.images);
+    } catch (error) {
+      console.error('Error deleting images from Cloudinary:', error);
+      // Continue with listing deletion even if image deletion fails
+    }
   }
 
   await Listing.deleteOne({ _id: id });

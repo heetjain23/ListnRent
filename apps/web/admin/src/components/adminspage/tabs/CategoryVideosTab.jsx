@@ -1,6 +1,7 @@
 import React from 'react'
 import { toast } from 'sonner'
 import PageHeader from '../../shared/PageHeader'
+import ConfirmationModal from '../../ui/ConfirmationModal'
 import { adminApi } from '../../../services/api'
 import { uploadVideo } from '../../../services/cloudinary'
 import { CATEGORY_VIDEO_GUIDANCE, CATEGORIES } from '@listnrent/shared/constants'
@@ -17,6 +18,8 @@ const CategoryVideosTab = () => {
   const [selectedFile, setSelectedFile] = React.useState(null)
   const [loading, setLoading] = React.useState(true)
   const [submitting, setSubmitting] = React.useState(false)
+  const [deleteConfirm, setDeleteConfirm] = React.useState(null)
+  const [isDeleting, setIsDeleting] = React.useState(false)
 
   const loadVideos = React.useCallback(async () => {
     setLoading(true)
@@ -95,15 +98,22 @@ const CategoryVideosTab = () => {
   }
 
   const handleDelete = async (id) => {
-    const confirmed = window.confirm('Delete this category video?')
-    if (!confirmed) return
+    setDeleteConfirm(id)
+  }
 
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return
+
+    setIsDeleting(true)
     try {
-      await adminApi.deleteCategoryVideo(id)
+      await adminApi.deleteCategoryVideo(deleteConfirm)
       toast.success('Category video deleted')
+      setDeleteConfirm(null)
       await loadVideos()
     } catch (error) {
       toast.error(error.message || 'Failed to delete category video')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -268,6 +278,19 @@ const CategoryVideosTab = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!deleteConfirm}
+        title="Delete Category Video"
+        message="Delete this category video? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        loading={isDeleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </>
   )
 }
