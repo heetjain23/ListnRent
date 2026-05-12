@@ -2,10 +2,18 @@ import { v2 as cloudinary } from 'cloudinary';
 
 // Initialize Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+const hasCloudinaryConfig = () => {
+  return Boolean(
+    (process.env.CLOUDINARY_CLOUD_NAME || process.env.VITE_CLOUDINARY_CLOUD_NAME) &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET,
+  );
+};
 
 /**
  * Extract public ID from Cloudinary URL
@@ -18,11 +26,36 @@ export const extractPublicIdFromUrl = (imageUrl) => {
   if (!imageUrl) return null;
 
   try {
-    // Match pattern: /upload/v{version}/{public_id} or /upload/{public_id}
-    const match = imageUrl.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[^/.]+)?$/);
-    if (match && match[1]) {
-      return match[1];
+    if (!imageUrl.includes('/upload/')) return null;
+
+    const [rawPath] = imageUrl.split(/[?#]/);
+    const uploadIndex = rawPath.indexOf('/upload/');
+    if (uploadIndex === -1) return null;
+
+    let tail = decodeURIComponent(rawPath.slice(uploadIndex + '/upload/'.length));
+    const segments = tail.split('/').filter(Boolean);
+
+    // If transformed URL is provided, drop transformation segments until version or public ID.
+    while (segments.length > 0 && !/^v\d+$/.test(segments[0])) {
+      const segment = segments[0];
+      const looksLikeTransformation = segment.includes(',') || /^[a-z]{1,3}_.+/.test(segment);
+      if (!looksLikeTransformation) break;
+      segments.shift();
     }
+
+    if (segments.length > 0 && /^v\d+$/.test(segments[0])) {
+      segments.shift();
+    }
+
+    if (segments.length === 0) return null;
+
+    let publicId = segments.join('/');
+    publicId = publicId.replace(/\.[^.\/]+$/, '');
+
+    if (publicId) {
+      return publicId;
+    }
+
     return null;
   } catch (error) {
     console.error('Error extracting public ID from URL:', imageUrl, error);
@@ -41,8 +74,17 @@ export const deleteCloudinaryImage = async (publicId) => {
     return;
   }
 
+  if (!hasCloudinaryConfig()) {
+    console.warn('Cloudinary config missing on server. Skipping Cloudinary delete.');
+    return;
+  }
+
   try {
-    const result = await cloudinary.uploader.destroy(publicId);
+    const result = await cloudinary.uploader.destroy(publicId, {
+      resource_type: 'image',
+      type: 'upload',
+      invalidate: true,
+    });
     console.log(`Deleted image from Cloudinary: ${publicId}`, result);
     return result;
   } catch (error) {
