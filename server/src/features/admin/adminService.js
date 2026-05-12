@@ -421,6 +421,149 @@ export const getDashboardMetrics = async () => {
   }
 }
 
+// Get recent booking activity for the admin dashboard
+export const getRecentBookings = async (limit = 5) => {
+  const { default: Booking } = await import('../bookings/Booking.js')
+  const { default: User } = await import('../users/User.js')
+
+  const recentBookings = await Booking.find({
+    paymentStatus: { $in: ['partial', 'completed'] },
+  })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean()
+
+  const userIds = [...new Set(recentBookings.map((booking) => booking.userId).filter(Boolean))]
+  const users = userIds.length
+    ? await User.find({ uid: { $in: userIds } }, { uid: 1, displayName: 1, photoURL: 1, email: 1 }).lean()
+    : []
+  const userMap = new Map(users.map((user) => [user.uid, user]))
+
+  return recentBookings.map((booking) => {
+    const customer = userMap.get(booking.userId) || {}
+
+    return {
+      id: booking._id.toString(),
+      bookingId: booking._id.toString(),
+      clientName: customer.displayName || customer.email || 'Customer',
+      clientImage: customer.photoURL || null,
+      date: booking.createdAt,
+      rentAmount: booking.rentalAmount || 0,
+      depositAmount: booking.depositAmount || 0,
+      bookingStatus: booking.bookingStatus,
+      paymentStatus: booking.paymentStatus,
+    }
+  })
+}
+
+// Get all listings for the admin marketplace view
+export const getMarketplaceListings = async (search = '') => {
+  const { default: Listing } = await import('../listings/Listing.js')
+  const { default: User } = await import('../users/User.js')
+
+  const normalizedSearch = String(search || '').trim()
+  const userIdFilter = []
+
+  if (normalizedSearch) {
+    const matchingUsers = await User.find(
+      {
+        $or: [
+          { displayName: { $regex: normalizedSearch, $options: 'i' } },
+          { email: { $regex: normalizedSearch, $options: 'i' } },
+        ],
+      },
+      { uid: 1 }
+    ).lean()
+
+    userIdFilter.push(...matchingUsers.map((user) => user.uid))
+  }
+
+  const listingQuery = {
+    isDraft: { $ne: true },
+    ...(normalizedSearch
+      ? {
+          $or: [
+            { title: { $regex: normalizedSearch, $options: 'i' } },
+            { category: { $regex: normalizedSearch, $options: 'i' } },
+            { userId: { $in: userIdFilter } },
+          ],
+        }
+      : {}),
+  }
+
+  const listings = await Listing.find(listingQuery)
+    .sort({ createdAt: -1 })
+    .lean()
+
+  const ownerIds = [...new Set(listings.map((listing) => listing.userId).filter(Boolean))]
+  const owners = ownerIds.length
+    ? await User.find(
+        { uid: { $in: ownerIds } },
+        { uid: 1, displayName: 1, email: 1, photoURL: 1 }
+      ).lean()
+    : []
+  const ownerMap = new Map(owners.map((owner) => [owner.uid, owner]))
+
+  return listings.map((listing) => {
+    const owner = ownerMap.get(listing.userId) || {}
+
+    return {
+      id: listing._id.toString(),
+      title: listing.title || 'Untitled listing',
+      category: listing.category || 'Uncategorized',
+      occasion: listing.occasion || '',
+      size: listing.size || '',
+      pricePerDay: listing.pricePerDay || 0,
+      deposit: listing.deposit || 0,
+      isActive: !!listing.isActive,
+      isDraft: !!listing.isDraft,
+      createdAt: listing.createdAt,
+      updatedAt: listing.updatedAt,
+      images: listing.images || [],
+      location: listing.location || {},
+      owner: {
+        uid: owner.uid || listing.userId,
+        displayName: owner.displayName || 'User',
+        email: owner.email || '',
+        photoURL: owner.photoURL || null,
+      },
+    }
+  })
+}
+
+// Toggle listing visibility for admin marketplace management
+export const setMarketplaceListingVisibility = async (listingId, isActive) => {
+  const { default: Listing } = await import('../listings/Listing.js')
+
+  const listing = await Listing.findByIdAndUpdate(
+    listingId,
+    { $set: { isActive: !!isActive, adminHidden: !isActive } },
+    { returnDocument: 'after', runValidators: true }
+  ).lean()
+
+  if (!listing) {
+    throw new Error('Listing not found')
+  }
+
+  return {
+    id: listing._id.toString(),
+    isActive: !!listing.isActive,
+  }
+}
+
+// Delete a listing as an admin
+export const deleteMarketplaceListing = async (listingId) => {
+  const { default: Listing } = await import('../listings/Listing.js')
+
+  const listing = await Listing.findByIdAndDelete(listingId)
+
+  if (!listing) {
+    throw new Error('Listing not found')
+  }
+
+  return { success: true, message: 'Listing deleted successfully' }
+}
+
 // Delete a user by ID
 export const deleteUserById = async (userId) => {
   const { default: User } = await import('../users/User.js')

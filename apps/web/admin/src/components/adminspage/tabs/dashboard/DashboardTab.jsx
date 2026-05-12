@@ -28,6 +28,9 @@ const DashboardTab = () => {
   })
   const [loadingMetrics, setLoadingMetrics] = React.useState(true)
   const [metricsError, setMetricsError] = React.useState('')
+  const [recentBookings, setRecentBookings] = React.useState([])
+  const [loadingRecentBookings, setLoadingRecentBookings] = React.useState(true)
+  const [recentBookingsError, setRecentBookingsError] = React.useState('')
 
   const fetchDashboardMetrics = React.useCallback(async () => {
     setLoadingMetrics(true)
@@ -50,9 +53,28 @@ const DashboardTab = () => {
     }
   }, [])
 
+  const fetchRecentBookings = React.useCallback(async () => {
+    setLoadingRecentBookings(true)
+    setRecentBookingsError('')
+
+    try {
+      const response = await adminApi.getRecentBookings(5)
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to load recent bookings')
+      }
+
+      setRecentBookings(response.recentBookings || [])
+    } catch (error) {
+      setRecentBookingsError(error.message || 'Failed to load recent bookings')
+    } finally {
+      setLoadingRecentBookings(false)
+    }
+  }, [])
+
   React.useEffect(() => {
     fetchDashboardMetrics()
-  }, [fetchDashboardMetrics])
+    fetchRecentBookings()
+  }, [fetchDashboardMetrics, fetchRecentBookings])
 
   const metrics = React.useMemo(() => [
     {
@@ -122,11 +144,17 @@ const DashboardTab = () => {
         </div>
       )}
 
+      {recentBookingsError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          {recentBookingsError}
+        </div>
+      )}
+
       <MetricsGrid metrics={metrics} loading={loadingMetrics} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <RecentActivity />
+          <RecentActivity activities={recentBookings} loading={loadingRecentBookings} />
         </div>
         <ActionableAlerts />
       </div>

@@ -24,6 +24,11 @@ const UserListingItem = ({ listing, onEdit, onDelete, onToggleActive }) => {
   }
 
   const handleToggleActive = async () => {
+    if (listing.adminHidden) {
+      toast.error('This listing is hidden by admin and cannot be re-enabled.')
+      return
+    }
+
     try {
       setIsTogglingActive(true)
       await onToggleActive(listing._id, listing.isActive)
@@ -78,6 +83,11 @@ const UserListingItem = ({ listing, onEdit, onDelete, onToggleActive }) => {
                 Inactive
               </span>
             )}
+            {listing.adminHidden && (
+              <span className="inline-block bg-rose-50 text-rose-700 px-2 py-1 rounded text-xs font-semibold ml-2">
+                Hidden by admin
+              </span>
+            )}
           </div>
 
           <p className="text-sm text-[#666] line-clamp-2 mb-2">
@@ -122,13 +132,19 @@ const UserListingItem = ({ listing, onEdit, onDelete, onToggleActive }) => {
         {!listing.isDraft && (
           <Button
             onClick={handleToggleActive}
-            disabled={isTogglingActive}
-            variant={listing.isActive ? 'outline' : 'primary'}
+            disabled={isTogglingActive || listing.adminHidden}
+            variant={listing.adminHidden ? 'outline' : listing.isActive ? 'outline' : 'primary'}
             size="sm"
             className="flex-1"
           >
-            {isTogglingActive ? '...' : listing.isActive ? 'Hide' : 'Show'}
+            {isTogglingActive ? '...' : listing.adminHidden ? 'Hidden' : listing.isActive ? 'Hide' : 'Show'}
           </Button>
+        )}
+
+        {listing.adminHidden && (
+          <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+            This outfit is hidden by admin and cannot be unhidden from your side.
+          </div>
         )}
 
         <Button

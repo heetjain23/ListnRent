@@ -1,9 +1,15 @@
 import express from 'express'
+import { verifyFirebaseToken } from '../../middleware/authMiddleware.js'
+import * as adminService from './adminService.js'
 import {
   handleInitializeAdmin,
   handleAddAdmin,
   handleGetAllUsers,
   handleGetDashboardMetrics,
+  handleGetRecentBookings,
+  handleGetMarketplaceListings,
+  handleUpdateMarketplaceListingVisibility,
+  handleDeleteMarketplaceListing,
   handleDeleteUser,
   handleGetAllAdmins,
   handleDeleteAdmin,
@@ -29,6 +35,37 @@ import {
 
 const router = express.Router()
 
+const requireAdminAccess = async (req, res, next) => {
+  try {
+    const email = req.user?.email
+
+    if (!email) {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin email is required',
+      })
+    }
+
+    const admin = await adminService.getAdminByEmail(email)
+
+    if (!admin || admin.status !== 'active' || !['admin', 'super_admin'].includes(admin.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not allowed to manage listings',
+      })
+    }
+
+    req.admin = admin
+    next()
+  } catch (error) {
+    console.error('Admin access check error:', error)
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to verify admin access',
+    })
+  }
+}
+
 // POST /api/admin/init - Initialize admin in database
 router.post('/init', handleInitializeAdmin)
 
@@ -44,6 +81,12 @@ router.delete('/users/:id', handleDeleteUser)
 
 // Dashboard Routes
 router.get('/dashboard-metrics', handleGetDashboardMetrics)
+router.get('/dashboard/recent-bookings', handleGetRecentBookings)
+
+// Marketplace Routes
+router.get('/listings', verifyFirebaseToken, requireAdminAccess, handleGetMarketplaceListings)
+router.patch('/listings/:id/visibility', verifyFirebaseToken, requireAdminAccess, handleUpdateMarketplaceListingVisibility)
+router.delete('/listings/:id', verifyFirebaseToken, requireAdminAccess, handleDeleteMarketplaceListing)
 
 // Delivery Partners Routes
 router.get('/delivery-partners', handleGetAllDeliveryPartners)

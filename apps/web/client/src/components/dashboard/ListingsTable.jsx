@@ -24,9 +24,15 @@ const STATUS_CONFIG = {
     badge: 'bg-blue-50 text-blue-700 border border-blue-200',
     label: 'Draft',
   },
+  AdminHidden: {
+    dot: 'bg-rose-400',
+    badge: 'bg-rose-50 text-rose-700 border border-rose-200',
+    label: 'Hidden by admin',
+  },
 }
 
 const getStatus = (listing) => {
+  if (listing.adminHidden) return 'AdminHidden'
   if (listing.isDraft) return 'Draft'
   if (!listing.isActive) return 'Inactive'
   return 'Available'
@@ -126,6 +132,8 @@ const ListingRow = ({ listing, onEdit, onDelete, onToggleActive, index }) => {
   const cfg = STATUS_CONFIG[status]
 
   const handleToggle = async () => {
+    if (listing.adminHidden) return
+
     try {
       setTogglingId(listing._id)
       await onToggleActive(listing._id, listing.isActive)
@@ -234,14 +242,20 @@ const ListingRow = ({ listing, onEdit, onDelete, onToggleActive, index }) => {
           {!listing.isDraft && (
             <ActionBtn
               onClick={handleToggle}
-              disabled={!!togglingId}
-              variant={listing.isActive ? 'toggle' : 'activate'}
-              title={listing.isActive ? 'Deactivate listing' : 'Activate listing'}
+              disabled={!!togglingId || listing.adminHidden}
+              variant={listing.adminHidden ? 'default' : listing.isActive ? 'toggle' : 'activate'}
+              title={listing.adminHidden ? 'Hidden by admin' : listing.isActive ? 'Deactivate listing' : 'Activate listing'}
             >
               {togglingId === listing._id ? (
                 <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10" strokeOpacity="0.25"/>
                   <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"/>
+                </svg>
+              ) : listing.adminHidden ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <path d="M3 3l18 18" />
+                  <path d="M10.58 10.58A2 2 0 0 0 12 16a2 2 0 0 0 1.42-.58" />
+                  <path d="M9.88 5.09A10.94 10.94 0 0 1 12 5c5 0 9 7 9 7a21.76 21.76 0 0 1-2.68 3.88" />
                 </svg>
               ) : listing.isActive ? (
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -253,7 +267,7 @@ const ListingRow = ({ listing, onEdit, onDelete, onToggleActive, index }) => {
                   <line x1="8" y1="12" x2="16" y2="12"/>
                 </svg>
               )}
-              {togglingId === listing._id ? '…' : listing.isActive ? 'Deactivate' : 'Activate'}
+              {togglingId === listing._id ? '…' : listing.adminHidden ? 'Hidden by admin' : listing.isActive ? 'Deactivate' : 'Activate'}
             </ActionBtn>
           )}
 
@@ -269,6 +283,11 @@ const ListingRow = ({ listing, onEdit, onDelete, onToggleActive, index }) => {
             Delete
           </ActionBtn>
         </div>
+        {listing.adminHidden && (
+          <p className="mt-2 text-xs font-medium text-rose-600">
+            Hidden by admin. You cannot re-enable this listing.
+          </p>
+        )}
       </td>
     </tr>
   )

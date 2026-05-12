@@ -5,6 +5,7 @@ import { getOptimizedImageUrl } from '../../services/cloudinary'
 // ─── Status helpers ───────────────────────────────────────────────────────────
 
 const getStatus = (listing) => {
+  if (listing.adminHidden) return 'AdminHidden'
   if (listing.isDraft) return 'Draft'
   if (!listing.isActive) return 'Inactive'
   return 'Available'
@@ -26,6 +27,10 @@ const STATUS_CONFIG = {
   Draft: {
     dot: 'bg-blue-400',
     badge: 'bg-blue-50 text-blue-700 border border-blue-200',
+  },
+  AdminHidden: {
+    dot: 'bg-rose-400',
+    badge: 'bg-rose-50 text-rose-700 border border-rose-200',
   },
 }
 
@@ -122,6 +127,8 @@ const MobileListingCard = ({ listing, onEdit, onDelete, onToggleActive }) => {
     : null
 
   const handleToggle = async () => {
+    if (listing.adminHidden) return
+
     try {
       setToggling(true)
       await onToggleActive(listing._id, listing.isActive)
@@ -208,6 +215,11 @@ const MobileListingCard = ({ listing, onEdit, onDelete, onToggleActive }) => {
             <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
             {status}
           </span>
+          {listing.adminHidden && (
+            <div className="mt-2 inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-700">
+              Hidden by admin
+            </div>
+          )}
         </div>
 
         {/* Price pill — top right */}
@@ -291,24 +303,30 @@ const MobileListingCard = ({ listing, onEdit, onDelete, onToggleActive }) => {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={handleToggle}
-          disabled={toggling}
+          disabled={toggling || listing.adminHidden}
           className={`flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-xl transition-colors disabled:opacity-50 ${
-            listing.isActive
-              ? 'text-blue-600'
-              : 'text-purple-600'
+            listing.adminHidden
+              ? 'text-rose-600'
+              : listing.isActive
+                ? 'text-blue-600'
+                : 'text-purple-600'
           }`}
           style={{
-            background: listing.isActive
-              ? 'linear-gradient(135deg, rgba(37,99,235,0.07), rgba(37,99,235,0.04))'
-              : 'linear-gradient(135deg, rgba(147,51,234,0.07), rgba(147,51,234,0.04))',
-            border: listing.isActive
-              ? '1px solid rgba(37,99,235,0.14)'
-              : '1px solid rgba(147,51,234,0.14)',
+            background: listing.adminHidden
+              ? 'linear-gradient(135deg, rgba(225,29,72,0.07), rgba(225,29,72,0.04))'
+              : listing.isActive
+                ? 'linear-gradient(135deg, rgba(37,99,235,0.07), rgba(37,99,235,0.04))'
+                : 'linear-gradient(135deg, rgba(147,51,234,0.07), rgba(147,51,234,0.04))',
+            border: listing.adminHidden
+              ? '1px solid rgba(225,29,72,0.14)'
+              : listing.isActive
+                ? '1px solid rgba(37,99,235,0.14)'
+                : '1px solid rgba(147,51,234,0.14)',
           }}
         >
-          {toggling ? <SpinnerIcon /> : listing.isActive ? <ToggleOnIcon /> : <ToggleOffIcon />}
+          {toggling ? <SpinnerIcon /> : listing.adminHidden ? <ToggleOffIcon /> : listing.isActive ? <ToggleOnIcon /> : <ToggleOffIcon />}
           <span className="text-[10px] font-extrabold tracking-wide uppercase">
-            {toggling ? '...' : listing.isActive ? 'Pause' : 'Publish'}
+            {toggling ? '...' : listing.adminHidden ? 'Hidden' : listing.isActive ? 'Pause' : 'Publish'}
           </span>
         </motion.button>
 
@@ -334,6 +352,12 @@ const MobileListingCard = ({ listing, onEdit, onDelete, onToggleActive }) => {
           background: 'linear-gradient(90deg, transparent, #D4AF37, #C8622A, transparent)',
         }}
       />
+
+      {listing.adminHidden && (
+        <div className="border-t border-[#F5EFE6] px-4 py-3 text-xs font-medium text-rose-700 bg-rose-50/70">
+          Hidden by admin. You cannot re-enable this listing.
+        </div>
+      )}
 
       {/* Shimmer keyframe */}
       <style>{`

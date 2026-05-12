@@ -122,6 +122,100 @@ export const handleGetDashboardMetrics = async (req, res) => {
   }
 }
 
+// GET /api/admin/dashboard/recent-bookings - Get recent bookings for the dashboard
+export const handleGetRecentBookings = async (req, res) => {
+  try {
+    const limit = Number(req.query.limit || 5)
+    const recentBookings = await adminService.getRecentBookings(limit)
+
+    res.status(200).json({
+      success: true,
+      recentBookings,
+    })
+  } catch (error) {
+    console.error('Get recent bookings error:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get recent bookings',
+    })
+  }
+}
+
+// GET /api/admin/listings - Get all listings for marketplace management
+export const handleGetMarketplaceListings = async (req, res) => {
+  try {
+    const { search } = req.query
+    const listings = await adminService.getMarketplaceListings(search)
+
+    res.status(200).json({
+      success: true,
+      listings,
+    })
+  } catch (error) {
+    console.error('Get marketplace listings error:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get marketplace listings',
+    })
+  }
+}
+
+// PATCH /api/admin/listings/:id/visibility - Hide or show a listing
+export const handleUpdateMarketplaceListingVisibility = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { isActive } = req.body || {}
+
+    if (!id || typeof isActive !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'Listing ID and isActive boolean are required',
+      })
+    }
+
+    const listing = await adminService.setMarketplaceListingVisibility(id, isActive)
+
+    res.status(200).json({
+      success: true,
+      message: 'Listing visibility updated successfully',
+      listing,
+    })
+  } catch (error) {
+    console.error('Update marketplace listing visibility error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to update listing visibility',
+    })
+  }
+}
+
+// DELETE /api/admin/listings/:id - Delete a listing
+export const handleDeleteMarketplaceListing = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Listing ID is required',
+      })
+    }
+
+    const result = await adminService.deleteMarketplaceListing(id)
+
+    res.status(200).json({
+      success: true,
+      ...result,
+    })
+  } catch (error) {
+    console.error('Delete marketplace listing error:', error)
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to delete listing',
+    })
+  }
+}
+
 // DELETE /api/admin/users/:id - Delete a user
 export const handleDeleteUser = async (req, res) => {
   try {

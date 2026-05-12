@@ -100,7 +100,7 @@ export const createListing = async (userId, data) => {
 // Excludes draft listings
 // ----------------------------
 export const getAllListings = async (filters = {}) => {
-  const query = { isActive: true, isDraft: { $ne: true } };
+  const query = { isActive: true, adminHidden: { $ne: true }, isDraft: { $ne: true } };
   const limit = Math.min(Math.max(Number(filters.limit) || 0, 0), 60);
   const sortBy = filters.sortBy === "trending" ? "trending" : "newest";
 
@@ -135,7 +135,7 @@ export const getAllListings = async (filters = {}) => {
 
 export const incrementListingViewCount = async (id) => {
   const listing = await Listing.findOneAndUpdate(
-    { _id: id, isActive: true, isDraft: { $ne: true } },
+    { _id: id, isActive: true, adminHidden: { $ne: true }, isDraft: { $ne: true } },
     { $inc: { viewCount: 1 } },
     { returnDocument: 'after' }
   )
@@ -180,6 +180,10 @@ export const updateListing = async (id, userId, data) => {
     throw new Error("Unauthorized: You can only update your own listings");
   }
 
+  if (listing.adminHidden && data.isActive === true) {
+    throw new Error("This listing was hidden by admin and cannot be reactivated by the owner");
+  }
+
   if (data.measurements) {
     const measurementResult = buildMeasurementPayload(
       data.category || listing.category,
@@ -219,14 +223,43 @@ export const updateListing = async (id, userId, data) => {
 
   for (const field of updatableFields) {
     if (data[field] !== undefined) {
+      if (field === 'isActive' && listing.adminHidden && data[field] === true) {
+        continue
+      }
       listing[field] = data[field];
     }
+  }
+
+  if (listing.adminHidden && listing.isActive) {
+    listing.isActive = false
   }
 
   const updated = await listing.save();
   
   return updated;
 };
+
+// ----------------------------
+// Admin Listing Visibility Management
+// ----------------------------
+export const setListingAdminVisibility = async (id, isActive) => {
+  const listing = await Listing.findByIdAndUpdate(
+    id,
+    {
+      $set: {
+        isActive: !!isActive,
+        adminHidden: !isActive,
+      },
+    },
+    { returnDocument: 'after', runValidators: true }
+  )
+
+  if (!listing) {
+    throw new Error('Listing not found')
+  }
+
+  return listing
+}
 
 // ----------------------------
 // Delete Listing (owner only)
