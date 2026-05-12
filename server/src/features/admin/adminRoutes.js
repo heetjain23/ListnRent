@@ -3,6 +3,7 @@ import {
   handleInitializeAdmin,
   handleAddAdmin,
   handleGetAllUsers,
+  handleGetDashboardMetrics,
   handleDeleteUser,
   handleGetAllAdmins,
   handleDeleteAdmin,
@@ -40,6 +41,9 @@ router.patch('/admin-email/:email', handleUpdateAdminEmail)
 // Users Routes
 router.get('/users', handleGetAllUsers)
 router.delete('/users/:id', handleDeleteUser)
+
+// Dashboard Routes
+router.get('/dashboard-metrics', handleGetDashboardMetrics)
 
 // Delivery Partners Routes
 router.get('/delivery-partners', handleGetAllDeliveryPartners)

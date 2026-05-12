@@ -104,6 +104,24 @@ export const handleGetAllUsers = async (req, res) => {
   }
 }
 
+// GET /api/admin/dashboard-metrics - Get admin dashboard metrics
+export const handleGetDashboardMetrics = async (req, res) => {
+  try {
+    const metrics = await adminService.getDashboardMetrics()
+
+    res.status(200).json({
+      success: true,
+      metrics,
+    })
+  } catch (error) {
+    console.error('Get dashboard metrics error:', error)
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get dashboard metrics',
+    })
+  }
+}
+
 // DELETE /api/admin/users/:id - Delete a user
 export const handleDeleteUser = async (req, res) => {
   try {

@@ -354,6 +354,73 @@ export const getAllUsersWithCounts = async () => {
   return usersWithCounts
 }
 
+// Get admin dashboard metrics
+export const getDashboardMetrics = async () => {
+  const { default: User } = await import('../users/User.js')
+  const { default: Listing } = await import('../listings/Listing.js')
+  const { default: Booking } = await import('../bookings/Booking.js')
+
+  const confirmedPaymentFilter = { $in: ['partial', 'completed'] }
+
+  const [
+    totalUsers,
+    activeListings,
+    activeRentals,
+    totalRentalsDone,
+    revenueResult,
+    depositHeldResult,
+  ] = await Promise.all([
+    User.countDocuments({}),
+    Listing.countDocuments({ isActive: true, isDraft: false }),
+    Booking.countDocuments({
+      bookingStatus: 'active',
+      paymentStatus: confirmedPaymentFilter,
+    }),
+    Booking.countDocuments({
+      bookingStatus: { $in: ['active', 'completed'] },
+      paymentStatus: confirmedPaymentFilter,
+    }),
+    Booking.aggregate([
+      {
+        $match: {
+          bookingStatus: { $in: ['active', 'completed'] },
+          paymentStatus: { $in: ['completed'] },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$rentalAmount' },
+        },
+      },
+    ]),
+    Booking.aggregate([
+      {
+        $match: {
+          bookingStatus: { $in: ['active', 'completed'] },
+          paymentStatus: confirmedPaymentFilter,
+          'milestones.depositReturnedAt': null,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$depositAmount' },
+        },
+      },
+    ]),
+  ])
+
+  return {
+    totalUsers,
+    activeListings,
+    activeRentals,
+    totalRentalsDone,
+    totalRevenue: revenueResult?.[0]?.total || 0,
+    totalDepositHeld: depositHeldResult?.[0]?.total || 0,
+  }
+}
+
 // Delete a user by ID
 export const deleteUserById = async (userId) => {
   const { default: User } = await import('../users/User.js')

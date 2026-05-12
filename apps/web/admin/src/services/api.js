@@ -199,6 +199,23 @@ export const adminApi = {
     return response.json()
   },
 
+  getDashboardMetrics: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/dashboard-metrics`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get dashboard metrics')
+    }
+
+    return data
+  },
+
   deleteUser: async (userId) => {
     const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
       method: 'DELETE',
