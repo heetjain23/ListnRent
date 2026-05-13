@@ -1,6 +1,7 @@
 import express from 'express'
 import { verifyFirebaseToken } from '../../middleware/authMiddleware.js'
 import * as adminService from './adminService.js'
+import adminDisputeRoutes from "../disputes/adminDisputeRoutes.js";
 import {
   handleInitializeAdmin,
   handleAddAdmin,
@@ -108,5 +109,8 @@ router.post('/support-team', handleAddSupportTeamMember)
 router.patch('/support-team/:id', handleUpdateSupportTeamMember)
 router.delete('/support-team/:id', handleDeleteSupportTeamMember)
 router.patch('/support-team/:id/status', handleToggleSupportTeamMemberStatus)
+
+// Dispute management routes for support team, admin, super_admin
+router.use("/disputes", adminDisputeRoutes);
 
 export default router
