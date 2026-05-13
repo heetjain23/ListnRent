@@ -71,6 +71,7 @@ export const AdminAuthProvider = ({ children }) => {
             }
 
             const adminData = {
+              _id: response.admin?._id,
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               displayName: response.admin?.displayName || firebaseUser.displayName,

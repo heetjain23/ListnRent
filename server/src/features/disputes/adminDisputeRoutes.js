@@ -9,6 +9,7 @@ import express from 'express'
 import { verifyFirebaseToken } from '../../middleware/authMiddleware.js'
 import { requireDisputeStaffAccess, requireDisputeAdminAccess } from './disputeMiddleware.js'
 import {
+  handleAdminGetDisputeMetrics,
   handleAdminGetAllDisputes,
   handleAdminGetDisputeById,
   handleAdminGetDisputeMessages,
@@ -40,6 +41,7 @@ router.use(verifyFirebaseToken, requireDisputeStaffAccess)
  * }
  */
 router.get('/', handleAdminGetAllDisputes)
+router.get('/metrics', handleAdminGetDisputeMetrics)
 
 /**
  * GET /api/admin/disputes/:id

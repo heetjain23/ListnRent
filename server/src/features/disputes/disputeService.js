@@ -12,7 +12,7 @@ import {
   SYSTEM_MESSAGES,
   ALLOWED_TRANSITIONS,
   STAFF_BLOCKED_STATUSES,
-  adminRoleToSenderRole,
+  STAFF_ROLES,
   USER_BLOCKED_STATUSES,
 } from '@listnrent/shared/constants'
 import { emitDisputeEvent } from './disputeSocketHooks.js'
@@ -459,6 +459,20 @@ export const markDisputeMessagesRead = async (disputeMongoId, participantId) => 
   await Dispute.findByIdAndUpdate(disputeMongoId, {
     $set: { [key]: 0 },
   })
+
+  try {
+    const updated = await Dispute.findById(disputeMongoId).lean()
+    if (updated) {
+      const formatted = formatDispute(updated)
+      emitDisputeEvent('dispute:unread_update', {
+        disputeId: disputeMongoId.toString(),
+        dispute: formatted,
+      })
+    }
+  } catch (err) {
+    // non-fatal
+    console.error('[DisputeService] markDisputeMessagesRead emit error:', err.message)
+  }
 }
 
 // ─── MARK RESOLVED (staff/admin action) ───────────────────────────────────────
@@ -672,6 +686,9 @@ export const getAllDisputesAdmin = async (options = {}) => {
     priority,
     category,
     assignedTo,
+    assigned,
+    me,
+    reopened,
     search,
     sortBy = 'lastMessageAt',
     sortOrder = 'desc',
@@ -684,6 +701,22 @@ export const getAllDisputesAdmin = async (options = {}) => {
   if (priority) query.priority = priority
   if (category) query.category = category
   if (assignedTo) query.assignedTo = assignedTo
+
+  if (assigned === 'unassigned') {
+    query.assignedTo = null
+  }
+
+  if (assigned === 'assigned') {
+    query.assignedTo = { $ne: null }
+  }
+
+  if (assigned === 'assigned_to_me' && me) {
+    query.assignedTo = me
+  }
+
+  if (reopened === true || reopened === 'true') {
+    query.reopenCount = { $gt: 0 }
+  }
 
   // Search by disputeId or subject
   if (search) {
@@ -736,6 +769,63 @@ export const getAllDisputesAdmin = async (options = {}) => {
       total,
       totalPages: Math.ceil(total / Math.min(limit, 50)),
     },
+  }
+}
+
+/**
+ * Realtime queue metrics for dispute operations dashboards.
+ */
+export const getDisputeMetricsAdmin = async (adminId = null) => {
+  const activeStatuses = [
+    DISPUTE_STATUS.OPEN,
+    DISPUTE_STATUS.IN_PROGRESS,
+    DISPUTE_STATUS.WAITING_FOR_USER,
+    DISPUTE_STATUS.REOPENED,
+  ]
+
+  const [
+    totalCount,
+    activeCount,
+    pendingCount,
+    unassignedCount,
+    reopenedCount,
+    closedCount,
+    assignedToMeCount,
+    unreadAggregation,
+  ] = await Promise.all([
+    Dispute.countDocuments({}),
+    Dispute.countDocuments({ status: { $in: activeStatuses } }),
+    Dispute.countDocuments({ status: DISPUTE_STATUS.RESOLVED_PENDING_CONFIRMATION }),
+    Dispute.countDocuments({ status: { $in: activeStatuses }, assignedTo: null }),
+    Dispute.countDocuments({ status: DISPUTE_STATUS.REOPENED }),
+    Dispute.countDocuments({ status: DISPUTE_STATUS.CLOSED }),
+    adminId ? Dispute.countDocuments({ status: { $in: activeStatuses }, assignedTo: adminId }) : 0,
+    Dispute.aggregate([
+      {
+        $project: {
+          staffUnread: {
+            $ifNull: ['$unreadCounts.staff', 0],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$staffUnread' },
+        },
+      },
+    ]),
+  ])
+
+  return {
+    totalCount,
+    activeCount,
+    pendingCount,
+    unreadStaffTotal: unreadAggregation?.[0]?.total || 0,
+    unassignedCount,
+    reopenedCount,
+    closedCount,
+    assignedToMeCount,
   }
 }
 
@@ -830,6 +920,12 @@ export const assignDispute = async (adminId, adminRole, disputeMongoId, assignee
     throw err
   }
 
+  if (assignee.status !== 'active' || !STAFF_ROLES.includes(assignee.role)) {
+    const err = new Error('Assignee must be an active support/admin team member')
+    err.statusCode = 400
+    throw err
+  }
+
   const assigneeName = assignee.displayName || assignee.email?.split('@')[0] || 'Staff'
   const now = new Date()
 
@@ -851,6 +947,7 @@ export const assignDispute = async (adminId, adminRole, disputeMongoId, assignee
         lastMessage: SYSTEM_MESSAGES.ASSIGNED(assigneeName).substring(0, 300),
         lastMessageAt: now,
         lastMessageBy: 'system',
+        [`unreadCounts.${assigneeAdminId}`]: (dispute.unreadCounts?.get?.(assigneeAdminId) || 0) + 1,
       },
     },
     { new: true }

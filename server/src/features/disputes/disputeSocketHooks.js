@@ -30,6 +30,8 @@
  */
 
 import { getIO } from '../../socket/socketServer.js'
+import Admin from '../admin/Admin.js'
+import { STAFF_ROLES } from '@listnrent/shared/constants'
 
 /**
  * Emit a dispute-related socket event to all relevant rooms.
@@ -96,14 +98,24 @@ export const registerDisputeSocketHandlers = (socket, uid) => {
       // Lazy import to avoid circular dependency with service
       const { getDisputeById } = await import('./disputeService.js')
 
-      // For customers: verify they own the dispute
-      // For staff: the middleware already validated their admin role so just allow
       const dispute = await getDisputeById(disputeId)
         .catch(() => null)
 
       if (!dispute) {
         socket.emit('error:dispute', { message: 'Dispute not found' })
         return
+      }
+
+      const isOwner = dispute.raisedBy === uid
+
+      if (!isOwner) {
+        const admin = await Admin.findOne({ email: socket.userEmail }).select('role status').lean()
+        const isStaff = !!admin && admin.status === 'active' && STAFF_ROLES.includes(admin.role)
+
+        if (!isStaff) {
+          socket.emit('error:unauthorized', { message: 'Not authorized to join this dispute thread' })
+          return
+        }
       }
 
       socket.join(`dispute:${disputeId}`)
@@ -123,8 +135,27 @@ export const registerDisputeSocketHandlers = (socket, uid) => {
    * For now, the frontend is responsible for calling this after role detection.
    */
   socket.on('join:staff_disputes', () => {
-    // TODO: add server-side role verification once admin socket auth is wired
-    socket.join('staff:disputes')
+    try {
+      const email = socket.userEmail
+      if (!email) {
+        socket.emit('error:unauthorized', { message: 'Admin email required to join staff room' })
+        return
+      }
+
+      Admin.findOne({ email }).lean().then((admin) => {
+        if (!admin || admin.status !== 'active' || !STAFF_ROLES.includes(admin.role)) {
+          socket.emit('error:unauthorized', { message: 'Insufficient permissions to join staff room' })
+          return
+        }
+
+        socket.join('staff:disputes')
+      }).catch((err) => {
+        console.error('[DisputeSocket] staff room check failed:', err.message)
+        socket.emit('error:unauthorized', { message: 'Failed to verify staff access' })
+      })
+    } catch (err) {
+      console.error('[DisputeSocket] join:staff_disputes error:', err.message)
+    }
   })
 
   socket.on('leave:staff_disputes', () => {

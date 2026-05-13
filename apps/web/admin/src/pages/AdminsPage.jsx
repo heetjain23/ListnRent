@@ -11,33 +11,52 @@ import DeliviresHandlingTab from '../components/adminspage/tabs/DeliviresHandlin
 import FinanceTab from '../components/adminspage/tabs/FinanceTab'
 import AnalyticsTab from '../components/adminspage/tabs/AnalyticsTab'
 import SettingsTab from '../components/adminspage/tabs/SettingsTab'
-import { getMenuItemsForRole } from '../utils/permissions'
+import { getDashboardForRole, getMenuItemsForRole } from '../utils/permissions'
 
 const AdminsPage = () => {
   const { tab } = useParams()
   const navigate = useNavigate()
   const { admin } = useAdminAuth()
-  const [currentTab, setCurrentTab] = React.useState(tab || 'dashboard')
 
   const menuItems = getMenuItemsForRole(admin?.role)
+  const allowedTabs = React.useMemo(() => {
+    return menuItems
+      .map((item) => {
+        if (item.label === 'Delivires Handling') return 'deliviresHandling'
+        return item.label.toLowerCase().replace(/\s+/g, '-').replace('team-management', 'team')
+      })
+  }, [menuItems])
 
-  // Map menu item labels to tab keys
-  const tabMap = {
-    'dashboard': 'dashboard',
-    'team': 'team',
-    'marketplace': 'marketplace',
-    'category-videos': 'category-videos',
-    'disputes': 'disputes',
-    'deliviresHandling': 'deliviresHandling',
-    'finance': 'finance',
-    'analytics': 'analytics',
-    'settings': 'settings',
-  }
+  const requestedTab = tab || 'dashboard'
+  const fallbackTab = React.useMemo(() => {
+    if (allowedTabs.length === 0) {
+      const destination = getDashboardForRole(admin?.role)
+      if (destination.startsWith('/admin/')) {
+        return destination.split('/').pop()
+      }
+      return 'dashboard'
+    }
+
+    return allowedTabs.includes('dashboard') ? 'dashboard' : allowedTabs[0]
+  }, [admin?.role, allowedTabs])
+
+  const currentTab = allowedTabs.includes(requestedTab) ? requestedTab : fallbackTab
 
   const handleTabChange = (newTab) => {
-    setCurrentTab(newTab)
+    if (!allowedTabs.includes(newTab)) {
+      const fallback = admin?.role === 'support_team' ? 'disputes' : 'dashboard'
+      navigate(`/admin/${fallback}`)
+      return
+    }
+
     navigate(`/admin/${newTab}`)
   }
+
+  React.useEffect(() => {
+    if (requestedTab !== currentTab) {
+      navigate(`/admin/${currentTab}`, { replace: true })
+    }
+  }, [currentTab, navigate, requestedTab])
 
   const renderTabContent = () => {
     switch (currentTab) {

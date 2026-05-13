@@ -18,10 +18,22 @@ const parseAdminPageOptions = (query) => ({
   priority: query.priority || undefined,
   category: query.category || undefined,
   assignedTo: query.assignedTo || undefined,
+  assigned: query.assigned || undefined,
+  me: query.me || undefined,
+  reopened: query.reopened || undefined,
   search: query.search?.trim() || undefined,
   sortBy: query.sortBy || 'lastMessageAt',
   sortOrder: query.sortOrder === 'asc' ? 'asc' : 'desc',
 })
+
+export const handleAdminGetDisputeMetrics = async (req, res) => {
+  try {
+    const result = await disputeService.getDisputeMetricsAdmin(req.admin?._id?.toString?.() || null)
+    return successResponse(res, result)
+  } catch (error) {
+    return errorResponse(res, error.message || 'Failed to get dispute metrics', 500)
+  }
+}
 
 // ─── GET /api/admin/disputes ───────────────────────────────────────────────────
 
@@ -64,7 +76,6 @@ export const handleAdminGetDisputeById = async (req, res) => {
 export const handleAdminGetDisputeMessages = async (req, res) => {
   try {
     const { id } = req.params
-    const admin = req.admin
 
     const dispute = await disputeService.getDisputeById(id)
 

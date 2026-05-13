@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
+import DisputeCreateModal from "../components/disputes/DisputeCreateModal";
 import { auth } from "../services/firebase";
 import { getOptimizedImageUrl } from "../services/cloudinary";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { useSEO } from "../hooks/useSEO";
+
+void motion;
 
 const OrderDetail = () => {
   const { bookingId } = useParams();
@@ -21,6 +23,7 @@ const OrderDetail = () => {
   const [booking, setBooking] = useState(location.state?.booking || null);
   const [loading, setLoading] = useState(!booking);
   const [error, setError] = useState(null);
+  const [isDisputeOpen, setIsDisputeOpen] = useState(false);
 
   const formatTimelineDate = (value) => {
     if (!value) return "Pending";
@@ -54,7 +57,7 @@ const OrderDetail = () => {
     return window.location.origin;
   };
 
-  const fetchBooking = async () => {
+  const fetchBooking = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -93,16 +96,18 @@ const OrderDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [bookingId]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
 
     if (bookingId) {
       console.log("[OrderDetail] Fetching latest booking details for timeline...");
-      fetchBooking();
+      queueMicrotask(() => {
+        void fetchBooking();
+      });
     }
-  }, [bookingId]);
+  }, [bookingId, fetchBooking]);
 
   const getStatusBadgeInfo = (status) => {
     switch (status) {
@@ -441,6 +446,7 @@ const OrderDetail = () => {
 
   const statusInfo = getStatusBadgeInfo(booking.bookingStatus);
   const customerTimeline = normalizeTimelineItems(booking.timeline?.customer || []);
+  const canRaiseDispute = ["partial", "completed"].includes(booking.paymentStatus);
 
   return (
     <motion.div
@@ -474,6 +480,23 @@ const OrderDetail = () => {
             </motion.div>
           </div>
         </motion.div>
+
+        {canRaiseDispute && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.14, duration: 0.3 }}
+            className="mb-6 flex justify-end"
+          >
+            <button
+              onClick={() => setIsDisputeOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-[#E8E0D5] bg-white px-4 py-2.5 text-sm font-semibold text-[#004D40] shadow-[0_10px_24px_rgba(0,0,0,0.04)] transition-all hover:border-[#D4AF37] hover:text-[#003830]"
+            >
+              <span>Need help?</span>
+              <span>Raise Dispute</span>
+            </button>
+          </motion.div>
+        )}
 
         {/* Main Content - Desktop: Grid, Mobile: Stacked */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -848,6 +871,18 @@ const OrderDetail = () => {
           )}
         </motion.div>
       </div>
+
+      <DisputeCreateModal
+        isOpen={isDisputeOpen}
+        booking={booking}
+        onClose={() => setIsDisputeOpen(false)}
+        onSuccess={(response) => {
+          const dispute = response?.data?.dispute || response?.dispute;
+          if (dispute?._id || dispute?.disputeId) {
+            navigate(`/disputes/${dispute._id || dispute.disputeId}`);
+          }
+        }}
+      />
     </motion.div>
   );
 };
