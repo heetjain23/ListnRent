@@ -19,6 +19,12 @@ const conversationSchema = new mongoose.Schema(
       required: true,
     },
 
+    // Durable snapshot of the listing at conversation start
+    context: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+
     // Last message timestamp for sorting
     lastMessageAt: {
       type: Date,
@@ -54,6 +60,7 @@ conversationSchema.index({ participantIds: 1, listingId: 1 }, { unique: true });
 conversationSchema.index({ participantIds: 1, lastMessageAt: -1 });
 conversationSchema.index({ "participantIds.0": 1, lastMessageAt: -1 });
 conversationSchema.index({ "participantIds.1": 1, lastMessageAt: -1 });
+conversationSchema.index({ listingId: 1, lastMessageAt: -1 });
 
 const Conversation = mongoose.model("Conversation", conversationSchema);
 export default Conversation;

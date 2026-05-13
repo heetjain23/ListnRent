@@ -86,6 +86,12 @@ export const IMAGE_CONSTANTS = {
 };
 
 // Dispute system constants
+export const DISPUTE_TYPE = Object.freeze({
+  BOOKING_DISPUTE: 'BOOKING_DISPUTE',
+  LISTING_SUPPORT: 'LISTING_SUPPORT',
+  GENERAL_SUPPORT: 'GENERAL_SUPPORT',
+})
+
 export const DISPUTE_STATUS = Object.freeze({
   OPEN: 'OPEN',
   IN_PROGRESS: 'IN_PROGRESS',

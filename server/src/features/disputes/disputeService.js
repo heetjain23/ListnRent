@@ -2,11 +2,13 @@ import mongoose from 'mongoose'
 import Dispute from './Dispute.js'
 import DisputeMessage from './DisputeMessage.js'
 import Booking from '../bookings/Booking.js'
+import Listing from '../listings/Listing.js'
 import User from '../users/User.js'
 import Admin from '../admin/Admin.js'
 import {
   DISPUTE_STATUS,
   DISPUTE_PRIORITY,
+  DISPUTE_TYPE,
   SENDER_ROLE,
   SYSTEM_ACTION,
   SYSTEM_MESSAGES,
@@ -57,6 +59,206 @@ const resolveAdminName = async (adminId) => {
   return 'Support'
 }
 
+const resolveListingOwner = async (userId) => {
+  try {
+    const user = await User.findOne({ uid: userId }).select('uid displayName email photoURL').lean()
+    if (!user) return null
+
+    return {
+      uid: user.uid,
+      displayName: user.displayName || user.email?.split('@')[0] || 'User',
+      email: user.email || null,
+      photoURL: user.photoURL || null,
+    }
+  } catch {
+    return null
+  }
+}
+
+const formatDates = (startDate, endDate) => {
+  const toIso = (value) => {
+    if (!value) return null
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return null
+    return parsed.toISOString()
+  }
+
+  if (!startDate && !endDate) return null
+
+  return {
+    startDate: toIso(startDate),
+    endDate: toIso(endDate),
+    label: `${startDate ? new Date(startDate).toLocaleDateString('en-IN') : '—'} to ${endDate ? new Date(endDate).toLocaleDateString('en-IN') : '—'}`,
+  }
+}
+
+const buildBookingContext = (booking) => {
+  if (!booking) return null
+
+  const listing = booking.listingId && typeof booking.listingId === 'object' ? booking.listingId : null
+
+  return {
+    kind: DISPUTE_TYPE.BOOKING_DISPUTE,
+    display: {
+      badge: 'Booking dispute',
+      title: listing?.title || 'Booking support request',
+      subtitle: booking.razorpayOrderId || `Booking #${String(booking._id || booking.bookingId || '').slice(-8).toUpperCase()}`,
+      image: listing?.images?.[0] || null,
+    },
+    booking: {
+      bookingId: booking._id?.toString?.() || booking._id || booking.bookingId || null,
+      orderReference: booking.razorpayOrderId || null,
+      listingId: listing?._id?.toString?.() || booking.listingId?.toString?.() || null,
+      listingTitle: listing?.title || null,
+      listingImage: listing?.images?.[0] || null,
+      rentalDates: formatDates(booking.startDate, booking.endDate),
+      paymentStatus: booking.paymentStatus || null,
+      bookingAmount: booking.totalAmount ?? booking.rentalAmount ?? null,
+      size: listing?.size || booking.size || null,
+      variant: listing?.size || booking.variant || null,
+    },
+    listing: listing
+      ? {
+          listingId: listing._id?.toString?.() || listing._id,
+          listingTitle: listing.title || null,
+          listingImage: listing.images?.[0] || null,
+        }
+      : null,
+  }
+}
+
+const buildListingContext = async (listingDoc) => {
+  if (!listingDoc) return null
+
+  const listing = listingDoc.toObject ? listingDoc.toObject({ flattenMaps: true }) : listingDoc
+  const owner = await resolveListingOwner(listing.userId)
+
+  return {
+    kind: DISPUTE_TYPE.LISTING_SUPPORT,
+    display: {
+      badge: 'Listing support',
+      title: listing.title || 'Listing support request',
+      subtitle: `${listing.category || 'Listing'} · ₹${Number(listing.pricePerDay || 0).toLocaleString('en-IN')}/day`,
+      image: listing.images?.[0] || null,
+    },
+    listing: {
+      listingId: listing._id?.toString?.() || listing._id,
+      listingTitle: listing.title || null,
+      listingImage: listing.images?.[0] || null,
+      pricing: {
+        pricePerDay: listing.pricePerDay ?? null,
+        deposit: listing.deposit ?? null,
+      },
+      category: listing.category || null,
+      owner,
+    },
+  }
+}
+
+const buildGeneralContext = (subject) => ({
+  kind: DISPUTE_TYPE.GENERAL_SUPPORT,
+  display: {
+    badge: 'General support',
+    title: subject || 'General support request',
+    subtitle: 'No booking or listing attached',
+    image: null,
+  },
+  general: {
+    subject: subject || null,
+  },
+})
+
+const buildListingSnapshot = (listing, existingOwner = null) => {
+  if (!listing) return null
+
+  return {
+    kind: DISPUTE_TYPE.LISTING_SUPPORT,
+    display: {
+      badge: 'Listing support',
+      title: listing.title || 'Listing support request',
+      subtitle: `${listing.category || 'Listing'} · ₹${Number(listing.pricePerDay || 0).toLocaleString('en-IN')}/day`,
+      image: listing.images?.[0] || null,
+    },
+    listing: {
+      listingId: listing._id?.toString?.() || listing._id,
+      listingTitle: listing.title || null,
+      listingImage: listing.images?.[0] || null,
+      pricing: {
+        pricePerDay: listing.pricePerDay ?? null,
+        deposit: listing.deposit ?? null,
+      },
+      category: listing.category || null,
+      owner: existingOwner,
+    },
+  }
+}
+
+const deriveContextSnapshot = (obj) => {
+  const storedContext = obj.context && typeof obj.context === 'object' ? obj.context : {}
+  if (storedContext.kind) return storedContext
+
+  const booking = obj.bookingId && typeof obj.bookingId === 'object' ? obj.bookingId : null
+  const listing = obj.listingId && typeof obj.listingId === 'object' ? obj.listingId : null
+
+  if (obj.disputeType === DISPUTE_TYPE.BOOKING_DISPUTE) {
+    if (booking) {
+      return buildBookingContext(booking)
+    }
+
+    if (storedContext.booking) {
+      const fallbackListing = listing || storedContext.listing || null
+      return {
+        ...storedContext,
+        kind: DISPUTE_TYPE.BOOKING_DISPUTE,
+        display: storedContext.display || {
+          badge: 'Booking dispute',
+          title: storedContext.booking.listingTitle || obj.subject || 'Booking support request',
+          subtitle: storedContext.booking.orderReference || 'Booking support request',
+          image: storedContext.booking.listingImage || null,
+        },
+        booking: {
+          ...storedContext.booking,
+          listingId: storedContext.booking.listingId || fallbackListing?._id?.toString?.() || fallbackListing?._id || null,
+        },
+        listing: storedContext.listing || (fallbackListing ? {
+          listingId: fallbackListing._id?.toString?.() || fallbackListing._id,
+          listingTitle: fallbackListing.title || null,
+          listingImage: fallbackListing.images?.[0] || null,
+        } : null),
+      }
+    }
+
+    return buildGeneralContext(obj.subject)
+  }
+
+  if (obj.disputeType === DISPUTE_TYPE.LISTING_SUPPORT) {
+    if (listing) {
+      return buildListingSnapshot(listing, storedContext.listing?.owner || null)
+    }
+
+    if (storedContext.listing) {
+      return {
+        ...storedContext,
+        kind: DISPUTE_TYPE.LISTING_SUPPORT,
+        display: storedContext.display || {
+          badge: 'Listing support',
+          title: storedContext.listing.listingTitle || obj.subject || 'Listing support request',
+          subtitle: storedContext.listing.category || 'Listing support request',
+          image: storedContext.listing.listingImage || null,
+        },
+      }
+    }
+
+    return buildGeneralContext(obj.subject)
+  }
+
+  if (obj.disputeType === DISPUTE_TYPE.GENERAL_SUPPORT) {
+    return storedContext.kind ? storedContext : buildGeneralContext(obj.subject)
+  }
+
+  return storedContext.kind ? storedContext : buildGeneralContext(obj.subject)
+}
+
 /**
  * Increment unread count for all participants except the sender.
  * Returns the $set / $inc update object.
@@ -88,9 +290,11 @@ const getDisputeParticipantIds = (dispute) => {
  */
 const formatDispute = (dispute) => {
   const obj = dispute.toObject ? dispute.toObject({ flattenMaps: true }) : dispute
+
   return {
     ...obj,
     unreadCounts: obj.unreadCounts || {},
+    context: deriveContextSnapshot(obj),
   }
 }
 
@@ -112,36 +316,89 @@ const formatMessage = (message) => {
  * @param {object} payload - { bookingId, subject, message, category }
  */
 export const createDispute = async (userId, payload) => {
-  const { bookingId, subject, message, category } = payload
+  const { bookingId, listingId, subject, message, category, disputeType } = payload
+  const resolvedType =
+    disputeType ||
+    (bookingId
+      ? DISPUTE_TYPE.BOOKING_DISPUTE
+      : listingId
+        ? DISPUTE_TYPE.LISTING_SUPPORT
+        : DISPUTE_TYPE.GENERAL_SUPPORT)
 
-  // Verify booking exists and belongs to this user
-  const booking = await Booking.findById(bookingId).lean()
-  if (!booking) {
-    const err = new Error('Booking not found')
-    err.statusCode = 404
-    throw err
+  let booking = null
+  let listing = null
+
+  if (resolvedType === DISPUTE_TYPE.BOOKING_DISPUTE) {
+    booking = await Booking.findById(bookingId)
+      .populate({
+        path: 'listingId',
+        select: 'title images pricePerDay deposit category size userId',
+      })
+      .lean()
+
+    if (!booking) {
+      const err = new Error('Booking not found')
+      err.statusCode = 404
+      throw err
+    }
+
+    if (booking.userId !== userId) {
+      const err = new Error('You can only raise disputes for your own bookings')
+      err.statusCode = 403
+      throw err
+    }
   }
 
-  if (booking.userId !== userId) {
-    const err = new Error('You can only raise disputes for your own bookings')
-    err.statusCode = 403
-    throw err
+  if (resolvedType === DISPUTE_TYPE.LISTING_SUPPORT) {
+    listing = await Listing.findById(listingId)
+      .select('userId title category pricePerDay deposit size images')
+      .lean()
+
+    if (!listing) {
+      const err = new Error('Listing not found')
+      err.statusCode = 404
+      throw err
+    }
   }
 
-  // Prevent duplicate open disputes for same booking
-  const existing = await Dispute.findOne({
-    bookingId,
+  // Prevent duplicate active threads for the same source
+  const existingQuery = {
     raisedBy: userId,
+    disputeType: resolvedType,
     status: { $nin: [DISPUTE_STATUS.CLOSED] },
-  }).lean()
+  }
+
+  if (resolvedType === DISPUTE_TYPE.BOOKING_DISPUTE) {
+    existingQuery.bookingId = bookingId
+  }
+
+  if (resolvedType === DISPUTE_TYPE.LISTING_SUPPORT) {
+    existingQuery.listingId = listingId
+  }
+
+  const existing = await Dispute.findOne(existingQuery).lean()
 
   if (existing) {
-    const err = new Error('You already have an active dispute for this booking')
+    const err = new Error('You already have an active support thread for this request')
     err.statusCode = 409
     throw err
   }
 
   const senderName = await resolveUserName(userId)
+  const context =
+    resolvedType === DISPUTE_TYPE.BOOKING_DISPUTE
+      ? buildBookingContext(booking)
+      : resolvedType === DISPUTE_TYPE.LISTING_SUPPORT
+        ? await buildListingContext(listing)
+        : buildGeneralContext(subject)
+
+  const bookingRef = resolvedType === DISPUTE_TYPE.BOOKING_DISPUTE ? booking?._id || bookingId : null
+  const listingRef =
+    resolvedType === DISPUTE_TYPE.BOOKING_DISPUTE
+      ? booking?.listingId?._id || booking?.listingId || null
+      : resolvedType === DISPUTE_TYPE.LISTING_SUPPORT
+        ? listing?._id || listingId
+        : null
 
   // Generate unique dispute ID with collision retry
   let disputeId
@@ -157,7 +414,9 @@ export const createDispute = async (userId, payload) => {
   // Create dispute
   const dispute = await Dispute.create({
     disputeId,
-    bookingId,
+    bookingId: bookingRef,
+    listingId: listingRef,
+    disputeType: resolvedType,
     raisedBy: userId,
     subject: subject.trim(),
     category: category || 'OTHER',
@@ -166,6 +425,7 @@ export const createDispute = async (userId, payload) => {
     lastMessage: message.trim().substring(0, 300),
     lastMessageAt: new Date(),
     lastMessageBy: userId,
+    context,
     unreadCounts: new Map([['staff', 1]]), // notify staff pool
   })
 
@@ -367,13 +627,21 @@ export const getUserDisputes = async (userId, options = {}) => {
       .sort(sort)
       .skip(skip)
       .limit(Math.min(limit, 20))
-      .populate('bookingId', 'listingId startDate endDate totalAmount paymentStatus')
+      .populate({
+        path: 'bookingId',
+        select: 'listingId startDate endDate totalAmount paymentStatus bookingStatus razorpayOrderId',
+        populate: {
+          path: 'listingId',
+          select: 'title images pricePerDay deposit category size userId',
+        },
+      })
+      .populate('listingId', 'title images pricePerDay deposit category size userId')
       .lean(),
     Dispute.countDocuments(query),
   ])
 
   return {
-    disputes: disputes.map((d) => ({ ...d, unreadCounts: d.unreadCounts || {} })),
+    disputes: disputes.map((d) => formatDispute(d)),
     pagination: {
       page: Number(page),
       limit: Math.min(limit, 20),
@@ -396,7 +664,15 @@ export const getDisputeById = async (idOrDisputeId, userId = null) => {
     : { disputeId: idOrDisputeId }
 
   const dispute = await Dispute.findOne(query)
-    .populate('bookingId', 'listingId startDate endDate totalAmount paymentStatus bookingStatus')
+    .populate({
+      path: 'bookingId',
+      select: 'listingId startDate endDate totalAmount paymentStatus bookingStatus razorpayOrderId paidAmount pendingAmount',
+      populate: {
+        path: 'listingId',
+        select: 'title images pricePerDay deposit category size userId',
+      },
+    })
+    .populate('listingId', 'title images pricePerDay deposit category size userId')
     .populate('assignedTo', 'displayName email role photoURL')
     .lean()
 
@@ -413,7 +689,7 @@ export const getDisputeById = async (idOrDisputeId, userId = null) => {
     throw err
   }
 
-  return { ...dispute, unreadCounts: dispute.unreadCounts || {} }
+  return formatDispute(dispute)
 }
 
 // ─── GET DISPUTE MESSAGES ──────────────────────────────────────────────────────
@@ -734,7 +1010,15 @@ export const getAllDisputesAdmin = async (options = {}) => {
       .sort(sort)
       .skip(skip)
       .limit(Math.min(limit, 50))
-      .populate('bookingId', 'listingId startDate endDate totalAmount paymentStatus')
+      .populate({
+        path: 'bookingId',
+        select: 'listingId startDate endDate totalAmount paymentStatus bookingStatus razorpayOrderId',
+        populate: {
+          path: 'listingId',
+          select: 'title images pricePerDay deposit category size userId',
+        },
+      })
+      .populate('listingId', 'title images pricePerDay deposit category size userId')
       .populate('assignedTo', 'displayName email role photoURL')
       .lean(),
     Dispute.countDocuments(query),
@@ -750,8 +1034,7 @@ export const getAllDisputesAdmin = async (options = {}) => {
   const enriched = disputes.map((d) => {
     const user = userMap.get(d.raisedBy) || {}
     return {
-      ...d,
-      unreadCounts: d.unreadCounts || {},
+      ...formatDispute(d),
       raisedByUser: {
         uid: d.raisedBy,
         displayName: user.displayName || user.email?.split('@')[0] || 'Customer',

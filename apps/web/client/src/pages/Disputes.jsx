@@ -13,6 +13,7 @@ import {
   DISPUTE_CATEGORY,
   DISPUTE_PRIORITY,
   DISPUTE_STATUS,
+  DISPUTE_TYPE,
   SENDER_ROLE,
   SYSTEM_ACTION,
 } from "@listnrent/shared/constants";
@@ -84,6 +85,13 @@ const getMessageTime = (date) => {
 
 const formatTicketId = (dispute) => dispute?.disputeId || dispute?._id || "Ticket";
 
+const formatMoney = (value) => {
+  if (value === null || value === undefined || value === "") return "—";
+  const amount = Number(value);
+  if (Number.isNaN(amount)) return "—";
+  return `₹${amount.toLocaleString("en-IN")}`;
+};
+
 const DisputeBadge = ({ status }) => {
   const meta = statusMeta[status] || statusMeta[DISPUTE_STATUS.OPEN];
 
@@ -94,6 +102,89 @@ const DisputeBadge = ({ status }) => {
     </span>
   );
 };
+
+const DisputeContextPanel = ({ dispute }) => {
+  if (!dispute) return null;
+
+  const context = dispute.context || {};
+  const display = context.display || {};
+  const booking = context.booking || null;
+  const listing = context.listing || null;
+  const kind = context.kind || dispute.disputeType;
+
+  return (
+    <div className="rounded-[30px] border border-[#E8E0D5] bg-[linear-gradient(180deg,#FFFFFF_0%,#FBF8F1_100%)] p-5 shadow-[0_16px_44px_rgba(0,0,0,0.05)]">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[#9E9E7A]">
+            {display.badge || (kind === DISPUTE_TYPE.LISTING_SUPPORT ? "Listing support" : kind === DISPUTE_TYPE.GENERAL_SUPPORT ? "General support" : "Booking dispute")}
+          </p>
+          <h2 className="text-xl font-bold tracking-tight text-[#1A1A1A] sm:text-2xl">
+            {display.title || booking?.listingTitle || listing?.listingTitle || dispute.subject}
+          </h2>
+          <p className="max-w-3xl text-sm leading-relaxed text-[#6B645A]">
+            {display.subtitle || "This thread keeps the relevant booking or listing details attached for faster support."}
+          </p>
+        </div>
+
+        {display.image ? (
+          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-[#E8E0D5] bg-[#FAF7F2]">
+            <img src={display.image} alt="Context" className="h-full w-full object-cover" />
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {kind === DISPUTE_TYPE.BOOKING_DISPUTE ? (
+          <>
+            <div className="rounded-2xl bg-white p-3 border border-[#E8E0D5]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9E9E7A]">Booking</p>
+              <p className="mt-1 text-sm font-semibold text-[#1A1A1A]">{booking?.bookingId ? `#${String(booking.bookingId).slice(-8).toUpperCase()}` : "—"}</p>
+              {booking?.orderReference ? <p className="mt-1 text-xs text-[#8F8575]">Order {booking.orderReference}</p> : null}
+            </div>
+            <div className="rounded-2xl bg-white p-3 border border-[#E8E0D5]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9E9E7A]">Rental dates</p>
+              <p className="mt-1 text-sm font-semibold text-[#1A1A1A]">{booking?.rentalDates?.label || "—"}</p>
+            </div>
+            <div className="rounded-2xl bg-white p-3 border border-[#E8E0D5]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9E9E7A]">Payment</p>
+              <p className="mt-1 text-sm font-semibold text-[#1A1A1A]">{booking?.paymentStatus || "—"}</p>
+            </div>
+            <div className="rounded-2xl bg-white p-3 border border-[#E8E0D5]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9E9E7A]">Amount</p>
+              <p className="mt-1 text-sm font-semibold text-[#1A1A1A]">{formatMoney(booking?.bookingAmount)}</p>
+            </div>
+          </>
+        ) : kind === DISPUTE_TYPE.LISTING_SUPPORT ? (
+          <>
+            <div className="rounded-2xl bg-white p-3 border border-[#E8E0D5]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9E9E7A]">Listing</p>
+              <p className="mt-1 text-sm font-semibold text-[#1A1A1A]">{listing?.listingTitle || display.title || "—"}</p>
+            </div>
+            <div className="rounded-2xl bg-white p-3 border border-[#E8E0D5]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9E9E7A]">Category</p>
+              <p className="mt-1 text-sm font-semibold text-[#1A1A1A]">{listing?.category || "—"}</p>
+            </div>
+            <div className="rounded-2xl bg-white p-3 border border-[#E8E0D5]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9E9E7A]">Pricing</p>
+              <p className="mt-1 text-sm font-semibold text-[#1A1A1A]">{formatMoney(listing?.pricing?.pricePerDay)}/day</p>
+            </div>
+            <div className="rounded-2xl bg-white p-3 border border-[#E8E0D5]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9E9E7A]">Owner</p>
+              <p className="mt-1 text-sm font-semibold text-[#1A1A1A]">{listing?.owner?.displayName || listing?.owner?.email || "—"}</p>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-2xl bg-white p-3 border border-[#E8E0D5] sm:col-span-2 lg:col-span-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#9E9E7A]">Context</p>
+            <p className="mt-1 text-sm font-semibold text-[#1A1A1A]">General support request</p>
+            <p className="mt-1 text-xs text-[#8F8575]">This thread is not tied to a booking or listing.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 const SectionSkeleton = () => (
   <div className="space-y-3">
@@ -384,6 +475,7 @@ const ThreadSummary = ({ dispute }) => {
         <div className="rounded-2xl bg-[#FAF7F2] p-4">
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#9E9E7A]">Thread notes</p>
           <ul className="mt-2 space-y-2 text-sm leading-relaxed text-[#6B645A]">
+            <li>Context cards surface the related booking or listing above the thread.</li>
             <li>Customer messages are right-aligned.</li>
             <li>Support messages stay clean and professional.</li>
             <li>System events appear as centered timeline cards.</li>
@@ -642,6 +734,7 @@ const DisputeThreadView = ({ disputeIdentifier }) => {
   return (
     <div className="space-y-6">
       <ThreadHeader dispute={dispute} onBack={() => navigate("/disputes")} />
+      <DisputeContextPanel dispute={dispute} />
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
         <div className="rounded-4xl border border-[#E8E0D5] bg-white shadow-[0_18px_52px_rgba(0,0,0,0.05)]">

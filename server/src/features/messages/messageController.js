@@ -96,7 +96,7 @@ export const handleGetOrCreateConversation = async (req, res) => {
     res.status(200).json({
       success: true,
       conversationId: conversation._id.toString(),
-      conversation: conversation.toObject(),
+      conversation: conversation.toObject ? conversation.toObject({ flattenMaps: true }) : conversation,
     });
   } catch (error) {
     console.error("[GetOrCreateConversation Error]", error);

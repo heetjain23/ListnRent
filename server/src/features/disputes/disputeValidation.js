@@ -7,7 +7,7 @@
  * Pattern matches existing project style (inline middleware, no external lib).
  */
 
-import { DISPUTE_STATUS, DISPUTE_PRIORITY, DISPUTE_CATEGORY } from '@listnrent/shared/constants'
+import { DISPUTE_STATUS, DISPUTE_PRIORITY, DISPUTE_CATEGORY, DISPUTE_TYPE } from '@listnrent/shared/constants'
 import mongoose from 'mongoose'
 
 // ─── Generic validator runner ──────────────────────────────────────────────────
@@ -67,14 +67,33 @@ const validObjectId = (field, label) => (req) => {
   }
 }
 
+const createSupportTypeRule = (req) => {
+  const disputeType = req.body.disputeType || DISPUTE_TYPE.BOOKING_DISPUTE
+  const { bookingId, listingId } = req.body
+
+  if (!Object.values(DISPUTE_TYPE).includes(disputeType)) {
+    return 'Support type must be one of: BOOKING_DISPUTE, LISTING_SUPPORT, GENERAL_SUPPORT'
+  }
+
+  if (disputeType === DISPUTE_TYPE.BOOKING_DISPUTE && !bookingId) {
+    return 'Booking ID is required for booking disputes'
+  }
+
+  if (disputeType === DISPUTE_TYPE.LISTING_SUPPORT && !listingId) {
+    return 'Listing ID is required for listing support requests'
+  }
+}
+
 // ─── Route-specific validators ─────────────────────────────────────────────────
 
 /**
  * POST /disputes/create
  */
 export const validateCreateDispute = validate([
-  required('bookingId', 'Booking ID'),
+  validEnum('disputeType', Object.values(DISPUTE_TYPE), 'Support type'),
+  createSupportTypeRule,
   validObjectId('bookingId', 'Booking ID'),
+  validObjectId('listingId', 'Listing ID'),
   required('subject', 'Subject'),
   minLength('subject', 5, 'Subject'),
   maxLength('subject', 200, 'Subject'),

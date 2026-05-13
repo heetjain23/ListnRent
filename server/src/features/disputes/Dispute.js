@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { DISPUTE_TYPE } from '@listnrent/shared/constants'
 
 /**
  * DISPUTE STATUS FLOW:
@@ -33,11 +34,27 @@ const disputeSchema = new mongoose.Schema(
       index: true,
     },
 
-    // The booking/order this dispute belongs to
+    // Booking context, if the thread originates from an order
     bookingId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Booking',
-      required: true,
+      default: null,
+      index: true,
+    },
+
+    // Listing context, if the thread originates from a listing detail page
+    listingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Listing',
+      default: null,
+      index: true,
+    },
+
+    // Support route classification: booking, listing, or general
+    disputeType: {
+      type: String,
+      enum: Object.values(DISPUTE_TYPE),
+      default: DISPUTE_TYPE.BOOKING_DISPUTE,
       index: true,
     },
 
@@ -177,6 +194,12 @@ const disputeSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
+
+    // Durable support context snapshot for thread headers and queue cards
+    context: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
   },
   { timestamps: true }
 )
@@ -186,6 +209,8 @@ disputeSchema.index({ status: 1, lastMessageAt: -1 })
 disputeSchema.index({ raisedBy: 1, status: 1, createdAt: -1 })
 disputeSchema.index({ assignedTo: 1, status: 1, lastMessageAt: -1 })
 disputeSchema.index({ bookingId: 1, raisedBy: 1 })
+disputeSchema.index({ listingId: 1, raisedBy: 1 })
+disputeSchema.index({ disputeType: 1, lastMessageAt: -1 })
 disputeSchema.index({ createdAt: -1 })
 
 const Dispute = mongoose.model('Dispute', disputeSchema)

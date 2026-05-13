@@ -30,13 +30,15 @@ const parsePageOptions = (query) => ({
 export const handleCreateDispute = async (req, res) => {
   try {
     const userId = req.user.uid
-    const { bookingId, subject, message, category } = req.body
+    const { bookingId, listingId, subject, message, category, disputeType } = req.body
 
     const result = await disputeService.createDispute(userId, {
       bookingId,
+      listingId,
       subject,
       message,
       category,
+      disputeType,
     })
 
     return successResponse(res, result, 201)

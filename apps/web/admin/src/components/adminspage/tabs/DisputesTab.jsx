@@ -6,6 +6,7 @@ import {
   DISPUTE_CATEGORY,
   DISPUTE_PRIORITY,
   DISPUTE_STATUS,
+  DISPUTE_TYPE,
   SENDER_ROLE,
 } from '@listnrent/shared/constants'
 
@@ -67,6 +68,96 @@ const getParticipantLabel = (message, adminId) => {
   }
 
   return message?.senderName || 'Support'
+}
+
+const formatMoney = (value) => {
+  if (value === null || value === undefined || value === '') return '—'
+  const amount = Number(value)
+  if (Number.isNaN(amount)) return '—'
+  return `₹${amount.toLocaleString('en-IN')}`
+}
+
+const DisputeContextPanel = ({ dispute }) => {
+  if (!dispute) return null
+
+  const context = dispute.context || {}
+  const display = context.display || {}
+  const booking = context.booking || null
+  const listing = context.listing || null
+  const kind = context.kind || dispute.disputeType
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-linear-to-br from-white to-slate-50 p-4 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-600">
+            {display.badge || (kind === DISPUTE_TYPE.LISTING_SUPPORT ? 'Listing support' : kind === DISPUTE_TYPE.GENERAL_SUPPORT ? 'General support' : 'Booking dispute')}
+          </p>
+          <h3 className="text-lg font-bold text-slate-900">
+            {display.title || booking?.listingTitle || listing?.listingTitle || dispute.subject}
+          </h3>
+          <p className="max-w-3xl text-sm text-slate-600">
+            {display.subtitle || 'Support context attached to the current thread.'}
+          </p>
+        </div>
+
+        {display.image ? (
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+            <img src={display.image} alt="Context" className="h-full w-full object-cover" />
+          </div>
+        ) : null}
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {kind === DISPUTE_TYPE.BOOKING_DISPUTE ? (
+          <>
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Booking</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{booking?.bookingId ? `#${String(booking.bookingId).slice(-8).toUpperCase()}` : '—'}</p>
+              {booking?.orderReference ? <p className="mt-1 text-xs text-slate-500">Order {booking.orderReference}</p> : null}
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Rental dates</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{booking?.rentalDates?.label || '—'}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Payment</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{booking?.paymentStatus || '—'}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Amount</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{formatMoney(booking?.bookingAmount)}</p>
+            </div>
+          </>
+        ) : kind === DISPUTE_TYPE.LISTING_SUPPORT ? (
+          <>
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Listing</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{listing?.listingTitle || display.title || '—'}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Category</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{listing?.category || '—'}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Pricing</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{formatMoney(listing?.pricing?.pricePerDay)}/day</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Owner</p>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{listing?.owner?.displayName || listing?.owner?.email || '—'}</p>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-xl border border-slate-200 bg-white p-3 sm:col-span-2 xl:col-span-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">Context</p>
+            <p className="mt-1 text-sm font-semibold text-slate-900">General support request</p>
+            <p className="mt-1 text-xs text-slate-500">No booking or listing context was attached.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 const DisputesTab = () => {
@@ -375,6 +466,10 @@ const DisputesTab = () => {
                         </span>
                       ) : null}
                     </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <DisputeContextPanel dispute={selectedDispute} />
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
