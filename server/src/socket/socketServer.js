@@ -2,6 +2,7 @@ import { Server } from "socket.io";
 import admin from "../config/firebase-admin.js";
 import * as messageService from "../features/messages/messageService.js";
 import { sendMessagePushNotifications } from "../features/messages/pushNotificationService.js";
+import { registerDisputeSocketHandlers } from "../features/disputes/disputeSocketHooks.js";
 
 /**
  * Socket.IO messaging hub.
@@ -105,6 +106,9 @@ export const initSocketServer = (httpServer, allowedOrigins) => {
     socket.broadcast.emit("user_online", { uid });
     socket.broadcast.emit("user:online", { uid });
     emitUnreadSnapshot(io, uid);
+
+    // Register dispute-specific socket handlers (join/leave dispute rooms)
+    registerDisputeSocketHandlers(socket, uid);
 
     socket.on("join:conversation", async ({ conversationId } = {}) => {
       if (!conversationId) return;

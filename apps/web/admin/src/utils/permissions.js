@@ -35,7 +35,9 @@ const ROLE_MENU_ACCESS = {
     // No Settings
   ],
   delivery_partner: [],
-  support_team: [],
+  support_team: [
+    { icon: '⚠️', label: 'Disputes', path: '/admin/disputes' },
+  ],
 }
 
 // Page-level permissions
@@ -57,8 +59,8 @@ const PAGE_PERMISSIONS = {
     restricted: ['delivery_partner', 'support_team'],
   },
   '/disputes': {
-    allowed: ['super_admin', 'admin'],
-    restricted: ['delivery_partner', 'support_team'],
+    allowed: ['super_admin', 'admin', 'support_team'],
+    restricted: ['delivery_partner'],
   },
   '/deliviresHandling': {
     allowed: ['super_admin', 'admin'],
@@ -99,7 +101,7 @@ export const getMenuItemsForRole = (role) => {
  * Check if a role is restricted from using admin features
  */
 export const isRestrictedRole = (role) => {
-  return ['delivery_partner', 'support_team'].includes(role)
+  return ['delivery_partner'].includes(role)
 }
 
 /**
@@ -120,8 +122,11 @@ export const isAdmin = (role) => {
  * Get the appropriate dashboard page for a role
  */
 export const getDashboardForRole = (role) => {
-  if (['delivery_partner', 'support_team'].includes(role)) {
+  if (role === 'delivery_partner') {
     return `/developing/${role}`
+  }
+  if (role === 'support_team') {
+    return '/admin/disputes'
   }
   return '/admin'
 }

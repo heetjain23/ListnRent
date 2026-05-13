@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { api, usersApi } from '../../services/api'
 
 const SettingsSection = ({ user, onDeleteAccount, onNameUpdate, onLogout }) => {
@@ -433,6 +434,38 @@ const DeleteAccountConfirmation = ({ onClose, onConfirm }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const previousOverflow = document.body.style.overflow
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+
+    const preventScroll = (event) => {
+      event.preventDefault()
+    }
+
+    const preventKeyboardScroll = (event) => {
+      const scrollKeys = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ']
+      if (scrollKeys.includes(event.key)) {
+        event.preventDefault()
+      }
+    }
+
+    document.addEventListener('wheel', preventScroll, { passive: false })
+    document.addEventListener('touchmove', preventScroll, { passive: false })
+    document.addEventListener('keydown', preventKeyboardScroll)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.removeEventListener('wheel', preventScroll)
+      document.removeEventListener('touchmove', preventScroll)
+      document.removeEventListener('keydown', preventKeyboardScroll)
+    }
+  }, [])
+
   const isConfirmed = confirmText.toLowerCase().trim() === 'confirm'
 
   const handleDelete = async () => {
@@ -448,9 +481,11 @@ const DeleteAccountConfirmation = ({ onClose, onConfirm }) => {
     }
   }
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <h2 className="text-2xl font-bold text-[#1A1A1A] mb-4">Delete Account</h2>
 
         <p className="text-[#666] mb-6">
@@ -496,7 +531,8 @@ const DeleteAccountConfirmation = ({ onClose, onConfirm }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

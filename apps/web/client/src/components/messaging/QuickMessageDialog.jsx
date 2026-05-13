@@ -7,6 +7,7 @@ import { ChatWindow } from "./ChatWindow";
 const QuickMessageDialog = ({ listingId, ownerId, ownerName, isOpen, onClose }) => {
   const { user } = useAuth();
   const [conversationId, setConversationId] = useState(null);
+  const [initialConversation, setInitialConversation] = useState(null);
   const { getOrCreate, loading: creatingConversation } =
     useGetOrCreateConversation();
   const { send: sendMessage } = useSendMessage();
@@ -19,6 +20,7 @@ const QuickMessageDialog = ({ listingId, ownerId, ownerName, isOpen, onClose }) 
       try {
         const response = await getOrCreate(listingId, ownerId);
         setConversationId(response.conversationId);
+        setInitialConversation(response.conversation || null);
       } catch (error) {
         console.error("Failed to create conversation:", error);
       }
@@ -69,7 +71,7 @@ const QuickMessageDialog = ({ listingId, ownerId, ownerName, isOpen, onClose }) 
                 </div>
               </div>
             ) : conversationId ? (
-              <ChatWindow initialConversationId={conversationId} />
+              <ChatWindow initialConversationId={conversationId} initialConversation={initialConversation} />
             ) : (
               <div className="flex-1 flex items-center justify-center">
                 <p className="text-[#999]">Failed to open conversation</p>

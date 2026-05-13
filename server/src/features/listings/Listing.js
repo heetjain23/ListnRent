@@ -120,6 +120,10 @@ const listingSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    adminHidden: {
+      type: Boolean,
+      default: false,
+    },
     isDraft: {
       type: Boolean,
       default: false,

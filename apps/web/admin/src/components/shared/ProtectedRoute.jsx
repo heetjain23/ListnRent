@@ -31,10 +31,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     if (admin?.role === 'delivery_partner') {
       return <Navigate to="/delivery-partner" replace />
     }
-    // Redirect support team to their page
-    if (admin?.role === 'support_team') {
-      return <Navigate to="/support-team" replace />
-    }
   }
 
   // Check role-based access if allowedRoles is specified

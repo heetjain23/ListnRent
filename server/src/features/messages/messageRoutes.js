@@ -15,6 +15,12 @@ router.use(verifyFirebaseToken);
 router.get("/conversations", messageController.handleGetConversations);
 
 /**
+ * GET /api/messages/unread
+ * Get total unread messages / per-conversation unread counts for the user
+ */
+router.get("/unread", messageController.handleGetUnread);
+
+/**
  * POST /api/messages/push-subscriptions
  * Save browser Web Push subscription for closed-tab notifications
  */

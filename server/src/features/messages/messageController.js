@@ -96,7 +96,7 @@ export const handleGetOrCreateConversation = async (req, res) => {
     res.status(200).json({
       success: true,
       conversationId: conversation._id.toString(),
-      conversation: conversation.toObject(),
+      conversation: conversation.toObject ? conversation.toObject({ flattenMaps: true }) : conversation,
     });
   } catch (error) {
     console.error("[GetOrCreateConversation Error]", error);
@@ -111,5 +111,18 @@ export const handleSavePushSubscription = async (req, res) => {
   } catch (error) {
     console.error("[SavePushSubscription Error]", error);
     errorResponse(res, error.message || "Failed to save push subscription", 400);
+  }
+};
+
+export const handleGetUnread = async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const unreadConversations = await messageService.getUnreadConversations(userId);
+    const count = unreadConversations.reduce((acc, item) => acc + (item.unreadCount || 0), 0);
+
+    res.status(200).json({ success: true, count, conversations: unreadConversations });
+  } catch (error) {
+    console.error("[GetUnread Error]", error);
+    errorResponse(res, error.message || "Failed to fetch unread messages", 500);
   }
 };

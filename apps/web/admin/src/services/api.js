@@ -199,6 +199,108 @@ export const adminApi = {
     return response.json()
   },
 
+  getDashboardMetrics: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/dashboard-metrics`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get dashboard metrics')
+    }
+
+    return data
+  },
+
+  getRecentBookings: async (limit = 5) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/dashboard/recent-bookings?limit=${limit}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get recent bookings')
+    }
+
+    return data
+  },
+
+  getMarketplaceListings: async (search = '') => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeaders()),
+    }
+
+    const params = new URLSearchParams()
+
+    if (search) {
+      params.set('search', search)
+    }
+
+    const queryString = params.toString() ? `?${params.toString()}` : ''
+    const response = await fetch(`${API_BASE_URL}/api/admin/listings${queryString}`, {
+      method: 'GET',
+      headers,
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to get marketplace listings')
+    }
+
+    return data
+  },
+
+  updateMarketplaceListingVisibility: async (listingId, isActive) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeaders()),
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/admin/listings/${listingId}/visibility`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ isActive }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update listing visibility')
+    }
+
+    return data
+  },
+
+  deleteMarketplaceListing: async (listingId) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeaders()),
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/admin/listings/${listingId}`, {
+      method: 'DELETE',
+      headers,
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to delete listing')
+    }
+
+    return data
+  },
+
   deleteUser: async (userId) => {
     const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
       method: 'DELETE',

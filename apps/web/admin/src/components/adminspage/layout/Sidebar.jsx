@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { useAdminAuth } from '../../../hooks/useAdminAuth'
 import { ROLES } from '../../../utils/permissions'
 
-const Sidebar = ({ isOpen, onClose, menuItems, currentTab, onTabChange }) => {
+const Sidebar = ({ isOpen, onClose, menuItems, currentTab, onTabChange, disputeUnreadCount = 0 }) => {
   const { admin, logout } = useAdminAuth()
   const [isLoggingOut, setIsLoggingOut] = React.useState(false)
 
@@ -92,7 +92,12 @@ const Sidebar = ({ isOpen, onClose, menuItems, currentTab, onTabChange }) => {
                   }`}
                 >
                   <span className="text-lg">{item.icon}</span>
-                  <span>{item.label}</span>
+                  <span className="flex-1">{item.label}</span>
+                  {item.label === 'Disputes' && disputeUnreadCount > 0 ? (
+                    <span className="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-xs font-bold text-white">
+                      {disputeUnreadCount > 99 ? '99+' : disputeUnreadCount}
+                    </span>
+                  ) : null}
                 </button>
               )
             })

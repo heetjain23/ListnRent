@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { useUserBookings } from '../../hooks/useUserBookings'
 import { getOptimizedImageUrl } from '../../services/cloudinary'
 import PaymentCheckout from '../ui/PaymentCheckout'
+import DisputeCreateModal from '../disputes/DisputeCreateModal'
 
 const MyOrders = () => {
   const navigate = useNavigate()
   const { bookings, loading, error, fetchUserBookings } = useUserBookings()
   const [retryingBookingId, setRetryingBookingId] = useState(null)
+  const [disputeBooking, setDisputeBooking] = useState(null)
 
   useEffect(() => {
     fetchUserBookings()
@@ -41,7 +43,9 @@ const MyOrders = () => {
     }
   }
 
-  const handlePaymentSuccess = (booking) => {
+  const canRaiseDispute = (booking) => ['partial', 'completed'].includes(booking.paymentStatus)
+
+  const handlePaymentSuccess = () => {
     // Refresh bookings to reflect the payment success
     fetchUserBookings()
     setRetryingBookingId(null)
@@ -164,6 +168,14 @@ const MyOrders = () => {
                   >
                     View Details
                   </button>
+                  {canRaiseDispute(booking) && (
+                    <button
+                      onClick={() => setDisputeBooking(booking)}
+                      className="mt-2 px-4 py-2 border-2 border-[#004D40] text-[#004D40] text-sm font-semibold rounded-lg hover:bg-[#EAF4F1] transition-all"
+                    >
+                      Raise Dispute
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -218,6 +230,19 @@ const MyOrders = () => {
           </div>
         </div>
       )}
+
+      <DisputeCreateModal
+        isOpen={!!disputeBooking}
+        booking={disputeBooking}
+        onClose={() => setDisputeBooking(null)}
+        onSuccess={(response) => {
+          const dispute = response?.data?.dispute || response?.dispute
+          setDisputeBooking(null)
+          if (dispute?._id || dispute?.disputeId) {
+            navigate(`/disputes/${dispute._id || dispute.disputeId}`)
+          }
+        }}
+      />
     </div>
   )
 }

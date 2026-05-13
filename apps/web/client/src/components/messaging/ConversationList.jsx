@@ -9,6 +9,7 @@ const ConversationItem = ({ conversation, isSelected, onClick, currentUserId, da
   const initial = name.charAt(0).toUpperCase()
   const lastMsg = conversation.lastMessage || 'No messages yet'
   const isUnread = (conversation.unreadCount || 0) > 0
+  const listing = conversation.context?.listing || null
 
   const formatTime = (dateStr) => {
     if (!dateStr) return ''
@@ -21,7 +22,9 @@ const ConversationItem = ({ conversation, isSelected, onClick, currentUserId, da
   }
 
   // Extract listing tag if available
-  const listingTag = conversation.listingTitle || null
+  const listingTag = conversation.listingTitle || listing?.listingTitle || null
+  const listingImage = listing?.listingImage || conversation.listingImage || null
+  const listingMeta = listing?.category || conversation.listingCategory || null
 
   if (dark) {
     return (
@@ -34,10 +37,16 @@ const ConversationItem = ({ conversation, isSelected, onClick, currentUserId, da
           borderBottom: '1px solid rgba(255,255,255,0.05)',
         }}
       >
-        <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3">
           {/* Avatar */}
           <div className="relative shrink-0 mt-0.5">
-            {otherUser?.photoURL ? (
+            {listingImage ? (
+              <img
+                src={listingImage}
+                alt={listingTag || 'Listing'}
+                className="w-11 h-11 rounded-full object-cover"
+              />
+            ) : otherUser?.photoURL ? (
               <img
                 src={otherUser.photoURL}
                 alt={name}
@@ -110,6 +119,11 @@ const ConversationItem = ({ conversation, isSelected, onClick, currentUserId, da
                 {listingTag}
               </span>
             )}
+            {listingMeta && (
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.42)', marginTop: 4 }}>
+                {listingMeta}
+              </div>
+            )}
           </div>
         </div>
       </motion.button>
@@ -129,12 +143,16 @@ const ConversationItem = ({ conversation, isSelected, onClick, currentUserId, da
     >
       <div className="flex items-start gap-3">
         <div className="relative shrink-0 mt-0.5">
-          <div
-            className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm"
-            style={{ background: 'linear-gradient(135deg, #004D40, #00342B)' }}
-          >
-            {initial}
-          </div>
+          {listingImage ? (
+            <img src={listingImage} alt={listingTag || 'Listing'} className="w-11 h-11 rounded-full object-cover" />
+          ) : (
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm"
+              style={{ background: 'linear-gradient(135deg, #004D40, #00342B)' }}
+            >
+              {initial}
+            </div>
+          )}
           <div
             className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2"
             style={{ backgroundColor: '#22C55E', borderColor: '#F5F2EA' }}
@@ -166,6 +184,11 @@ const ConversationItem = ({ conversation, isSelected, onClick, currentUserId, da
               <span style={{ fontSize: 8 }}>●</span>
               {listingTag}
             </span>
+          )}
+          {listingMeta && (
+            <div style={{ fontSize: 10, color: '#9E9E7A', marginTop: 4 }}>
+              {listingMeta}
+            </div>
           )}
         </div>
       </div>

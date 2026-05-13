@@ -1,107 +1,104 @@
 import React from "react";
 import Badge from "../../../shared/Badge";
 
-const RecentActivity = ({ activities = [] }) => {
-  const mockActivities = [
-    {
-      id: "#BK-9021",
-      user: "Priya Sharma",
-      avatar: "👤",
-      type: "RECURRING",
-      timestamp: "Today, 14:24",
-      amount: "₹2,500",
-      status: "COMPLETED",
-    },
-    {
-      id: "#USR-442",
-      user: "Kabir Singh",
-      avatar: "👤",
-      type: "INDIVIDUAL",
-      timestamp: "Today, 12:10",
-      amount: "--",
-      status: "VERIFIED",
-    },
-    {
-      id: "#BK-9018",
-      user: "Rohan Verma",
-      avatar: "👤",
-      type: "SINGLE",
-      timestamp: "Yesterday, 18:45",
-      amount: "₹4,200",
-      status: "PENDING",
-    },
-    {
-      id: "#BK-8992",
-      user: "Ananya Iyer",
-      avatar: "👤",
-      type: "VIP ACCESS",
-      timestamp: "Yesterday, 16:30",
-      amount: "₹28,900",
-      status: "COMPLETED",
-    },
-  ];
+const formatDate = (value) => {
+  const date = new Date(value)
 
-  const data = activities.length > 0 ? activities : mockActivities;
+  if (Number.isNaN(date.getTime())) {
+    return 'Recently'
+  }
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "COMPLETED":
-        return "success";
-      case "VERIFIED":
-        return "success";
-      case "PENDING":
-        return "warning";
-      default:
-        return "default";
-    }
-  };
+  return new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0))
+
+const RecentActivity = ({ activities = [], loading = false }) => {
+  const data = activities.slice(0, 5)
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h3 className="text-lg font-bold text-gray-900 mb-6">Recent Atelier Activity</h3>
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-black text-slate-900">Recent Purchases</h3>
+          <p className="mt-1 text-sm text-slate-500">Last 5 bookings with customer and payment details</p>
+        </div>
+        <Badge variant="default" size="sm">
+          LIVE
+        </Badge>
+      </div>
 
       <div className="space-y-4">
-        {data.map((activity, idx) => (
+        {loading &&
+          Array.from({ length: 5 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="flex items-center gap-4 flex-1">
+                <div className="h-10 w-10 animate-pulse rounded-full bg-slate-200" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-48 animate-pulse rounded bg-slate-200" />
+                  <div className="h-3 w-32 animate-pulse rounded bg-slate-200" />
+                </div>
+              </div>
+              <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
+            </div>
+          ))}
+
+        {!loading && data.map((activity, idx) => (
           <div
             key={idx}
-            className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition"
+            className="flex items-center justify-between rounded-xl border border-slate-200 p-4 transition hover:bg-slate-50"
           >
             <div className="flex items-center gap-4 flex-1">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-lg">
-                {activity.avatar}
+              <div className="h-11 w-11 overflow-hidden rounded-full bg-slate-200 flex items-center justify-center text-lg font-bold text-slate-700">
+                {activity.clientImage ? (
+                  <img
+                    src={activity.clientImage}
+                    alt={activity.clientName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span>{activity.clientName?.[0] || '👤'}</span>
+                )}
               </div>
 
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="text-sm font-semibold text-gray-900">
-                    {activity.id}
-                  </p>
-                  <Badge variant="default" size="sm">
-                    {activity.type}
-                  </Badge>
+                  <p className="text-sm font-semibold text-slate-900">{activity.clientName}</p>
+                  <Badge variant="default" size="sm">BOOKING</Badge>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-gray-600">
-                  <span>{activity.user}</span>
-                  <span>{activity.timestamp}</span>
+                  <span>{formatDate(activity.date)}</span>
+                  <span>Rent {formatCurrency(activity.rentAmount)}</span>
+                  <span>Deposit {formatCurrency(activity.depositAmount)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 ml-4">
-              <p className="text-sm font-semibold text-gray-900 w-20 text-right">
-                {activity.amount}
-              </p>
-              <Badge variant={getStatusColor(activity.status)} size="sm">
-                {activity.status}
-              </Badge>
+            <div className="ml-4 text-right">
+              <p className="text-sm font-semibold text-slate-900">{formatCurrency(activity.rentAmount)}</p>
+              <p className="text-xs text-slate-500">Rent collected</p>
             </div>
           </div>
         ))}
       </div>
 
-      <button className="text-teal-600 hover:text-teal-700 font-semibold text-sm mt-6 transition">
-        View all activity →
-      </button>
+      {!loading && data.length === 0 && (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+          No recent bookings found.
+        </div>
+      )}
     </div>
   );
 };

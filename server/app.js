@@ -9,6 +9,7 @@ dotenv.config();
 import "./src/config/firebase-admin.js";
 
 import { connectDB } from "./src/config/db.js";
+import disputeRoutes from "./src/features/disputes/disputeRoutes.js";
 import listingRoutes from "./src/features/listings/listingRoutes.js";
 import paymentRoutes from "./src/features/payments/paymentRoutes.js";
 import cartRoutes from "./src/features/cart/cartRoutes.js";
@@ -44,6 +45,7 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.get("/api/test", (req, res) => res.json({ message: "API working" }));
 
+app.use("/api/disputes", disputeRoutes);
 app.use("/api/listings", listingRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/cart", cartRoutes);

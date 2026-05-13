@@ -58,6 +58,12 @@ export const useUserListings = (shouldFetch = true) => {
     async (id, isActive) => {
       try {
         setError(null);
+        const currentListing = listings.find((listing) => listing._id === id);
+
+        if (!isActive && currentListing?.adminHidden) {
+          throw new Error('This listing is hidden by admin and cannot be re-enabled.');
+        }
+
         const res = await listingsApi.update(id, { isActive: !isActive });
         // Update local state
         setListings(

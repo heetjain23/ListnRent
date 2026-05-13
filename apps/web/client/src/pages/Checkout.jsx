@@ -17,7 +17,7 @@ function AmbientBackground() {
       <motion.div
         animate={{ x: [0, 22, -10, 0], y: [0, 16, 6, 0], opacity: [0.32, 0.48, 0.36, 0.32] }}
         transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -top-[16%] -left-[10%] rounded-full blur-3xl"
+        className="absolute top-[-16%] left-[-10%] rounded-full blur-3xl"
         style={{
           width: "min(48vw, 600px)",
           height: "min(48vw, 600px)",
@@ -28,7 +28,7 @@ function AmbientBackground() {
       <motion.div
         animate={{ x: [0, -18, 8, 0], y: [0, -14, -4, 0], opacity: [0.24, 0.4, 0.3, 0.24] }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-        className="absolute -bottom-[10%] -right-[8%] rounded-full blur-3xl"
+        className="absolute bottom-[-10%] right-[-8%] rounded-full blur-3xl"
         style={{
           width: "min(42vw, 520px)",
           height: "min(42vw, 520px)",

@@ -1,6 +1,9 @@
 import Conversation from "./Conversation.js";
 import Message from "./Message.js";
 import User from "../users/User.js";
+import Listing from "../listings/Listing.js";
+
+const toPlain = (value) => (value?.toObject ? value.toObject({ flattenMaps: true }) : value);
 
 const getMapValue = (value, key) => {
   if (!value) return 0;
@@ -13,6 +16,54 @@ const mapToObject = (value = {}) => {
   return value || {};
 };
 
+const buildListingSnapshot = async (listingId) => {
+  const listing = await Listing.findById(listingId)
+    .select("title images pricePerDay deposit category size userId")
+    .lean();
+
+  if (!listing) return null;
+
+  const owner = await User.findOne({ uid: listing.userId })
+    .select("uid displayName email photoURL")
+    .lean();
+
+  return {
+    listingId: listing._id?.toString?.() || listing._id,
+    listingTitle: listing.title || null,
+    listingImage: listing.images?.[0] || null,
+    category: listing.category || null,
+    pricing: {
+      pricePerDay: listing.pricePerDay ?? null,
+      deposit: listing.deposit ?? null,
+    },
+    size: listing.size || null,
+    owner: owner
+      ? {
+          uid: owner.uid,
+          displayName: owner.displayName || owner.email?.split("@")[0] || "User",
+          email: owner.email || null,
+          photoURL: owner.photoURL || null,
+        }
+      : null,
+  };
+};
+
+const getConversationContext = (conversation) => {
+  const plain = toPlain(conversation);
+  const context = plain?.context && typeof plain.context === "object" ? plain.context : {};
+  const listing = context.listing || null;
+
+  return {
+    ...plain,
+    context,
+    listingId: plain.listingId,
+    listingTitle: plain.listingTitle || listing?.listingTitle || null,
+    listingImage: plain.listingImage || listing?.listingImage || null,
+    listingCategory: plain.listingCategory || listing?.category || null,
+    listingPricePerDay: plain.listingPricePerDay || listing?.pricing?.pricePerDay || null,
+  };
+};
+
 /**
  * Get or create a conversation between two users
  */
@@ -20,6 +71,7 @@ export const getOrCreateConversation = async (userId1, userId2, listingId) => {
   if (userId1 === userId2) throw new Error("Cannot create conversation with yourself");
 
   const [participantA, participantB] = [userId1, userId2].sort();
+  const listingContext = listingId ? await buildListingSnapshot(listingId) : null;
 
   let conversation = await Conversation.findOne({
     participantIds: [participantA, participantB],
@@ -30,12 +82,21 @@ export const getOrCreateConversation = async (userId1, userId2, listingId) => {
     conversation = await Conversation.create({
       participantIds: [participantA, participantB],
       listingId,
+      context: {
+        listing: listingContext,
+      },
       readBy: new Map(),
       unreadCounts: new Map([
         [participantA, 0],
         [participantB, 0],
       ]),
     });
+  } else if (!conversation.context?.listing && listingContext) {
+    conversation = await Conversation.findByIdAndUpdate(
+      conversation._id,
+      { $set: { context: { listing: listingContext } } },
+      { new: true }
+    ).lean();
   }
 
   return conversation;
@@ -45,7 +106,8 @@ export const getOrCreateConversation = async (userId1, userId2, listingId) => {
  * Get a conversation by ID (lean for speed)
  */
 export const getConversationById = async (conversationId) => {
-  return Conversation.findById(conversationId).lean();
+  const conversation = await Conversation.findById(conversationId).lean();
+  return conversation ? getConversationContext(conversation) : null;
 };
 
 /**
@@ -143,10 +205,11 @@ export const getUserConversations = async (userId, limit = 20, skip = 0) => {
   const usersByUid = new Map(users.map((user) => [user.uid, user]));
 
   const enrichedConversations = conversations.map((conv) => {
+      const withContext = getConversationContext(conv);
       const otherUserId = conv.participantIds.find((id) => id !== userId);
       const otherUser = usersByUid.get(otherUserId);
       return {
-        ...conv,
+        ...withContext,
         unreadCounts: mapToObject(conv.unreadCounts),
         otherUser: {
           uid: otherUserId,

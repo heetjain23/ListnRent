@@ -50,13 +50,14 @@ const ConversationHeader = ({ conversation, onBack, showBack }) => {
   const initial  = name.charAt(0).toUpperCase()
   const otherUid = conversation?.otherUser?.uid
   const { isOnline } = useOnlinePresence(otherUid)
+  const listing = conversation?.context?.listing || null
 
   return (
     <div
       className="flex items-center justify-between px-5 py-3.5 shrink-0"
       style={{ background: '#F5F2EA', borderBottom: '1px solid rgba(0,52,43,0.09)', minHeight: 64 }}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         {showBack && (
           <button
             onClick={onBack}
@@ -70,23 +71,33 @@ const ConversationHeader = ({ conversation, onBack, showBack }) => {
         )}
         <div className="relative shrink-0">
           <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden"
             style={{ background: 'linear-gradient(135deg, #004D40, #00342B)' }}
           >
-            {initial}
+            {listing?.listingImage ? (
+              <img src={listing.listingImage} alt={listing?.listingTitle || 'Listing'} className="h-full w-full object-cover" />
+            ) : (
+              initial
+            )}
           </div>
           <div
             className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 transition-colors duration-500"
             style={{ backgroundColor: isOnline ? '#22C55E' : '#9CA3AF', borderColor: '#F5F2EA' }}
           />
         </div>
-        <div>
-          <p style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 15, color: '#1A1A14', lineHeight: 1.2 }}>
+        <div className="min-w-0">
+          <p style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 15, color: '#1A1A14', lineHeight: 1.2 }} className="truncate">
             {name}
           </p>
           <p style={{ fontSize: 11, color: isOnline ? '#22C55E' : '#9E9E7A', fontWeight: 500, marginTop: 1 }}>
             {isOnline ? 'Active now' : 'Offline'}
           </p>
+          {listing?.listingTitle && (
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#E8E0D5] bg-[#FAF7F2] px-2.5 py-1 text-[11px] text-[#4F473F]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#D4AF37]" />
+              <span className="truncate max-w-[220px]">{listing.listingTitle}</span>
+            </div>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-1">
@@ -267,7 +278,7 @@ const ChatPanel = ({ conversation, userId, onBack, showBack }) => {
 
 // ── Main ChatWindow ───────────────────────────────────────────────────────────
 
-export const ChatWindow = ({ isMobile = false }) => {
+export const ChatWindow = ({ isMobile = false, initialConversationId = null, initialConversation = null }) => {
   const { user } = useAuth()
   const { setActiveConversationId } = useMessaging()
   const {
@@ -279,6 +290,26 @@ export const ChatWindow = ({ isMobile = false }) => {
 
   const [selectedConversation, setSelectedConversation] = useState(null)
   const [showConversationList, setShowConversationList] = useState(!isMobile)
+
+  useEffect(() => {
+    if (!initialConversation) return
+    setSelectedConversation((current) => current || initialConversation)
+    setShowConversationList(false)
+    setActiveConversationId(initialConversation._id?.toString?.() ?? initialConversation._id ?? initialConversationId)
+  }, [initialConversation, initialConversationId, setActiveConversationId])
+
+  useEffect(() => {
+    if (!initialConversationId || selectedConversation) return
+    const matchedConversation = conversations.find(
+      (conversation) =>
+        conversation._id?.toString?.() === initialConversationId ||
+        conversation._id === initialConversationId,
+    )
+    if (matchedConversation) {
+      setSelectedConversation(matchedConversation)
+      setShowConversationList(false)
+    }
+  }, [conversations, initialConversationId, selectedConversation])
 
   // One-time initial load
   useEffect(() => { fetchConversations() }, [fetchConversations])

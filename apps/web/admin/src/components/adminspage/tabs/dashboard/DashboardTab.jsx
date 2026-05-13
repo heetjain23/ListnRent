@@ -4,48 +4,110 @@ import RecentActivity from './RecentActivity'
 import ActionableAlerts from './ActionableAlerts'
 import PageHeader from '../../../shared/PageHeader'
 import { useAdminAuth } from '../../../../hooks/useAdminAuth'
+import { adminApi } from '../../../../services/api'
 import { ROLES, isSuperAdmin } from '../../../../utils/permissions'
+
+const formatNumber = (value) => Number(value || 0).toLocaleString('en-IN')
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0))
 
 const DashboardTab = () => {
   const { admin } = useAdminAuth()
+  const [dashboardMetrics, setDashboardMetrics] = React.useState({
+    totalUsers: 0,
+    activeListings: 0,
+    activeRentals: 0,
+    totalRentalsDone: 0,
+    totalRevenue: 0,
+    totalDepositHeld: 0,
+  })
+  const [loadingMetrics, setLoadingMetrics] = React.useState(true)
+  const [metricsError, setMetricsError] = React.useState('')
+  const [recentBookings, setRecentBookings] = React.useState([])
+  const [loadingRecentBookings, setLoadingRecentBookings] = React.useState(true)
+  const [recentBookingsError, setRecentBookingsError] = React.useState('')
 
-  const metrics = [
+  const fetchDashboardMetrics = React.useCallback(async () => {
+    setLoadingMetrics(true)
+    setMetricsError('')
+
+    try {
+      const response = await adminApi.getDashboardMetrics()
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to load dashboard metrics')
+      }
+
+      setDashboardMetrics((prev) => ({
+        ...prev,
+        ...(response.metrics || {}),
+      }))
+    } catch (error) {
+      setMetricsError(error.message || 'Failed to load dashboard metrics')
+    } finally {
+      setLoadingMetrics(false)
+    }
+  }, [])
+
+  const fetchRecentBookings = React.useCallback(async () => {
+    setLoadingRecentBookings(true)
+    setRecentBookingsError('')
+
+    try {
+      const response = await adminApi.getRecentBookings(5)
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to load recent bookings')
+      }
+
+      setRecentBookings(response.recentBookings || [])
+    } catch (error) {
+      setRecentBookingsError(error.message || 'Failed to load recent bookings')
+    } finally {
+      setLoadingRecentBookings(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    fetchDashboardMetrics()
+    fetchRecentBookings()
+  }, [fetchDashboardMetrics, fetchRecentBookings])
+
+  const metrics = React.useMemo(() => [
     {
       icon: '👥',
       label: 'Total Users',
-      value: '14,280',
-      change: '+2.5%',
-      changeType: 'positive',
+      value: formatNumber(dashboardMetrics.totalUsers),
+      caption: 'All registered accounts',
     },
     {
       icon: '🏠',
       label: 'Active Listings',
-      value: '3,892',
-      change: '+1.2%',
-      changeType: 'positive',
+      value: formatNumber(dashboardMetrics.activeListings),
+      caption: 'Live + available outfits',
     },
     {
       icon: '📅',
       label: 'Active Rentals',
-      value: '1,104',
-      change: '+2.8%',
-      changeType: 'positive',
+      value: formatNumber(dashboardMetrics.activeRentals),
+      caption: `${formatNumber(dashboardMetrics.totalRentalsDone)} total rentals done`,
     },
     {
       icon: '💰',
       label: 'Total Revenue',
-      value: '₹8,42,000',
-      change: '+5.3%',
-      changeType: 'positive',
+      value: formatCurrency(dashboardMetrics.totalRevenue),
+      caption: 'Collected rental amount',
     },
     {
       icon: '🏦',
       label: 'Deposits Held',
-      value: '₹2,15,500',
-      change: '+0.5%',
-      changeType: 'positive',
+      value: formatCurrency(dashboardMetrics.totalDepositHeld),
+      caption: 'Deposits not yet returned',
     },
-  ]
+  ], [dashboardMetrics])
 
   const getRoleGreeting = () => {
     if (isSuperAdmin(admin?.role)) {
@@ -62,17 +124,37 @@ const DashboardTab = () => {
         title="Overview Dashboard"
         subtitle={getRoleGreeting()}
         actions={
-          <button className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-semibold transition">
-            ↓ Download Report
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={fetchDashboardMetrics}
+              className="px-4 py-2 border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-lg font-semibold transition"
+            >
+              Refresh Metrics
+            </button>
+            <button className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-semibold transition">
+              ↓ Download Report
+            </button>
+          </div>
         }
       />
 
-      <MetricsGrid metrics={metrics} />
+      {metricsError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          {metricsError}
+        </div>
+      )}
+
+      {recentBookingsError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          {recentBookingsError}
+        </div>
+      )}
+
+      <MetricsGrid metrics={metrics} loading={loadingMetrics} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <RecentActivity />
+          <RecentActivity activities={recentBookings} loading={loadingRecentBookings} />
         </div>
         <ActionableAlerts />
       </div>

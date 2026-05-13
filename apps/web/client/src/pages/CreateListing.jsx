@@ -135,7 +135,7 @@ function AmbientAccents() {
           opacity: [0.28, 0.44, 0.32, 0.28],
         }}
         transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -top-[12%] -left-[8%] rounded-full blur-[72px]"
+        className="absolute top-[-12%] left-[-8%] rounded-full blur-[72px]"
         style={{
           width: "min(42vw, 520px)",
           height: "min(42vw, 520px)",
@@ -150,7 +150,7 @@ function AmbientAccents() {
           opacity: [0.22, 0.38, 0.28, 0.22],
         }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -bottom-[10%] -right-[6%] rounded-full blur-[72px]"
+        className="absolute bottom-[-10%] right-[-6%] rounded-full blur-[72px]"
         style={{
           width: "min(36vw, 460px)",
           height: "min(36vw, 460px)",
@@ -970,6 +970,8 @@ function DetailsStep({
   const { flowSteps } = getDetailsFlowState(form, isLocationVerified);
   const currentFlowKey = flowSteps[currentFlowIndex]?.key;
   const isCurrent = (key) => key === currentFlowKey;
+  const isStepComplete = (key) =>
+    Boolean(flowSteps.find((step) => step.key === key)?.complete);
   const activeStepComplete = Boolean(flowSteps[currentFlowIndex]?.complete);
   const goPrevious = () => onFlowStepChange(Math.max(0, currentFlowIndex - 1));
   const goNext = () => {
@@ -1191,7 +1193,7 @@ function DetailsStep({
                   title="Add measurements"
                   description="Fill the key centimeter values first. The size preview appears automatically."
                   active
-                  complete={flowSteps[4].complete}
+                  complete={isStepComplete("measurements")}
                 >
                   <div className="space-y-4">
                     {groups.map((group) => (
@@ -1257,7 +1259,7 @@ function DetailsStep({
               title="Finish the listing details"
               description="Add where it shines, its condition, a short description, and your serviceable location."
               active
-              complete={flowSteps[5].complete}
+              complete={isStepComplete("remaining")}
             >
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1541,7 +1543,7 @@ function PricingStep({ form, onChange, errors }) {
 }
 
 // ── Review step ────────────────────────────────────────────────────────────────
-function ReviewStep({ images, form }) {
+function ReviewStep({ images, form, calculatedSize }) {
   const mainImage = images[0];
   const price = Number(form.pricePerDay) || 0;
 
@@ -2280,7 +2282,13 @@ const CreateListing = () => {
                   errors={errors}
                 />
               )}
-              {currentStep === 4 && <ReviewStep images={images} form={form} />}
+              {currentStep === 4 && (
+                <ReviewStep
+                  images={images}
+                  form={form}
+                  calculatedSize={calculatedSize}
+                />
+              )}
 
               {/* Step 1 error */}
               {currentStep === 1 && errors.images && (

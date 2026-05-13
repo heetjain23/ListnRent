@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 
 const ConfirmationModal = ({
   isOpen,
@@ -11,6 +12,38 @@ const ConfirmationModal = ({
   onCancel,
   loading = false,
 }) => {
+  useEffect(() => {
+    if (!isOpen || typeof document === "undefined") return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    const preventScroll = (e) => {
+      e.preventDefault();
+    };
+
+    const preventKeyboardScroll = (e) => {
+      const scrollKeys = ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '];
+      if (scrollKeys.includes(e.key)) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('wheel', preventScroll, { passive: false });
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    document.addEventListener('keydown', preventKeyboardScroll);
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.removeEventListener('wheel', preventScroll);
+      document.removeEventListener('touchmove', preventScroll);
+      document.removeEventListener('keydown', preventKeyboardScroll);
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const confirmButtonClass =
@@ -18,9 +51,11 @@ const ConfirmationModal = ({
       ? "bg-[#C8622A] hover:bg-[#B65524] text-white"
       : "bg-[#00342B] hover:bg-[#022920] text-white";
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-80 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-[#E8E0D5] bg-white p-6 shadow-[0_18px_48px_rgba(0,0,0,0.22)]">
+      <div className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-[#E8E0D5] bg-white p-6 shadow-[0_18px_48px_rgba(0,0,0,0.22)]">
         <h3 className="text-lg font-bold text-[#1A1A1A]">{title}</h3>
         <p className="mt-2 text-sm text-[#666] leading-relaxed">{message}</p>
 
@@ -43,7 +78,8 @@ const ConfirmationModal = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
