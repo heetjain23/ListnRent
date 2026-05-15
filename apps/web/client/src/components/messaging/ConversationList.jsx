@@ -256,7 +256,7 @@ export const ConversationList = ({
       </div>
 
       {/* List */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-none">
         {!filteredConversations || filteredConversations.length === 0 ? (
           <div className="flex items-center justify-center h-32">
             <p style={{ color: dark ? 'rgba(255,255,255,0.3)' : '#9E9E7A', fontSize: 13 }}>
