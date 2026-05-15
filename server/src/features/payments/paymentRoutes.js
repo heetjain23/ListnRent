@@ -10,6 +10,13 @@ import {
   handleMarkPaymentFailed,
 } from "./paymentController.js";
 import { verifyFirebaseToken } from "../../middleware/authMiddleware.js";
+import { handleValidationErrors } from "../../middleware/validationMiddleware.js";
+import { 
+  validateCreateOrder, 
+  validateCreateCartOrder,
+  validateVerifyPayment,
+  validatePaymentQuery 
+} from "./paymentValidation.js";
 
 const router = express.Router();
 
@@ -40,16 +47,16 @@ router.get("/test/razorpay", (req, res) => {
 });
 
 // Create a new order
-router.post("/create-order", verifyFirebaseToken, handleCreateOrder);
+router.post("/create-order", verifyFirebaseToken, validateCreateOrder, handleValidationErrors, handleCreateOrder);
 
 // Create a cart order
-router.post("/create-cart-order", verifyFirebaseToken, handleCreateCartOrder);
+router.post("/create-cart-order", verifyFirebaseToken, validateCreateCartOrder, handleValidationErrors, handleCreateCartOrder);
 
 // Verify payment
-router.post("/verify-payment", verifyFirebaseToken, handleVerifyPayment);
+router.post("/verify-payment", verifyFirebaseToken, validateVerifyPayment, handleValidationErrors, handleVerifyPayment);
 
 // Verify cart payment
-router.post("/verify-cart-payment", verifyFirebaseToken, handleVerifyCartPayment);
+router.post("/verify-cart-payment", verifyFirebaseToken, validateVerifyPayment, handleValidationErrors, handleVerifyCartPayment);
 
 // Mark payment as failed (when user dismisses payment modal)
 router.post("/mark-failed", verifyFirebaseToken, handleMarkPaymentFailed);
@@ -58,9 +65,9 @@ router.post("/mark-failed", verifyFirebaseToken, handleMarkPaymentFailed);
 router.get("/booking/:bookingId", verifyFirebaseToken, handleGetBooking);
 
 // Get user's bookings (as renter/borrower)
-router.get("/my-bookings", verifyFirebaseToken, handleGetUserBookings);
+router.get("/my-bookings", verifyFirebaseToken, validatePaymentQuery, handleValidationErrors, handleGetUserBookings);
 
 // Get renter's bookings (as owner/lender)
-router.get("/renter-bookings", verifyFirebaseToken, handleGetRenterBookings);
+router.get("/renter-bookings", verifyFirebaseToken, validatePaymentQuery, handleValidationErrors, handleGetRenterBookings);
 
 export default router;

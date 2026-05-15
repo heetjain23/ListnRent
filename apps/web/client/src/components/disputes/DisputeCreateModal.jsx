@@ -148,7 +148,7 @@ const DisputeCreateModal = ({ isOpen, booking, listing, contextType, onClose, on
       onClose?.();
 
       if (dispute?._id || dispute?.disputeId) {
-        navigate(`/disputes/${dispute._id || dispute.disputeId}`);
+        navigate(`/dashboard/disputes/${dispute._id || dispute.disputeId}`);
       }
     } catch (submitError) {
       toast.error(submitError.message || "Unable to create dispute right now.");

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'motion/react'
 import { toast } from 'sonner'
 import { useAuth } from '../hooks/useAuth'
+import Loading from '../components/ui/Loading'
 import { cartApi } from '../services/api'
 import { useSEO } from '../hooks/useSEO'
 
@@ -14,7 +15,7 @@ function AmbientBackground() {
       <motion.div
         animate={{ x: [0, 28, -12, 0], y: [0, 18, 6, 0], opacity: [0.38, 0.56, 0.44, 0.38] }}
         transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -top-[14%] -left-[10%] rounded-full blur-[56px]"
+        className="absolute top-[-14%] left-[-10%] rounded-full blur-[56px]"
         style={{
           width: 'min(50vw, 640px)',
           height: 'min(50vw, 640px)',
@@ -25,7 +26,7 @@ function AmbientBackground() {
       <motion.div
         animate={{ x: [0, -22, 10, 0], y: [0, 20, 8, 0], opacity: [0.3, 0.5, 0.36, 0.3] }}
         transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-        className="absolute -top-[8%] -right-[8%] rounded-full blur-[56px]"
+        className="absolute top-[-8%] right-[-8%] rounded-full blur-[56px]"
         style={{
           width: 'min(44vw, 540px)',
           height: 'min(44vw, 540px)',
@@ -676,31 +677,7 @@ const Cart = () => {
 
   // ── Loading state ──
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen bg-[#FAF7F2]">
-        <AmbientBackground />
-        <div className="relative z-10 min-h-screen flex items-center justify-center pt-20">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center"
-          >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-              className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full text-3xl"
-              style={{
-                background: 'linear-gradient(135deg, rgba(212,175,55,0.2), rgba(0,52,43,0.15))',
-                border: '2px solid rgba(212,175,55,0.4)',
-              }}
-            >
-              ⏳
-            </motion.div>
-            <p className="text-[#666] text-sm tracking-wide">Loading your cart…</p>
-          </motion.div>
-        </div>
-      </div>
-    )
+    return <Loading message="Loading your cart…" variant="cart" />
   }
 
   if (!isAuthenticated) return null

@@ -30,7 +30,14 @@ export const handleCreateOrder = async (req, res) => {
     });
 
     // Validation
-    if (!listingId || !renterId || !startDate || !endDate || !pricePerDay || !depositAmount) {
+    if (
+      listingId == null ||
+      renterId == null ||
+      startDate == null ||
+      endDate == null ||
+      pricePerDay == null ||
+      depositAmount == null
+    ) {
       return errorResponse(
         res,
         "Missing required fields: listingId, renterId, startDate, endDate, pricePerDay, depositAmount",

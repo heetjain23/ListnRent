@@ -1,12 +1,19 @@
 import * as userService from './userService.js'
+import { sanitizeString, sanitizeEmail, sanitizePhone, sanitizeObject } from '../../utils/sanitizer.js'
 
 export const handleInitializeUser = async (req, res) => {
   try {
     const userId = req.user.uid
-    const email = req.user.email
+    const email = sanitizeEmail(req.user.email)
     const { displayName, photoURL } = req.body
 
-    const user = await userService.initializeUser(userId, email, { displayName, photoURL })
+    // Sanitize input
+    const sanitized = sanitizeObject(
+      { displayName, photoURL },
+      { displayName: 'string', photoURL: 'string' }
+    )
+
+    const user = await userService.initializeUser(userId, email, sanitized)
     
     res.status(200).json({ message: 'User initialized successfully', user })
   } catch (error) {
@@ -17,7 +24,7 @@ export const handleInitializeUser = async (req, res) => {
 export const handleGetProfile = async (req, res) => {
   try {
     const userId = req.user.uid
-    const email = req.user.email
+    const email = sanitizeEmail(req.user.email)
     const user = await userService.getUserById(userId, email)
     res.status(200).json({ user })
   } catch (error) {
@@ -35,7 +42,13 @@ export const handleUpdateProfile = async (req, res) => {
       return res.status(400).json({ message: 'No data to update' })
     }
 
-    const user = await userService.updateUserProfile(userId, req.body)
+    // Sanitize input
+    const sanitized = sanitizeObject(
+      { displayName, photoURL },
+      { displayName: 'string', photoURL: 'string' }
+    )
+
+    const user = await userService.updateUserProfile(userId, sanitized)
     res.status(200).json({ message: 'Profile updated successfully', user })
   } catch (error) {
     console.error('Update profile error:', error)
@@ -52,11 +65,17 @@ export const handleUpdateDeliveryDetails = async (req, res) => {
       return res.status(400).json({ message: 'No delivery details to update' })
     }
 
+    // Sanitize input
+    const sanitized = sanitizeObject(
+      { mobileNumber, deliveryAddress, landmark, pincode },
+      { mobileNumber: 'phone', deliveryAddress: 'string', landmark: 'string', pincode: 'string' }
+    )
+
     const deliveryDetails = {
-      ...(mobileNumber && { mobileNumber }),
-      ...(deliveryAddress && { deliveryAddress }),
-      ...(landmark && { landmark }),
-      ...(pincode && { pincode }),
+      ...(sanitized.mobileNumber && { mobileNumber: sanitized.mobileNumber }),
+      ...(sanitized.deliveryAddress && { deliveryAddress: sanitized.deliveryAddress }),
+      ...(sanitized.landmark && { landmark: sanitized.landmark }),
+      ...(sanitized.pincode && { pincode: sanitized.pincode }),
     }
 
     const user = await userService.updateDeliveryDetails(userId, deliveryDetails)

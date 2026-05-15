@@ -75,7 +75,7 @@ function AmbientAccents() {
       <motion.div
         animate={{ x: [0, 18, -8, 0], y: [0, 12, 4, 0], opacity: [0.4, 0.6, 0.45, 0.4] }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -top-[10%] -left-[8%] rounded-full blur-[48px]"
+        className="absolute top-[-10%] left-[-8%] rounded-full blur-[48px]"
         style={{
           width: "min(38vw, 480px)",
           height: "min(38vw, 480px)",
@@ -86,7 +86,7 @@ function AmbientAccents() {
       <motion.div
         animate={{ x: [0, -14, 6, 0], y: [0, -10, -4, 0], opacity: [0.35, 0.55, 0.4, 0.35] }}
         transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -bottom-[8%] -right-[6%] rounded-full blur-[48px]"
+        className="absolute bottom-[-8%] right-[-6%] rounded-full blur-[48px]"
         style={{
           width: "min(32vw, 400px)",
           height: "min(32vw, 400px)",

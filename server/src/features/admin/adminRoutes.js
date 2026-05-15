@@ -1,7 +1,17 @@
 import express from 'express'
 import { verifyFirebaseToken } from '../../middleware/authMiddleware.js'
+import { handleValidationErrors } from '../../middleware/validationMiddleware.js'
 import * as adminService from './adminService.js'
 import adminDisputeRoutes from "../disputes/adminDisputeRoutes.js";
+import {
+  validateCreateCategory,
+  validateUpdateCategory,
+  validateDeleteCategory,
+  validateCreateSize,
+  validateUpdateSize,
+  validateUpdateStats,
+  validateQuery,
+} from './adminValidation.js'
 import {
   handleInitializeAdmin,
   handleAddAdmin,
@@ -77,11 +87,11 @@ router.delete('/admin/:email', handleDeleteAdmin)
 router.patch('/admin-email/:email', handleUpdateAdminEmail)
 
 // Users Routes
-router.get('/users', handleGetAllUsers)
+router.get('/users', validateQuery, handleValidationErrors, handleGetAllUsers)
 router.delete('/users/:id', handleDeleteUser)
 
 // Dashboard Routes
-router.get('/dashboard-metrics', handleGetDashboardMetrics)
+router.get('/dashboard-metrics', validateUpdateStats, handleValidationErrors, handleGetDashboardMetrics)
 router.get('/dashboard/recent-bookings', handleGetRecentBookings)
 
 // Marketplace Routes
