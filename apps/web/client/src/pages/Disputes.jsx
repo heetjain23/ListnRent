@@ -7,7 +7,6 @@ import { IoAlertCircleOutline, IoCheckmarkDoneOutline } from "react-icons/io5";
 import { toast } from "sonner";
 import { useAuth } from "../hooks/useAuth";
 import { useDisputeThread, useMyDisputes } from "../hooks/useDisputes";
-import { useSEO } from "../hooks/useSEO";
 import { useSocketContext } from "../context/SocketContext";
 import {
   DISPUTE_CATEGORY,
@@ -486,7 +485,7 @@ const ThreadSummary = ({ dispute }) => {
   );
 };
 
-const DisputesListView = () => {
+const DisputesListView = ({ basePath }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { disputes, loading, loadingMore, error, pagination, statusFilter, setStatusFilter, loadMore, refreshDisputes } = useMyDisputes();
@@ -575,7 +574,7 @@ const DisputesListView = () => {
           <p className="mt-1 text-sm">{error}</p>
         </div>
       ) : disputes.length === 0 ? (
-        <EmptyState onAction={() => navigate("/dashboard?tab=orders")} />
+        <EmptyState onAction={() => navigate("/dashboard/orders")} />
       ) : (
         <div className="space-y-4">
           <AnimatePresence initial={false} mode="popLayout">
@@ -589,7 +588,7 @@ const DisputesListView = () => {
               >
                 <DisputeCard
                   dispute={{ ...dispute, viewerUid: user?.uid }}
-                  onOpen={() => navigate(`/disputes/${dispute._id || dispute.disputeId}`)}
+                  onOpen={() => navigate(`${basePath}/${dispute._id || dispute.disputeId}`)}
                 />
               </motion.div>
             ))}
@@ -649,7 +648,7 @@ const ThreadComposerState = ({ dispute, connectionStatus, sending, onConfirm, on
   );
 };
 
-const DisputeThreadView = ({ disputeIdentifier }) => {
+const DisputeThreadView = ({ disputeIdentifier, basePath }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { connectionStatus } = useSocketContext();
@@ -720,7 +719,7 @@ const DisputeThreadView = ({ disputeIdentifier }) => {
         <p className="mt-1 text-sm">{error}</p>
         <button
           type="button"
-          onClick={() => navigate("/disputes")}
+          onClick={() => navigate(basePath)}
           className="mt-4 rounded-full bg-[#004D40] px-4 py-2.5 text-sm font-semibold text-white"
         >
           Back to disputes
@@ -733,7 +732,7 @@ const DisputeThreadView = ({ disputeIdentifier }) => {
 
   return (
     <div className="space-y-6">
-      <ThreadHeader dispute={dispute} onBack={() => navigate("/disputes")} />
+      <ThreadHeader dispute={dispute} onBack={() => navigate(basePath)} />
       <DisputeContextPanel dispute={dispute} />
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
@@ -745,7 +744,7 @@ const DisputeThreadView = ({ disputeIdentifier }) => {
             </div>
             <button
               type="button"
-              onClick={() => navigate("/disputes")}
+              onClick={() => navigate(basePath)}
               className="rounded-full border border-[#E8E0D5] bg-[#FAF7F2] px-4 py-2 text-sm font-semibold text-[#004D40] transition-all hover:border-[#D4AF37]"
             >
               List view
@@ -833,28 +832,19 @@ const DisputeThreadView = ({ disputeIdentifier }) => {
   );
 };
 
-const DisputesPage = () => {
+export const DisputesContent = ({ basePath = "/dashboard/disputes" } = {}) => {
   const { disputeId } = useParams();
-
-  useSEO({
-    title: disputeId ? "Dispute Thread" : "My Disputes",
-    description: "Track and manage your support disputes on ListnRent.",
-    canonicalPath: disputeId ? `/disputes/${disputeId}` : "/disputes",
-    noIndex: true,
-  });
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-      className="min-h-screen bg-[#FAF7F2] pt-20 pb-12"
+      className="h-full"
     >
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        {disputeId ? <DisputeThreadView disputeIdentifier={disputeId} /> : <DisputesListView />}
+      <div className="mx-auto w-full max-w-7xl">
+        {disputeId ? <DisputeThreadView disputeIdentifier={disputeId} basePath={basePath} /> : <DisputesListView basePath={basePath} />}
       </div>
     </motion.div>
   );
 };
-
-export default DisputesPage;

@@ -239,7 +239,7 @@ const MyOrders = () => {
           const dispute = response?.data?.dispute || response?.dispute
           setDisputeBooking(null)
           if (dispute?._id || dispute?.disputeId) {
-            navigate(`/disputes/${dispute._id || dispute.disputeId}`)
+            navigate(`/dashboard/disputes/${dispute._id || dispute.disputeId}`)
           }
         }}
       />

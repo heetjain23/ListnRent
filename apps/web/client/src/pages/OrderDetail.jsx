@@ -434,7 +434,7 @@ const OrderDetail = () => {
           <p className="text-[#666] mb-2">Order details not found</p>
           {error && <p className="text-red-600 text-sm mb-6">Error: {error}</p>}
           <button
-            onClick={() => navigate("/dashboard?tab=orders")}
+            onClick={() => navigate("/dashboard/orders")}
             className="px-6 py-2 bg-[#C8622A] text-white rounded-lg hover:bg-opacity-90 transition-all"
           >
             Back to Orders
@@ -465,7 +465,7 @@ const OrderDetail = () => {
         >
           <div className="flex flex-row items-center justify-between gap-4 mb-6">
             <button
-              onClick={() => navigate("/dashboard?tab=orders")}
+              onClick={() => navigate("/dashboard/orders")}
               className="text-[#C8622A] hover:text-[#1A1A1A] font-semibold transition-colors flex items-center gap-2 w-fit text-sm md:text-base"
             >
               ← Back to Orders
@@ -879,7 +879,7 @@ const OrderDetail = () => {
         onSuccess={(response) => {
           const dispute = response?.data?.dispute || response?.dispute;
           if (dispute?._id || dispute?.disputeId) {
-            navigate(`/disputes/${dispute._id || dispute.disputeId}`);
+            navigate(`/dashboard/disputes/${dispute._id || dispute.disputeId}`);
           }
         }}
       />

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '../hooks/useAuth'
 import { useUserListings } from '../hooks/useUserListings'
@@ -13,6 +13,7 @@ import { MdOutlineShoppingBag } from "react-icons/md";
 import { CiShoppingBasket } from "react-icons/ci";
 import { TiMessage } from "react-icons/ti";
 import { IoSettingsOutline } from "react-icons/io5";
+import { FiAlertCircle } from "react-icons/fi";
 
 // Sub-section components
 import ListingsTable from '../components/dashboard/ListingsTable'
@@ -21,6 +22,7 @@ import SettingsSection from '../components/dashboard/SettingsSection'
 import MyOrders from '../components/dashboard/MyOrders'
 import MyRentalsAsOwner from '../components/dashboard/MyRentalsAsOwner'
 import MyEarnings from '../components/dashboard/MyEarnings'
+import { DisputesContent } from '../pages/Disputes.jsx'
 import { ChatWindow } from '../components/messaging/ChatWindow'
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -40,6 +42,9 @@ const icons = {
   ),
   messages: (
     <TiMessage size={20} />
+  ),
+  disputes: (
+    <FiAlertCircle size={20} />
   ),
   settings: (
     <IoSettingsOutline size={20} />
@@ -87,6 +92,7 @@ const NAV_ITEMS = [
   { id: 'orders',    label: 'My Orders',          icon: icons.orders    },
   { id: 'rentals',   label: 'My Rentals (Owner)', icon: icons.rentals   },
   { id: 'messages',  label: 'Messages',           icon: icons.messages  },
+  { id: 'disputes',  label: 'Disputes',           icon: icons.disputes  },
   { id: 'settings',  label: 'Settings',           icon: icons.settings  },
 ]
 
@@ -572,6 +578,7 @@ const TabContent = ({ children }) => (
 const Dashboard = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { tab: routeTab, disputeId } = useParams()
 
   useSEO({
     title: 'Dashboard',
@@ -622,6 +629,13 @@ const Dashboard = () => {
     }
   }, [location.state])
 
+  useEffect(() => {
+    const nextTab = routeTab || (location.pathname === '/dashboard' ? 'listings' : null)
+    if (nextTab && nextTab !== activeTab) {
+      setActiveTab(nextTab)
+    }
+  }, [activeTab, location.pathname, routeTab])
+
   // Auth redirect
   useEffect(() => {
     if (!authLoading && !user) navigate('/login')
@@ -653,9 +667,11 @@ const Dashboard = () => {
   }, [user])
 
   const handleTabChange = useCallback((tab) => {
+    const nextPath = tab === 'listings' ? '/dashboard' : `/dashboard/${tab}`
+    navigate(nextPath)
     setActiveTab(tab)
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [])
+  }, [navigate])
 
   const handleEditClick = useCallback((id) => {
     navigate(`/edit/${id}`)
@@ -769,6 +785,7 @@ const Dashboard = () => {
                       {activeTab === 'orders' && 'Your rental bookings'}
                       {activeTab === 'rentals' && 'See who rented your outfits'}
                       {activeTab === 'messages' && 'Chat with renters & owners'}
+                      {activeTab === 'disputes' && 'Review support threads'}
                       {activeTab === 'settings' && 'Manage your profile & account'}
                     </p>
                   </div>
@@ -806,6 +823,8 @@ const Dashboard = () => {
                 {activeTab === 'rentals' && <MyRentalsAsOwner />}
 
                 {activeTab === 'messages' && <ChatWindow isMobile={isMobile} />}
+
+                {activeTab === 'disputes' && <DisputesContent basePath="/dashboard/disputes" disputeId={disputeId} />}
 
                 {activeTab === 'settings' && (
                   <SettingsSection
