@@ -13,6 +13,7 @@ import { verifyFirebaseToken } from "../../middleware/authMiddleware.js";
 import { handleValidationErrors } from "../../middleware/validationMiddleware.js";
 import { 
   validateCreateOrder, 
+  validateCreateCartOrder,
   validateVerifyPayment,
   validatePaymentQuery 
 } from "./paymentValidation.js";
@@ -49,7 +50,7 @@ router.get("/test/razorpay", (req, res) => {
 router.post("/create-order", verifyFirebaseToken, validateCreateOrder, handleValidationErrors, handleCreateOrder);
 
 // Create a cart order
-router.post("/create-cart-order", verifyFirebaseToken, validateCreateOrder, handleValidationErrors, handleCreateCartOrder);
+router.post("/create-cart-order", verifyFirebaseToken, validateCreateCartOrder, handleValidationErrors, handleCreateCartOrder);
 
 // Verify payment
 router.post("/verify-payment", verifyFirebaseToken, validateVerifyPayment, handleValidationErrors, handleVerifyPayment);

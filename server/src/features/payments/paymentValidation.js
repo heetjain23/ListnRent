@@ -5,20 +5,58 @@ import { body, param, query } from 'express-validator';
  */
 
 export const validateCreateOrder = [
-  body('amount')
-    .isFloat({ min: 1 })
-    .withMessage('Amount must be greater than 0'),
   body('listingId')
     .isMongoId()
     .withMessage('Invalid listing ID'),
-  body('bookingId')
+  body('renterId')
+    .notEmpty()
+    .withMessage('Renter ID is required'),
+  body('startDate')
+    .isISO8601()
+    .withMessage('Start date is required and must be valid'),
+  body('endDate')
+    .isISO8601()
+    .withMessage('End date is required and must be valid'),
+  body('pricePerDay')
+    .isFloat({ min: 1 })
+    .withMessage('Price per day must be greater than 0'),
+  body('depositAmount')
+    .isFloat({ min: 0 })
+    .withMessage('Deposit amount must be 0 or greater'),
+  body('durationDays')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Duration days must be a positive integer'),
+  body('cleaningFee')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Cleaning fee must be 0 or greater'),
+  body('deliveryFee')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('Delivery fee must be 0 or greater'),
+  body('existingBookingId')
     .optional()
     .isMongoId()
-    .withMessage('Invalid booking ID'),
-  body('currency')
-    .optional()
-    .isIn(['INR', 'USD'])
-    .withMessage('Currency must be INR or USD'),
+    .withMessage('Invalid existing booking ID'),
+];
+
+export const validateCreateCartOrder = [
+  body('cartItems')
+    .isArray({ min: 1 })
+    .withMessage('Cart items are required'),
+  body('cartItems.*.listingId')
+    .isMongoId()
+    .withMessage('Invalid listing ID in cart items'),
+  body('cartItems.*.renterId')
+    .notEmpty()
+    .withMessage('Renter ID is required in cart items'),
+  body('cartItems.*.startDate')
+    .isISO8601()
+    .withMessage('Start date is required in cart items'),
+  body('cartItems.*.endDate')
+    .isISO8601()
+    .withMessage('End date is required in cart items'),
 ];
 
 export const validateVerifyPayment = [
