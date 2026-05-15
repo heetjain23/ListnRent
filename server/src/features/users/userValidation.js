@@ -1,26 +1,20 @@
-import { body, query, param } from 'express-validator';
+import { body } from 'express-validator';
 
 /**
  * Validators for User routes
  */
 
-export const validateCreateUser = [
-  body('email')
-    .isEmail()
-    .normalizeEmail()
-    .withMessage('Valid email is required'),
-  body('password')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters'),
-  body('name')
+export const validateInitializeUser = [
+  body('displayName')
+    .optional()
     .trim()
     .isLength({ min: 2, max: 100 })
-    .withMessage('Name must be between 2 and 100 characters')
+    .withMessage('Display name must be between 2 and 100 characters')
     .escape(),
-  body('phone')
+  body('photoURL')
     .optional()
-    .matches(/^\d{10}$/)
-    .withMessage('Phone must be a 10-digit number'),
+    .isURL()
+    .withMessage('Photo URL must be a valid URL'),
 ];
 
 export const validateUpdateUser = [

@@ -1,4 +1,5 @@
 import React from "react";
+import Loading from "../ui/Loading";
 
 const TableWrapper = ({
   columns,
@@ -9,12 +10,7 @@ const TableWrapper = ({
   emptyMessage = "No data found",
 }) => {
   if (loading) {
-    return (
-      <div className="bg-white rounded-lg p-8 text-center">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
-        <p className="text-gray-600 mt-2">Loading...</p>
-      </div>
-    );
+    return <Loading message="Loading table data…" variant="table" fullScreen={false} />;
   }
 
   if (!data || data.length === 0) {

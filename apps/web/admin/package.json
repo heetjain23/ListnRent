@@ -16,6 +16,7 @@
   "dependencies": {
     "@listnrent/shared": "file:../../../packages/shared",
     "@tailwindcss/vite": "^4.2.2",
+    "boneyard-js": "^1.8.1",
     "dompurify": "^3.0.6",
     "firebase": "^12.13.0",
     "framer-motion": "^12.38.0",

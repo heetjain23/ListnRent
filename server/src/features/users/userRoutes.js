@@ -2,7 +2,7 @@ import express from 'express'
 import { verifyFirebaseToken } from '../../middleware/authMiddleware.js'
 import { handleValidationErrors } from '../../middleware/validationMiddleware.js'
 import {
-  validateCreateUser,
+  validateInitializeUser,
   validateUpdateUser,
 } from './userValidation.js'
 import {
@@ -16,7 +16,7 @@ import {
 const router = express.Router()
 
 // POST /api/users/init - Initialize/create user in database (protected)
-router.post('/init', verifyFirebaseToken, validateCreateUser, handleValidationErrors, handleInitializeUser)
+router.post('/init', verifyFirebaseToken, validateInitializeUser, handleValidationErrors, handleInitializeUser)
 
 // GET /api/users/profile - Get user profile (protected)
 router.get('/profile', verifyFirebaseToken, handleGetProfile)

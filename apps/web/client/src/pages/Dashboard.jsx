@@ -24,6 +24,7 @@ import MyRentalsAsOwner from '../components/dashboard/MyRentalsAsOwner'
 import MyEarnings from '../components/dashboard/MyEarnings'
 import { DisputesContent } from '../pages/Disputes.jsx'
 import { ChatWindow } from '../components/messaging/ChatWindow'
+import Loading from '../components/ui/Loading'
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -699,18 +700,7 @@ const Dashboard = () => {
   }
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center pt-20">
-        <div className="text-center space-y-3">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            className="w-10 h-10 border-2 border-[#004D40]/20 border-t-[#004D40] rounded-full mx-auto"
-          />
-          <p className="text-[#999] text-sm">Loading your dashboard…</p>
-        </div>
-      </div>
-    )
+    return <Loading message="Loading your dashboard…" variant="dashboard" />
   }
 
   if (!user) return null
