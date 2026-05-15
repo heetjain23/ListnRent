@@ -2,16 +2,21 @@ import * as messageService from "./messageService.js";
 import { errorResponse } from "../../utils/helper.js";
 import { broadcastReadReceipt } from "../../socket/socketServer.js";
 import { savePushSubscription } from "./pushNotificationService.js";
+import { sanitizeString } from "../../utils/sanitizer.js";
 
 export const handleGetConversations = async (req, res) => {
   try {
     const userId = req.user.uid;
     const { limit = 20, skip = 0 } = req.query;
 
+    // Validate and limit pagination
+    const validLimit = Math.min(parseInt(limit) || 20, 50);
+    const validSkip = Math.min(parseInt(skip) || 0, 1000);
+
     const conversations = await messageService.getUserConversations(
       userId,
-      Math.min(parseInt(limit) || 20, 50),
-      Math.min(parseInt(skip) || 0, 1000)
+      validLimit,
+      validSkip
     );
 
     res.status(200).json({ success: true, conversations });
@@ -27,6 +32,10 @@ export const handleGetMessages = async (req, res) => {
     const { conversationId } = req.params;
     const { limit = 50, skip = 0 } = req.query;
 
+    // Validate and limit pagination
+    const validLimit = Math.min(parseInt(limit) || 50, 100);
+    const validSkip = Math.min(parseInt(skip) || 0, 5000);
+
     const isParticipant = await messageService.isUserInConversation(
       conversationId,
       userId
@@ -37,8 +46,8 @@ export const handleGetMessages = async (req, res) => {
 
     const messages = await messageService.getConversationMessages(
       conversationId,
-      Math.min(parseInt(limit) || 50, 100),
-      Math.min(parseInt(skip) || 0, 5000)
+      validLimit,
+      validSkip
     );
 
     res.status(200).json({ success: true, messages });

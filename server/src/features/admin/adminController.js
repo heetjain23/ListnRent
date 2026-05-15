@@ -1,12 +1,18 @@
 import * as adminService from './adminService.js'
+import { sanitizeString, sanitizeEmail, sanitizeObject } from '../../utils/sanitizer.js'
 
 // POST /api/admin/init - Initialize admin user
 export const handleInitializeAdmin = async (req, res) => {
   try {
     const { email, displayName, photoURL } = req.body
+    
+    // Sanitize input
+    const sanitizedEmail = sanitizeEmail(email)
+    const sanitizedDisplayName = sanitizeString(displayName)
+    const sanitizedPhotoURL = photoURL ? sanitizeString(photoURL) : null
 
     // Check if admin/delivery partner exists
-    const existingAdmin = await adminService.getAdminByEmail(email)
+    const existingAdmin = await adminService.getAdminByEmail(sanitizedEmail)
     if (!existingAdmin) {
       // User not registered - redirect to client app
       return res.status(403).json({
@@ -17,7 +23,7 @@ export const handleInitializeAdmin = async (req, res) => {
     }
 
     // Check if user is active
-    const isActive = await adminService.isAdminActive(email)
+    const isActive = await adminService.isAdminActive(sanitizedEmail)
     if (!isActive) {
       return res.status(403).json({
         success: false,
@@ -27,9 +33,9 @@ export const handleInitializeAdmin = async (req, res) => {
     }
 
     // Update admin profile
-    const admin = await adminService.updateAdminProfile(email, {
-      displayName,
-      photoURL,
+    const admin = await adminService.updateAdminProfile(sanitizedEmail, {
+      displayName: sanitizedDisplayName,
+      photoURL: sanitizedPhotoURL,
     })
 
     res.status(200).json({
@@ -66,7 +72,10 @@ export const handleAddAdmin = async (req, res) => {
       })
     }
 
-    const admin = await adminService.addNewAdmin(email)
+    // Sanitize email
+    const sanitizedEmail = sanitizeEmail(email)
+
+    const admin = await adminService.addNewAdmin(sanitizedEmail)
 
     res.status(201).json({
       success: true,

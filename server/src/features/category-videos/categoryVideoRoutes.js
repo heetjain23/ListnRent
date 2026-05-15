@@ -1,6 +1,12 @@
 import express from "express";
 import { verifyFirebaseToken } from "../../middleware/authMiddleware.js";
+import { handleValidationErrors } from "../../middleware/validationMiddleware.js";
 import * as adminService from "../admin/adminService.js";
+import {
+  validateCreateCategoryVideo,
+  validateUpdateCategoryVideo,
+  validateDeleteCategoryVideo,
+} from "./categoryVideoValidation.js";
 import {
   handleDeleteCategoryVideo,
   handleGetAllCategoryVideos,
@@ -44,8 +50,8 @@ const requireAdminAccess = async (req, res, next) => {
 
 router.get("/", handleGetAllCategoryVideos);
 router.get("/:category", handleGetCategoryVideoByCategory);
-router.post("/", verifyFirebaseToken, requireAdminAccess, handleUpsertCategoryVideo);
-router.patch("/:id", verifyFirebaseToken, requireAdminAccess, handleUpdateCategoryVideo);
-router.delete("/:id", verifyFirebaseToken, requireAdminAccess, handleDeleteCategoryVideo);
+router.post("/", verifyFirebaseToken, requireAdminAccess, validateCreateCategoryVideo, handleValidationErrors, handleUpsertCategoryVideo);
+router.patch("/:id", verifyFirebaseToken, requireAdminAccess, validateUpdateCategoryVideo, handleValidationErrors, handleUpdateCategoryVideo);
+router.delete("/:id", verifyFirebaseToken, requireAdminAccess, validateDeleteCategoryVideo, handleValidationErrors, handleDeleteCategoryVideo);
 
 export default router;

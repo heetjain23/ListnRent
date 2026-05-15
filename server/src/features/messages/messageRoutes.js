@@ -1,6 +1,8 @@
 import express from "express";
 import * as messageController from "./messageController.js";
 import { verifyFirebaseToken } from "../../middleware/authMiddleware.js";
+import { handleValidationErrors } from "../../middleware/validationMiddleware.js";
+import { validateGetMessages } from "./messageValidation.js";
 
 const router = express.Router();
 
@@ -43,6 +45,6 @@ router.get(
  * Get messages in a conversation
  * Query: { limit?, skip? }
  */
-router.get("/:conversationId", messageController.handleGetMessages);
+router.get("/:conversationId", validateGetMessages, handleValidationErrors, messageController.handleGetMessages);
 
 export default router;
