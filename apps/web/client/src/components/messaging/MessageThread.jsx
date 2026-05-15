@@ -182,7 +182,7 @@ export const MessageThread = ({
     <div
       ref={scrollRef}
       onScroll={handleScroll}
-      className="flex-1 overflow-y-auto py-4"
+      className="flex-1 overflow-y-auto py-4 scrollbar-none"
       style={{ background: '#F5F2EA' }}
     >
       {hasMore && (

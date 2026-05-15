@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../../hooks/useAuth";
 import { useGetOrCreateConversation, useSendMessage } from "../../hooks/useMessaging";
@@ -8,6 +9,7 @@ const QuickMessageDialog = ({ listingId, ownerId, ownerName, isOpen, onClose }) 
   const { user } = useAuth();
   const [conversationId, setConversationId] = useState(null);
   const [initialConversation, setInitialConversation] = useState(null);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false)
   const { getOrCreate, loading: creatingConversation } =
     useGetOrCreateConversation();
   const { send: sendMessage } = useSendMessage();
@@ -28,24 +30,51 @@ const QuickMessageDialog = ({ listingId, ownerId, ownerName, isOpen, onClose }) 
 
     setupConversation();
   }, [isOpen, listingId, ownerId, user, getOrCreate]);
+  // lock body scroll while modal is open
+  useEffect(() => {
+    if (!isOpen) return
+    const { body, documentElement } = document
+    const prevBodyOverflow = body.style.overflow
+    const prevBodyTouch = body.style.touchAction
+    const prevHtmlOverflow = documentElement.style.overflow
 
-  if (!isOpen) return null;
+    body.style.overflow = 'hidden'
+    body.style.touchAction = 'none'
+    documentElement.style.overflow = 'hidden'
 
-  return (
+    return () => {
+      body.style.overflow = prevBodyOverflow
+      body.style.touchAction = prevBodyTouch
+      documentElement.style.overflow = prevHtmlOverflow
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  if (!isOpen) return null
+
+  const modal = (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/40 z-9999 flex items-center justify-center p-4"
         onClick={onClose}
+        aria-modal="true"
+        role="dialog"
       >
         <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
+          initial={{ scale: 0.96, opacity: 0, y: 12 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.96, opacity: 0, y: 12 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl h-150 flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden"
+          className={isMobile ? "w-full h-screen flex flex-col bg-white rounded-t-2xl shadow-2xl overflow-hidden" : "w-full max-w-2xl max-h-[calc(100vh-96px)] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden"}
+          style={isMobile ? { borderTopLeftRadius: 12, borderTopRightRadius: 12 } : undefined}
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-[#E8E0D5] bg-linear-to-r from-[#004D40] to-[#00342B]">
@@ -62,7 +91,7 @@ const QuickMessageDialog = ({ listingId, ownerId, ownerName, isOpen, onClose }) 
           </div>
 
           {/* Chat content */}
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             {creatingConversation ? (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
@@ -71,7 +100,7 @@ const QuickMessageDialog = ({ listingId, ownerId, ownerName, isOpen, onClose }) 
                 </div>
               </div>
             ) : conversationId ? (
-              <ChatWindow initialConversationId={conversationId} initialConversation={initialConversation} />
+              <ChatWindow embedded isMobile={isMobile} initialConversationId={conversationId} initialConversation={initialConversation} />
             ) : (
               <div className="flex-1 flex items-center justify-center">
                 <p className="text-[#999]">Failed to open conversation</p>
@@ -81,7 +110,9 @@ const QuickMessageDialog = ({ listingId, ownerId, ownerName, isOpen, onClose }) 
         </motion.div>
       </motion.div>
     </AnimatePresence>
-  );
+  )
+
+  return typeof document !== 'undefined' ? createPortal(modal, document.body) : modal
 };
 
 export default QuickMessageDialog;

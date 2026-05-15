@@ -95,7 +95,7 @@ const ConversationHeader = ({ conversation, onBack, showBack }) => {
           {listing?.listingTitle && (
             <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-[#E8E0D5] bg-[#FAF7F2] px-2.5 py-1 text-[11px] text-[#4F473F]">
               <span className="h-1.5 w-1.5 rounded-full bg-[#D4AF37]" />
-              <span className="truncate max-w-[220px]">{listing.listingTitle}</span>
+              <span className="truncate max-w-55">{listing.listingTitle}</span>
             </div>
           )}
         </div>
@@ -278,7 +278,7 @@ const ChatPanel = ({ conversation, userId, onBack, showBack }) => {
 
 // ── Main ChatWindow ───────────────────────────────────────────────────────────
 
-export const ChatWindow = ({ isMobile = false, initialConversationId = null, initialConversation = null }) => {
+export const ChatWindow = ({ isMobile = false, initialConversationId = null, initialConversation = null, embedded = false }) => {
   const { user } = useAuth()
   const { setActiveConversationId } = useMessaging()
   const {
@@ -289,7 +289,16 @@ export const ChatWindow = ({ isMobile = false, initialConversationId = null, ini
   } = useConversations()
 
   const [selectedConversation, setSelectedConversation] = useState(null)
-  const [showConversationList, setShowConversationList] = useState(!isMobile)
+  const [showConversationList, setShowConversationList] = useState(
+    isMobile && !initialConversation && !initialConversationId,
+  )
+
+  useEffect(() => {
+    // On mobile, show the list when nothing is selected to avoid an empty panel.
+    if (isMobile && !selectedConversation && !initialConversation && !initialConversationId) {
+      setShowConversationList(true)
+    }
+  }, [isMobile, selectedConversation, initialConversation, initialConversationId])
 
   useEffect(() => {
     if (!initialConversation) return
@@ -347,6 +356,25 @@ export const ChatWindow = ({ isMobile = false, initialConversationId = null, ini
     setActiveConversationId(null)
   }, [setActiveConversationId])
 
+  // If embedded inside a modal, prefer showing the provided conversation
+  // directly and hide the conversation list.
+  useEffect(() => {
+    if (!embedded) return
+    setShowConversationList(false)
+    if (initialConversation) {
+      setSelectedConversation(initialConversation)
+      setActiveConversationId(initialConversation._id?.toString?.() ?? initialConversation._id)
+      return
+    }
+    if (initialConversationId) {
+      const matched = conversations.find(c => c._id?.toString?.() === initialConversationId || c._id === initialConversationId)
+      if (matched) {
+        setSelectedConversation(matched)
+        setActiveConversationId(matched._id?.toString?.() ?? matched._id)
+      }
+    }
+  }, [embedded, initialConversation, initialConversationId, conversations, setActiveConversationId])
+
   // ── Mobile ───────────────────────────────────────────────────────────────
   if (isMobile) {
     if (showConversationList) {
@@ -382,16 +410,57 @@ export const ChatWindow = ({ isMobile = false, initialConversationId = null, ini
   }
 
   // ── Desktop ──────────────────────────────────────────────────────────────
+  const containerStyle = embedded
+    ? {
+      maxHeight: 'calc(100vh - 160px)',
+      minHeight: 360,
+      border: '1.5px solid rgba(212,175,55,0.18)',
+      boxShadow: '0 8px 40px rgba(0,52,43,0.10)',
+      background: '#F5F2EA',
+      height: 'auto',
+    }
+    : {
+      height: 'calc(100vh - 200px)',
+      minHeight: 520,
+      border: '1.5px solid rgba(212,175,55,0.18)',
+      boxShadow: '0 8px 40px rgba(0,52,43,0.10)',
+      background: '#F5F2EA',
+    }
+
+  if (embedded) {
+    return (
+      <div className="w-full flex rounded-2xl overflow-hidden" style={containerStyle}>
+        <div className="flex-1 flex flex-col min-h-0" style={{ background: '#F5F2EA' }}>
+          <AnimatePresence mode="wait">
+            {selectedConversation ? (
+              <motion.div
+                key={selectedConversation._id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="flex-1 flex flex-col min-h-0 overflow-hidden"
+              >
+                <ChatPanel conversation={selectedConversation} userId={user?.uid} />
+              </motion.div>
+            ) : (
+              <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="inline-block w-8 h-8 border-2 border-[#004D40]/20 border-t-[#004D40] rounded-full animate-spin mb-2" />
+                  <p className="text-sm text-[#999]">Opening chat…</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className="w-full flex rounded-2xl overflow-hidden"
-      style={{
-        height: 'calc(100vh - 200px)',
-        minHeight: 520,
-        border: '1.5px solid rgba(212,175,55,0.18)',
-        boxShadow: '0 8px 40px rgba(0,52,43,0.10)',
-        background: '#F5F2EA',
-      }}
+      style={containerStyle}
     >
       {/* Sidebar */}
       <div
