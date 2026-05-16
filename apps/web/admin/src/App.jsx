@@ -7,7 +7,6 @@ import ComingSoon from './pages/ComingSoon'
 import AdminLogin from './pages/AdminLogin'
 import AdminsPage from './pages/AdminsPage'
 import DeliveryPartnerPage from './pages/DeliveryPartnerPage'
-import SupportTeamPage from './pages/SupportTeamPage'
 import ErrorPage from './pages/ErrorPage'
 import TermsAndConditions from './pages/TermsAndConditions'
 import PrivacyPolicy from './pages/PrivacyPolicy'
@@ -51,16 +50,6 @@ const AdminApplication = () => {
             element={
               <ProtectedRoute>
                 <DeliveryPartnerPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Support Team Page */}
-          <Route
-            path="/support-team"
-            element={
-              <ProtectedRoute>
-                <SupportTeamPage />
               </ProtectedRoute>
             }
           />
