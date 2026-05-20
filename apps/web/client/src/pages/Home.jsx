@@ -7,6 +7,9 @@ import NewsletterSection from "../components/home/NewsletterSection";
 import { useListings } from "../hooks/useListings";
 import { useSEO } from "../hooks/useSEO";
 
+const SITE_URL = "https://listnrent.com";
+const SITE_LOGO_URL = `${SITE_URL}/apple-touch-icon.png`;
+
 const Home = () => {
   const activeCategory = "All";
   useSEO({
@@ -16,6 +19,24 @@ const Home = () => {
     keywords:
       "clothing rental, outfit rental, dress rental, ethnic wear rental, lehenga rental, saree rental, wedding outfit rental, party wear rental, rent clothes online, ListnRent",
     canonicalPath: "/",
+    structuredData: [
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        name: "ListnRent",
+        url: SITE_URL,
+        logo: {
+          "@type": "ImageObject",
+          url: SITE_LOGO_URL,
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        name: "ListnRent",
+        url: SITE_URL,
+      },
+    ],
   });
 
   // Fetch from real API — pass category filter (skip 'All')
