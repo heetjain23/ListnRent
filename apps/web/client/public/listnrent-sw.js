@@ -11,8 +11,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'ListnRent'
   const options = {
     body: data.body || 'You have a new notification',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/apple-touch-icon.png',
+    badge: '/apple-touch-icon.png',
     tag: data.tag || 'listnrent-message',
     renotify: true,
     data: {
