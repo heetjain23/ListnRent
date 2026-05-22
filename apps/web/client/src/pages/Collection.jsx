@@ -10,6 +10,7 @@ import TopBar from '../components/collection/TopBar'
 import Grid from '../components/collection/Grid'
 import Pagination from '../components/collection/Pagination'
 import { useSEO } from '../hooks/useSEO'
+import { collectionSeo, SITE_URL } from '../config/seoPages'
 
 // ── Ambient background (mirrors homepage sections) ──────────────────────────
 const AmbientAccents = () => (
@@ -55,7 +56,7 @@ const Collection = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [showFilterModal, setShowFilterModal] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '')
 
   // ── Filter state (URL-driven) ──────────────────────────────────────────────
   const [selectedCategories, setSelectedCategories] = useState(() => {
@@ -77,30 +78,17 @@ const Collection = () => {
   const itemsPerPage = 12
 
   // ── SEO ───────────────────────────────────────────────────────────────────
-  const seoTitle = selectedOccasion
-    ? `${selectedOccasion} Outfit Collection`
-    : selectedGender
-      ? `${selectedGender} Outfit Collection`
-      : 'Outfit Collection'
-
-  useSEO({
-    title: seoTitle,
-    description:
-      'Browse rental outfits by category, occasion, and style. Discover designer lehengas, sarees, and party wear available for rent on ListnRent.',
-    keywords:
-      'outfit collection, rent outfits, clothing rental collection, lehenga rental, saree rental, occasion wear rental, fashion rental India, ListnRent collection',
-    canonicalPath: '/collection',
-  })
-
   // ── Sync URL → state ──────────────────────────────────────────────────────
   useEffect(() => {
     const occasionParam = searchParams.get('occasion')
     const categoryParam = searchParams.get('category')
     const genderParam = searchParams.get('gender')
+    const searchParam = searchParams.get('search')
 
     setSelectedOccasion(occasionParam && OCCASIONS.includes(occasionParam) ? occasionParam : '')
     setSelectedCategories(categoryParam && CATEGORIES.includes(categoryParam) ? [categoryParam] : [])
     setSelectedGender(genderParam && GENDER.includes(genderParam) ? genderParam : '')
+    setSearchQuery(searchParam || '')
   }, [searchParams])
 
   useEffect(() => { window.scrollTo(0, 0) }, [])
@@ -173,6 +161,37 @@ const Collection = () => {
   const totalPages = Math.ceil(filtered.length / itemsPerPage)
   const startIdx = (currentPage - 1) * itemsPerPage
   const paginatedItems = filtered.slice(startIdx, startIdx + itemsPerPage)
+
+  const seoTitle = selectedOccasion
+    ? `Rent ${selectedOccasion} Outfits in Mumbai`
+    : selectedGender
+      ? `Rent ${selectedGender} Outfits in Mumbai`
+      : collectionSeo.metaTitle
+
+  const collectionSchema = useMemo(() => ({
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: seoTitle,
+    description: collectionSeo.description,
+    url: `${SITE_URL}/collection`,
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: paginatedItems.slice(0, 12).map((listing, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: `${SITE_URL}/listing/${listing._id || listing.id}`,
+        name: listing.title,
+      })),
+    },
+  }), [paginatedItems, seoTitle])
+
+  useSEO({
+    title: seoTitle,
+    description: collectionSeo.description,
+    keywords: collectionSeo.keywords,
+    canonicalPath: '/collection',
+    structuredData: collectionSchema,
+  })
 
   // ── URL helpers ───────────────────────────────────────────────────────────
   const updateUrlParams = (categories, occasion, gender) => {

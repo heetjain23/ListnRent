@@ -7,8 +7,9 @@
     "dev": "vite",
     "postinstall": "node scripts/patch-rollup-native.mjs",
     "sitemap": "node scripts/generate-sitemap.mjs",
-    "build": "npm run sitemap && vite build",
-    "build:seo": "npm run sitemap && vite build",
+    "seo:static": "node scripts/inject-static-seo.mjs",
+    "build": "npm run sitemap && vite build && npm run seo:static",
+    "build:seo": "npm run build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 
 const BRAND_NAME = 'ListnRent'
 const DEFAULT_BASE_URL = 'https://listnrent.com'
+const DEFAULT_IMAGE_URL = `${DEFAULT_BASE_URL}/apple-touch-icon.png`
 const JSON_LD_SCRIPT_ID = 'seo-structured-data'
 
 const normalizeBaseUrl = (value) => {
@@ -64,6 +65,7 @@ export const useSEO = ({
   canonicalUrl,
   noIndex = false,
   ogType = 'website',
+  image = DEFAULT_IMAGE_URL,
   structuredData = null,
 }) => {
   useEffect(() => {
@@ -73,7 +75,13 @@ export const useSEO = ({
     const resolvedCanonical =
       canonicalUrl || `${baseUrl}${canonicalPath || window.location.pathname}`
 
-    document.title = title ? `${title} | ${BRAND_NAME}` : BRAND_NAME
+    const resolvedTitle = title
+      ? title.includes(BRAND_NAME)
+        ? title
+        : `${title} | ${BRAND_NAME}`
+      : BRAND_NAME
+
+    document.title = resolvedTitle
 
     upsertMeta('description', description)
     upsertMeta('keywords', keywords)
@@ -83,10 +91,12 @@ export const useSEO = ({
     upsertMeta('og:description', description, 'property')
     upsertMeta('og:url', resolvedCanonical, 'property')
     upsertMeta('og:type', ogType, 'property')
+    upsertMeta('og:image', image, 'property')
 
     upsertMeta('twitter:card', 'summary_large_image', 'name')
     upsertMeta('twitter:title', document.title, 'name')
     upsertMeta('twitter:description', description, 'name')
+    upsertMeta('twitter:image', image, 'name')
 
     upsertCanonical(resolvedCanonical)
     upsertJsonLd(structuredData)
@@ -98,6 +108,7 @@ export const useSEO = ({
     canonicalUrl,
     noIndex,
     ogType,
+    image,
     structuredData,
   ])
 }

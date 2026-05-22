@@ -11,7 +11,7 @@ function AmbientAccents() {
       <motion.div
         animate={{ x: [0, -16, 8, 0], y: [0, 14, 4, 0], opacity: [0.2, 0.36, 0.26, 0.2] }}
         transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -top-[20%] -right-[8%] rounded-full blur-3xl"
+        className="absolute top-[-20%] right-[-8%] rounded-full blur-3xl"
         style={{
           width: 'min(42vw, 520px)',
           height: 'min(42vw, 520px)',
@@ -22,7 +22,7 @@ function AmbientAccents() {
       <motion.div
         animate={{ x: [0, 18, -8, 0], y: [0, -12, -4, 0], opacity: [0.18, 0.32, 0.22, 0.18] }}
         transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute -bottom-[16%] -left-[6%] rounded-full blur-3xl"
+        className="absolute bottom-[-16%] left-[-6%] rounded-full blur-3xl"
         style={{
           width: 'min(36vw, 440px)',
           height: 'min(36vw, 440px)',
@@ -196,8 +196,8 @@ const Footer = () => {
                 The Brand
               </h3>
               <ul className="flex flex-col gap-3.5">
-                <li><FooterLink label="Sustainability" href="#sustainability" /></li>
-                <li><FooterLink label="Brand Story" href="#brand-story" /></li>
+                <li><FooterLink label="Sustainability" to="/ethnic-wear-on-rent-mumbai" /></li>
+                <li><FooterLink label="Brand Story" to="/clothes-on-rent-mumbai" /></li>
                 <li><FooterLink label="Collection" to="/collection" /></li>
               </ul>
             </motion.div>
@@ -213,9 +213,9 @@ const Footer = () => {
                 Support
               </h3>
               <ul className="flex flex-col gap-3.5">
-                <li><FooterLink label="Terms of Service" href="#terms" /></li>
-                <li><FooterLink label="Privacy Policy" href="#privacy" /></li>
-                <li><FooterLink label="Contact Us" href="#contact" /></li>
+                <li><FooterLink label="List an Outfit" to="/create" /></li>
+                <li><FooterLink label="Sign In" to="/login" /></li>
+                <li><FooterLink label="Browse Rentals" to="/collection" /></li>
               </ul>
             </motion.div>
 
@@ -230,10 +230,10 @@ const Footer = () => {
                 Explore
               </h3>
               <ul className="flex flex-col gap-3.5">
-                <li><FooterLink label="Weddings" to="/collection?occasion=Wedding" /></li>
-                <li><FooterLink label="Parties" to="/collection?occasion=Parties" /></li>
-                <li><FooterLink label="Festivals" to="/collection?occasion=Festivals" /></li>
-                <li><FooterLink label="List Outfit" to="/create" /></li>
+                <li><FooterLink label="Wedding Outfits" to="/wedding-outfits-on-rent-mumbai" /></li>
+                <li><FooterLink label="Lehenga Rentals" to="/lehenga-on-rent-mumbai" /></li>
+                <li><FooterLink label="Saree Rentals" to="/saree-on-rent-mumbai" /></li>
+                <li><FooterLink label="Sherwani Rentals" to="/sherwani-on-rent-mumbai" /></li>
               </ul>
             </motion.div>
           </div>
