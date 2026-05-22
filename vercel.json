@@ -1,6 +1,30 @@
 {
   "buildCommand": "bash scripts/vercel-build.sh",
   "cleanUrls": false,
+  "headers": [
+    {
+      "source": "/(login|dashboard|checkout|create|edit|order|rental|complete-magic-link)(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

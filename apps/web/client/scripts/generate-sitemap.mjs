@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { seoLandingPages } from '../src/config/seoPages.js'
 
 const DEFAULT_SITE_URL = 'https://listnrent.com'
 const DEFAULT_API_URL = 'https://api.listnrent.com'
@@ -21,6 +22,11 @@ const apiUrl = normalizeUrl(
 const staticRoutes = [
   { path: '/', changefreq: 'daily', priority: '1.0' },
   { path: '/collection', changefreq: 'daily', priority: '0.9' },
+  ...seoLandingPages.map((page) => ({
+    path: page.path,
+    changefreq: 'weekly',
+    priority: '0.85',
+  })),
 ]
 
 const xmlEscape = (value) =>

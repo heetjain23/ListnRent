@@ -184,7 +184,7 @@ const ListingDetail = () => {
   const { listing, loading, error, refetch } = useListing(id)
   const initialBookingState = location.state || {}
 
-  const productSchema = useMemo(() => {
+  const structuredData = useMemo(() => {
     if (!listing) return null
     const listingUrl = typeof window !== 'undefined'
       ? window.location.href
@@ -194,34 +194,75 @@ const ListingDetail = () => {
       listing.condition === 'Excellent' ? 'https://schema.org/UsedCondition'
       : listing.condition === 'New' ? 'https://schema.org/NewCondition'
       : 'https://schema.org/UsedCondition'
-    return {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: listing.title,
-      description: listing.description,
-      category: listing.category,
-      image,
-      brand: { '@type': 'Brand', name: 'ListnRent' },
-      offers: {
-        '@type': 'Offer',
-        url: listingUrl,
-        priceCurrency: 'INR',
-        price: Number(listing.pricePerDay) || 0,
-        availability: listing.isActive ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-        itemCondition,
+    return [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: listing.title,
+        description: listing.description,
+        category: listing.category,
+        image,
+        sku: listing._id || id,
+        brand: { '@type': 'Brand', name: 'ListnRent' },
+        offers: {
+          '@type': 'Offer',
+          url: listingUrl,
+          priceCurrency: 'INR',
+          price: Number(listing.pricePerDay) || 0,
+          availability: listing.isActive ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+          itemCondition,
+          areaServed: {
+            '@type': 'City',
+            name: listing.location?.city || 'Mumbai',
+          },
+          businessFunction: 'https://purl.org/goodrelations/v1#LeaseOut',
+        },
       },
-    }
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: 'https://listnrent.com/',
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Collection',
+            item: 'https://listnrent.com/collection',
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: listing.category || 'Outfit',
+            item: `https://listnrent.com/collection?category=${encodeURIComponent(listing.category || '')}`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 4,
+            name: listing.title,
+            item: listingUrl,
+          },
+        ],
+      },
+    ]
   }, [listing, id])
 
   useSEO({
-    title: listing?.title ? `${listing.title} for Rent` : 'Outfit Details',
+    title: listing?.title
+      ? `${listing.title} on Rent in Mumbai`
+      : 'Outfit Rental Details',
     description: listing?.description
-      ? `${listing.description.slice(0, 150)}${listing.description.length > 150 ? '...' : ''}`
+      ? `Rent ${listing.title}, a ${listing.category || 'designer outfit'}${listing.occasion ? ` for ${listing.occasion}` : ''}. View price, size, measurements, location, availability, and booking details on ListnRent.`
       : 'View outfit details, rental pricing, and booking availability on ListnRent.',
-    keywords: [listing?.category, listing?.occasion, 'outfit rental', 'clothing rental', 'designer wear rental', 'ListnRent'].filter(Boolean).join(', '),
+    keywords: [listing?.title, listing?.category, listing?.occasion, 'outfit rental Mumbai', 'clothing rental Mumbai', 'designer wear rental', 'ListnRent'].filter(Boolean).join(', '),
     canonicalPath: `/listing/${listing?._id || id}`,
     ogType: 'product',
-    structuredData: productSchema,
+    image: listing?.images?.[0],
+    structuredData,
   })
 
   const [activeImage,  setActiveImage]  = useState(0)

@@ -943,6 +943,7 @@ export default function HeroSection({ listings = [], loading = false }) {
     <div className="overflow-hidden bg-[#FAF7F2] font-sans">
       {/* ── MAIN HERO SECTION ─────────────────────────────── */}
       <section
+        id="home-hero-section"
         ref={heroRef}
         className={`relative flex items-center overflow-hidden bg-[linear-gradient(135deg,#FBF8F3_0%,#F7F1E7_52%,#EFE4D4_100%)] ${
           isMobile
@@ -996,14 +997,14 @@ export default function HeroSection({ listings = [], loading = false }) {
               <h1 className="mb-2 font-serif text-[clamp(34px,8vw,72px)] font-black leading-[1.06] tracking-[-0.02em] text-[#1A1A1A]">
                 <div className="mb-0.5 overflow-hidden">
                   <GlitchWord word="Rent" delay={200} />
-                  <span className="text-[#00342B]"> Mumbai&apos;s</span>
+                  <span className="text-[#00342B]"> Designer</span>
                 </div>
                 <div className="mb-0.5 overflow-hidden">
-                  <GlitchWord word="Finest" delay={350} />
-                  <span className="text-[#C8622A]"> Ethnic</span>
+                  <GlitchWord word="Ethnic" delay={350} />
+                  <span className="text-[#C8622A]"> Wear</span>
                 </div>
                 <div className="overflow-hidden">
-                  <GlitchWord word="Couture" delay={500} />
+                  <GlitchWord word="in Mumbai" delay={500} />
                 </div>
               </h1>
 
@@ -1026,9 +1027,9 @@ export default function HeroSection({ listings = [], loading = false }) {
                 transition={{ delay: 0.9, duration: 0.6 }}
                 className={`mb-9 max-w-120 text-[clamp(14px,1.6vw,17px)] leading-[1.7] text-[#666] ${isMobile ? "mx-auto" : "mx-0"}`}
               >
-                Experience designer lehengas, sherwanis & sarees without the
-                lifetime cost. Sustainable luxury for Mumbai's social season —
-                delivered to your door.
+                Rent lehengas, sarees, sherwanis, jodhpuris and party wear for
+                weddings, sangeet nights, festivals and formal events. Choose
+                dates, review measurements and book occasion wear online.
               </motion.p>
 
               {/* CTAs */}

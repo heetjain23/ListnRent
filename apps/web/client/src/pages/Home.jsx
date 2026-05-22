@@ -6,18 +6,14 @@ import TrendingNowSection from "../components/home/TrendingNowSection";
 import NewsletterSection from "../components/home/NewsletterSection";
 import { useListings } from "../hooks/useListings";
 import { useSEO } from "../hooks/useSEO";
-
-const SITE_URL = "https://listnrent.com";
-const SITE_LOGO_URL = `${SITE_URL}/apple-touch-icon.png`;
+import { homeSeo, SITE_LOGO_URL, SITE_URL } from "../config/seoPages";
 
 const Home = () => {
   const activeCategory = "All";
   useSEO({
-    title: "Rent Designer Outfits Online",
-    description:
-      "Discover and rent premium ethnic and party wear for weddings, festivals, and special occasions. List your outfits and earn with ListnRent.",
-    keywords:
-      "clothing rental, outfit rental, dress rental, ethnic wear rental, lehenga rental, saree rental, wedding outfit rental, party wear rental, rent clothes online, ListnRent",
+    title: homeSeo.metaTitle,
+    description: homeSeo.description,
+    keywords: homeSeo.keywords,
     canonicalPath: "/",
     structuredData: [
       {
@@ -35,6 +31,23 @@ const Home = () => {
         "@type": "WebSite",
         name: "ListnRent",
         url: SITE_URL,
+        potentialAction: {
+          "@type": "SearchAction",
+          target: `${SITE_URL}/collection?search={search_term_string}`,
+          "query-input": "required name=search_term_string",
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        name: "ListnRent",
+        url: SITE_URL,
+        image: SITE_LOGO_URL,
+        areaServed: {
+          "@type": "City",
+          name: "Mumbai",
+        },
+        priceRange: "INR",
       },
     ],
   });
