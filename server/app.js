@@ -2,6 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import cors from "cors";
 import dotenv from "dotenv";
+import mongoose from "mongoose";
 
 dotenv.config();
 
@@ -9,6 +10,7 @@ dotenv.config();
 import "./src/config/firebase-admin.js";
 
 import { connectDB } from "./src/config/db.js";
+import { verifyFirebaseToken } from "./src/middleware/authMiddleware.js";
 import disputeRoutes from "./src/features/disputes/disputeRoutes.js";
 import listingRoutes from "./src/features/listings/listingRoutes.js";
 import paymentRoutes from "./src/features/payments/paymentRoutes.js";
@@ -25,12 +27,28 @@ import { initSocketServer, attachIO } from "./src/socket/socketServer.js";
 const app = express();
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-  : ["http://localhost:5173", "http://localhost:5174"];
+const defaultAllowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:8081",
+];
+
+const envAllowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  : [];
+
+const allowedOrigins = [...new Set([...envAllowedOrigins, ...defaultAllowedOrigins])];
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -44,6 +62,34 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.get("/api/test", (req, res) => res.json({ message: "API working" }));
+
+// live DB connection.
+const DB_STATE_LABELS = {
+  0: "disconnected",
+  1: "connected",
+  2: "connecting",
+  3: "disconnecting",
+};
+
+app.get("/api/health", (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  res.json({
+    server: "ok",
+    database: DB_STATE_LABELS[dbState] || "unknown",
+    databaseName: mongoose.connection.name || null,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get("/api/health/auth", verifyFirebaseToken, (req, res) => {
+  res.json({
+    server: "ok",
+    auth: "ok",
+    uid: req.user.uid,
+    email: req.user.email,
+    timestamp: new Date().toISOString(),
+  });
+});
 
 app.use("/api/disputes", disputeRoutes);
 app.use("/api/listings", listingRoutes);

@@ -1,4 +1,5 @@
-import admin from "firebase-admin";
+import { cert, getApp, getApps, initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -44,11 +45,17 @@ try {
   process.exit(1);
 }
 
-// Initialize Firebase Admin SDK
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  projectId: serviceAccount.project_id,
-});
+// Initialize Firebase Admin SDK (idempotent for hot-reload / nodemon restarts)
+const app = getApps().length
+  ? getApp()
+  : initializeApp({
+      credential: cert(serviceAccount),
+      projectId: serviceAccount.project_id,
+    });
+
+const admin = {
+  auth: () => getAuth(app),
+};
 
 export default admin;
 

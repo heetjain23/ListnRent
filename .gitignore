@@ -75,3 +75,5 @@ apps/mobile/ios/build/
 # Vite cache
 .vite/
 cat .gitignore | grep vite
+
+package-lock.json
