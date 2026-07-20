@@ -3,8 +3,11 @@ import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import TopBar from "../components/home/TopBar.jsx";
 import HeroCardStack from "../components/home/HeroCardStack.jsx";
+import { useListings } from "../hooks/useListings.js";
 
 export default function Home() {
+  const { listings, loading } = useListings({ limit: 4, sortBy: "trending" });
+
   return (
     <LinearGradient
       colors={["#FBF8F3", "#F7F1E7", "#EFE4D4"]}
@@ -13,7 +16,7 @@ export default function Home() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <TopBar />
 
-        <HeroCardStack />
+        <HeroCardStack listings={listings} loading={loading} />
 
         {/* NEW badge pill */}
         <View style={styles.newBadgeRow}>
