@@ -1,20 +1,32 @@
 import React from "react";
+import { House, Search, ShoppingCart, User } from 'lucide-react-native';
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Home from "../screens/Home.jsx";
+import Browse from "../screens/Browse.jsx";
+import Cart from "../screens/Cart.jsx";
+import Account from "../screens/Account.jsx";
 
-// Mirrors apps/web/client/src/components/layout/BottomNav.jsx tabs:
-// Home, Browse, Cart, Profile (+ a center "create listing" action on web).
-// Only Home is wired for now — the rest are placeholders using Home's
-// component until we build Collection/Cart/Dashboard screens for real.
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabs() {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarIcon: ({ color, size }) => {
+          let Icon = null;
+          if (route.name === 'Home') Icon = House;
+          else if (route.name === 'Browse') Icon = Search;
+          else if (route.name === 'Cart') Icon = ShoppingCart;
+          else if (route.name === 'Profile') Icon = User;
+          return Icon ? <Icon color={color} size={size} /> : null;
+        },
+      })}
+    >
       <Tab.Screen name="Home" component={Home} />
-      <Tab.Screen name="Browse" component={Home} />
-      <Tab.Screen name="Cart" component={Home} />
-      <Tab.Screen name="Profile" component={Home} />
+      <Tab.Screen name="Browse" component={Browse} />
+      <Tab.Screen name="Cart" component={Cart} />
+      <Tab.Screen name="Profile" component={Account} />
     </Tab.Navigator>
   );
 }
