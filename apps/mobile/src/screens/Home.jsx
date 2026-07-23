@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import TopBar from "../components/ui/TopBar.jsx";
+import Footer from "../components/ui/Footer.jsx";
 import HeroCardStack from "../components/home/HeroCardStack.jsx";
 import TrendingNowSection from "../components/home/TrendingNowSection.jsx";
 import CuratedOccasionsSection from "../components/home/CuratedOccasionsSection.jsx";
@@ -81,6 +82,7 @@ export default function Home() {
       <CuratedOccasionsSection />
       <SeamlessJourneySection />
       <NewsletterSection />
+      <Footer />
     </ScrollView>
   );
 }
