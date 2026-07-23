@@ -1,85 +1,95 @@
 import React from "react";
 import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import TopBar from "../components/home/TopBar.jsx";
+import TopBar from "../components/ui/TopBar.jsx";
 import HeroCardStack from "../components/home/HeroCardStack.jsx";
+import TrendingNowSection from "../components/home/TrendingNowSection.jsx";
+import CuratedOccasionsSection from "../components/home/CuratedOccasionsSection.jsx";
+import SeamlessJourneySection from "../components/home/SeamlessJourneySection.jsx";
+import NewsletterSection from "../components/home/NewsletterSection.jsx";
 import { useListings } from "../hooks/useListings.js";
 
 export default function Home() {
   const { listings, loading } = useListings({ limit: 4, sortBy: "trending" });
 
   return (
-    <LinearGradient
-      colors={["#FBF8F3", "#F7F1E7", "#EFE4D4"]}
-      style={styles.flex}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <TopBar />
+    <ScrollView style={styles.flex} contentContainerStyle={styles.scrollContent}>
+      <LinearGradient colors={["#FBF8F3", "#F7F1E7", "#EFE4D4"]} style={styles.heroBg}>
+        <View style={styles.heroInner}>
+          <TopBar />
 
-        <HeroCardStack listings={listings} loading={loading} />
+          <HeroCardStack listings={listings} loading={loading} />
 
-        {/* NEW badge pill */}
-        <View style={styles.newBadgeRow}>
-          <View style={styles.newBadge}>
-            <Text style={styles.newBadgeText}>New</Text>
+          {/* NEW badge pill */}
+          <View style={styles.newBadgeRow}>
+            <View style={styles.newBadge}>
+              <Text style={styles.newBadgeText}>New</Text>
+            </View>
+            <Text style={styles.newBadgeLabel}>The Curated Heritage Platform</Text>
           </View>
-          <Text style={styles.newBadgeLabel}>The Curated Heritage Platform</Text>
-        </View>
 
-        {/* Headline */}
-        <View style={styles.headlineBlock}>
-          <Text style={styles.headline}>
-            Rent <Text style={styles.headlineGreen}>Designer</Text>
+          {/* Headline */}
+          <View style={styles.headlineBlock}>
+            <Text style={styles.headline}>
+              Rent <Text style={styles.headlineGreen}>Designer</Text>
+            </Text>
+            <Text style={styles.headline}>
+              Ethnic <Text style={styles.headlineOrange}>Wear</Text>
+            </Text>
+            <Text style={styles.headline}>in Mumbai</Text>
+          </View>
+
+          {/* Gold underline */}
+          <View style={styles.underline} />
+
+          {/* Subtext */}
+          <Text style={styles.subtext}>
+            Rent lehengas, sarees, sherwanis, jodhpuris and party wear for
+            weddings, sangeet nights, festivals and formal events. Choose
+            dates, review measurements and book occasion wear online.
           </Text>
-          <Text style={styles.headline}>
-            Ethnic <Text style={styles.headlineOrange}>Wear</Text>
-          </Text>
-          <Text style={styles.headline}>in Mumbai</Text>
-        </View>
 
-        {/* Gold underline */}
-        <View style={styles.underline} />
-
-        {/* Subtext */}
-        <Text style={styles.subtext}>
-          Rent lehengas, sarees, sherwanis, jodhpuris and party wear for
-          weddings, sangeet nights, festivals and formal events. Choose
-          dates, review measurements and book occasion wear online.
-        </Text>
-
-        {/* CTAs */}
-        <View style={styles.ctaRow}>
-          <Pressable style={styles.primaryCta}>
-            <Text style={styles.primaryCtaText}>Explore Collection →</Text>
-          </Pressable>
-          <Pressable style={styles.secondaryCta}>
-            <Text style={styles.secondaryCtaText}>+ List Your Outfit</Text>
-          </Pressable>
-        </View>
-
-        {/* Stats row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statBlock}>
-            <Text style={styles.statValue}>120+</Text>
-            <Text style={styles.statLabel}>Outfits</Text>
+          {/* CTAs */}
+          <View style={styles.ctaRow}>
+            <Pressable style={styles.primaryCta}>
+              <Text style={styles.primaryCtaText}>Explore Collection →</Text>
+            </Pressable>
+            <Pressable style={styles.secondaryCta}>
+              <Text style={styles.secondaryCtaText}>+ List Your Outfit</Text>
+            </Pressable>
           </View>
-          <View style={styles.statBlock}>
-            <Text style={styles.statValue}>340+</Text>
-            <Text style={styles.statLabel}>Renters</Text>
-          </View>
-          <View style={styles.statBlock}>
-            <Text style={styles.statValue}>₹4,200</Text>
-            <Text style={styles.statLabel}>Avg Savings</Text>
+
+          {/* Stats row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBlock}>
+              <Text style={styles.statValue}>120+</Text>
+              <Text style={styles.statLabel}>Outfits</Text>
+            </View>
+            <View style={styles.statBlock}>
+              <Text style={styles.statValue}>340+</Text>
+              <Text style={styles.statLabel}>Renters</Text>
+            </View>
+            <View style={styles.statBlock}>
+              <Text style={styles.statValue}>₹4,200</Text>
+              <Text style={styles.statLabel}>Avg Savings</Text>
+            </View>
           </View>
         </View>
-      </ScrollView>
-    </LinearGradient>
+      </LinearGradient>
+
+      <TrendingNowSection listings={listings} loading={loading} />
+      <CuratedOccasionsSection />
+      <SeamlessJourneySection />
+      <NewsletterSection />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  scrollContent: { paddingBottom: 40, alignItems: "center" },
+  scrollContent: { paddingBottom: 40 },
+  heroBg: { paddingBottom: 8 },
+  heroInner: { alignItems: "center", paddingBottom: 32 },
 
   newBadgeRow: {
     flexDirection: "row",
