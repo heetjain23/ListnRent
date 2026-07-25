@@ -11,6 +11,7 @@ node_modules/
 .env.*
 */.env
 */.env.*
+.expo
 
 # -----------------------------
 # Firebase Service Account (sensitive credentials)

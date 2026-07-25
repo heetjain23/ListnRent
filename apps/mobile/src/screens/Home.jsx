@@ -1,7 +1,7 @@
 import React from "react";
-import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import TopBar from "../components/ui/TopBar.jsx";
+import ScreenScrollView from "../components/ui/ScreenScrollView.jsx";
 import Footer from "../components/ui/Footer.jsx";
 import HeroCardStack from "../components/home/HeroCardStack.jsx";
 import TrendingNowSection from "../components/home/TrendingNowSection.jsx";
@@ -14,11 +14,9 @@ export default function Home() {
   const { listings, loading } = useListings({ limit: 4, sortBy: "trending" });
 
   return (
-    <ScrollView style={styles.flex} contentContainerStyle={styles.scrollContent}>
+    <ScreenScrollView>
       <LinearGradient colors={["#FBF8F3", "#F7F1E7", "#EFE4D4"]} style={styles.heroBg}>
         <View style={styles.heroInner}>
-          <TopBar />
-
           <HeroCardStack listings={listings} loading={loading} />
 
           {/* NEW badge pill */}
@@ -83,13 +81,11 @@ export default function Home() {
       <SeamlessJourneySection />
       <NewsletterSection />
       <Footer />
-    </ScrollView>
+    </ScreenScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  scrollContent: { paddingBottom: 40 },
   heroBg: { paddingBottom: 8 },
   heroInner: { alignItems: "center", paddingBottom: 32 },
 

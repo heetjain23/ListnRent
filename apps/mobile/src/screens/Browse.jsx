@@ -1,26 +1,16 @@
-import { ScrollView, Text, View, StyleSheet } from 'react-native'
-import React, { Component } from 'react'
+import React from "react";
+import { Text, StyleSheet } from "react-native";
+import ScreenScrollView from "../components/ui/ScreenScrollView.jsx";
 
 export default function Browse() {
-    return (
-        <ScrollView >
-            <View style={styles.View}>
-                <Text style={styles.text}>
-                    Browse
-                </Text>
-            </View>
-        </ScrollView>
-    )
+  return (
+    <ScreenScrollView contentContainerStyle={styles.content}>
+      <Text style={styles.text}>Browse</Text>
+    </ScreenScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
-    View: {
-        flex: 1,
-        padding: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    text: {
-        fontSize: 20,
-    }
-})
+  content: { flexGrow: 1, alignItems: "center", justifyContent: "center", padding: 20 },
+  text: { fontSize: 20 },
+});
