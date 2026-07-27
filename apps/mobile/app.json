@@ -4,7 +4,7 @@
     "slug": "ListnRent",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/favicon.svg",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
